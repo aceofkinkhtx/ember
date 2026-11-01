@@ -109,6 +109,12 @@ Three maps share one gesture: drag a single dot onto a two-axis map. The dot's p
 
 &#91;embedded content: three maps · axes and quadrants\]
 
+| Map | Horizontal axis (left to right) | Vertical axis (bottom to top) | Quadrants |
+| --- | --- | --- | --- |
+| Desire map | In my body to In my head | Soothe me to Stir me | **Ignite** (body, stir): sensation, intensity, adrenaline. **Unravel** (head, stir): psychological edge, catharsis, transformation. **Melt** (body, soothe): comfort, warmth, sensual ease. **Drift** (head, soothe): quiet mind, surrender, letting go. |
+| Aftercare map | Quiet to Talk | Nurture me to Ground me | **Anchor** (quiet, ground): water, space nearby, steady presence. **Recap** (talk, ground): sit up, process, name what happened. **Cocoon** (quiet, nurture): blanket, holding, silence. **Pillow Talk** (talk, nurture): cuddled while we talk it through. |
+| Dynamic map | Leading to Following | Receiving to Giving | **Provide** (lead, give): steer the scene for their pleasure. **Devote** (follow, give): follow in order to serve. **Command** (lead, receive): steer it for my own pleasure. **Receive** (follow, receive): follow and be attended to. |
+
 **Desire map** is part of the bottom's intake, alongside or instead of the word groups.
 
 **Aftercare map** can be set twice: once for in-session aftercare and once for the next day. The aftercare section auto-fills with modalities from the dot's area.

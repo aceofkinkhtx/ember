@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { PinSetup } from '../components/PinSetup';
 import { SettingSwitch } from '../components/Switch';
 import { roleLabel, type RoleChoice } from '../content/copy';
+import { donation } from '../content/support';
 import { eraseAll } from '../lib/storage';
 import { roleFor, useSettings, type Depth } from '../state/settings';
 
@@ -11,6 +12,7 @@ export function Me() {
   const { settings, update } = useSettings();
   const [settingPin, setSettingPin] = useState(false);
   const [confirmErase, setConfirmErase] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (settingPin) {
     return (
@@ -120,6 +122,34 @@ export function Me() {
         <button type="button" className="btn btn-outline" onClick={() => setConfirmErase(true)}>
           Erase Ember from this phone
         </button>
+      </section>
+
+      <section className="card" aria-label="Support Ember">
+        <div className="eyebrow">Support Ember</div>
+        <p className="setting-desc">Ember is free and runs on donations. Any amount helps keep it that way.</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <a className="btn btn-secondary" href={donation.cashApp.url} target="_blank" rel="noreferrer">
+            Cash App
+          </a>
+          <a className="btn btn-secondary" href={donation.venmo.url} target="_blank" rel="noreferrer">
+            Venmo
+          </a>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              navigator.clipboard?.writeText(donation.zelle.handle).then(
+                () => setCopied(true),
+                () => setCopied(false)
+              );
+            }}
+          >
+            Zelle
+          </button>
+        </div>
+        <p className="note" aria-live="polite">
+          {copied ? `Copied ${donation.zelle.handle}. Paste it into Zelle in your bank app.` : `Zelle: ${donation.zelle.handle}`}
+        </p>
       </section>
 
       <p className="note" style={{ textAlign: 'center' }}>Ember 0.1 · Early preview</p>
