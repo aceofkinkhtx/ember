@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mutual actions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=DM+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#8E1B3B}a:hover{color:#5E0F26}
+.grain{background-color:#F5EDE3;background-image:radial-gradient(rgba(30,20,24,0.07) 1px,transparent 1px);background-size:5px 5px}
+</style>
+</helmet>
+<div class="grain" style="position: relative; width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #1E1418; overflow: hidden">
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px; padding: 20px; overflow-y: auto">
+    <a href="Connection.dc.html" style="align-self: flex-start; color: #5E4C52; text-decoration: none; font-size: 15px; padding: 8px 0">‹ River</a>
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #8E1B3B">New scene · step 2 of 4</div>
+    <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 28px; line-height: 1.1">What you’ll do together</h1>
+    <div style="font-size: 15px; color: #5E4C52; line-height: 1.4">River said yes to these, and you offer them. Tap to include.</div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 8px">
+      <sc-for list="{{yesItems}}" as="item" hint-placeholder-count="8">
+        <sc-if value="{{item.on}}" hint-placeholder-val="{{true}}">
+          <button type="button" onClick="{{item.toggle}}" aria-pressed="true" style="background: #0B5D61; color: #FFFFFF; border: 2px solid #0B5D61; font: 700 15px 'DM Sans', sans-serif; padding: 10px 14px; border-radius: 999px; min-height: 44px">✓ {{item.label}}</button>
+        </sc-if>
+        <sc-if value="{{item.off}}" hint-placeholder-val="{{false}}">
+          <button type="button" onClick="{{item.toggle}}" aria-pressed="false" style="background: #FFFAF4; color: #1E1418; border: 2px solid #CDBBA9; font: 500 15px 'DM Sans', sans-serif; padding: 10px 14px; border-radius: 999px; min-height: 44px">{{item.label}}</button>
+        </sc-if>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{hasExtras}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #5E4C52">Added by you</div>
+        <sc-for list="{{extras}}" as="ex" hint-placeholder-count="1">
+          <sc-if value="{{ex.isMaybe}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #FFF3DD; border: 2px solid #E8A33A; border-radius: 12px; padding: 10px 12px"><span style="font-weight: 700">{{ex.label}}</span><span style="font-size: 13px; font-weight: 700; color: #6B4405">MAYBE · discussed together?</span></div>
+          </sc-if>
+          <sc-if value="{{ex.isNo}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #FBE7EA; border: 2px solid #8E1B3B; border-radius: 12px; padding: 10px 12px"><span style="font-weight: 700">{{ex.label}}</span><span style="font-size: 13px; font-weight: 700; color: #8E1B3B">NO · override confirmed</span></div>
+          </sc-if>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <button type="button" onClick="{{toggleDrawer}}" aria-expanded="{{drawer}}" style="align-self: flex-start; background: transparent; border: 2px dashed #8E1B3B; color: #8E1B3B; font: 700 15px 'DM Sans', sans-serif; padding: 10px 16px; border-radius: 12px; min-height: 44px">+ Add more</button>
+
+    <sc-if value="{{drawer}}" hint-placeholder-val="{{false}}">
+      <div style="background: #FFFAF4; border: 1px solid #E2D5C7; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6B4405">River said maybe</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <sc-for list="{{maybeItems}}" as="m" hint-placeholder-count="2">
+            <button type="button" onClick="{{m.add}}" style="background: #FFF3DD; color: #1E1418; border: 2px solid #E8A33A; font: 500 15px 'DM Sans', sans-serif; padding: 9px 13px; border-radius: 999px; min-height: 44px">+ {{m.label}}</button>
+          </sc-for>
+        </div>
+        <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #8E1B3B">River said no</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <sc-for list="{{noItems}}" as="n" hint-placeholder-count="2">
+            <button type="button" onClick="{{n.add}}" style="background: #FBE7EA; color: #1E1418; border: 2px solid #8E1B3B; font: 500 15px 'DM Sans', sans-serif; padding: 9px 13px; border-radius: 999px; min-height: 44px">+ {{n.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <label for="notes" style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #5E4C52">Notes, surprises, combinations</label>
+    <textarea id="notes" rows="3" placeholder="Wax over the blindfold, ice right after…" style="font: 400 15px 'DM Sans', sans-serif; border: 1px solid #CDBBA9; border-radius: 12px; padding: 12px; background: #FFFAF4; color: #1E1418; resize: none"></textarea>
+  </div>
+
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px 18px; background: #FFFAF4; border-top: 1px solid #E2D5C7">
+    <div style="font-size: 15px; color: #5E4C52"><span style="font-weight: 700; color: #1E1418">{{count}}</span> chosen</div>
+    <a href="Options.dc.html" style="background: #B8400C; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 16px; padding: 14px 22px; border-radius: 14px">Design it ›</a>
+  </div>
+
+  <sc-if value="{{hasPending}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: rgba(30,20,24,0.55); display: flex; align-items: flex-end">
+      <div role="dialog" aria-label="Confirm override" style="width: 100%; background: #FFFAF4; border-radius: 24px 24px 0 0; padding: 24px 20px 28px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; gap: 10px"><span style="width: 14px; height: 14px; border-radius: 50%; background: #8E1B3B"></span><span style="font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #8E1B3B">RED FLAG</span></div>
+        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 22px; line-height: 1.2">River marked “{{pendingLabel}}” as no.</div>
+        <div style="font-size: 16px; line-height: 1.4">Have you talked and agreed to include it? The flag stays on the beat, the limit strip and the live guide, and the override is recorded.</div>
+        <button type="button" onClick="{{confirm}}" style="background: #8E1B3B; color: #FFFFFF; border: 0; font: 700 16px 'DM Sans', sans-serif; padding: 15px; border-radius: 14px; min-height: 48px">Yes, we’ve agreed</button>
+        <button type="button" onClick="{{cancel}}" style="background: #EADCCB; color: #1E1418; border: 0; font: 500 16px 'DM Sans', sans-serif; padding: 15px; border-radius: 14px; min-height: 48px">Leave it out</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: { blindfold: true, flogger: true, massage: true }, drawer: false, pending: null, extras: [] };
+  }
+  renderVals() {
+    const s = this.state;
+    const yes = [
+      { id: 'blindfold', label: 'Blindfold' }, { id: 'cuffs', label: 'Soft cuffs' },
+      { id: 'massage', label: 'Erotic massage' }, { id: 'hand', label: 'Hand spanking' },
+      { id: 'flogger', label: 'Flogger (thuddy)' }, { id: 'wax', label: 'Wax play' },
+      { id: 'nipple', label: 'Nipple play' }, { id: 'toys', label: 'Toys on genitals' }
+    ];
+    const maybe = [{ id: 'hair', label: 'Hair pulling' }, { id: 'standing', label: 'Standing restraint' }];
+    const no = [{ id: 'face', label: 'Face impact' }, { id: 'rope', label: 'Rope bondage' }];
+    const taken = (id) => s.extras.some((e) => e.id === id);
+    const yesItems = yes.map((x) => ({ ...x, on: !!s.sel[x.id], off: !s.sel[x.id],
+      toggle: () => this.setState((p) => ({ sel: { ...p.sel, [x.id]: !p.sel[x.id] } })) }));
+    const maybeItems = maybe.filter((x) => !taken(x.id)).map((x) => ({ ...x,
+      add: () => this.setState((p) => ({ extras: [...p.extras, { ...x, kind: 'maybe' }] })) }));
+    const noItems = no.filter((x) => !taken(x.id)).map((x) => ({ ...x,
+      add: () => this.setState({ pending: x }) }));
+    const extras = s.extras.map((e) => ({ ...e, isMaybe: e.kind === 'maybe', isNo: e.kind === 'no' }));
+    const count = yesItems.filter((x) => x.on).length + extras.length;
+    return {
+      yesItems, maybeItems, noItems, extras, count,
+      hasExtras: extras.length > 0,
+      drawer: s.drawer,
+      toggleDrawer: () => this.setState((p) => ({ drawer: !p.drawer })),
+      hasPending: !!s.pending,
+      pendingLabel: s.pending ? s.pending.label : '',
+      confirm: () => this.setState((p) => ({ extras: [...p.extras, { ...p.pending, kind: 'no' }], pending: null })),
+      cancel: () => this.setState({ pending: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

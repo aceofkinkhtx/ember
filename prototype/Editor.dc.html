@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scene editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=DM+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#8E1B3B}a:hover{color:#5E0F26}
+.grain{background-color:#F5EDE3;background-image:radial-gradient(rgba(30,20,24,0.07) 1px,transparent 1px);background-size:5px 5px}
+</style>
+</helmet>
+<div class="grain" style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #1E1418; overflow: hidden">
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 20px; overflow-y: auto">
+    <a href="Options.dc.html" style="align-self: flex-start; color: #5E4C52; text-decoration: none; font-size: 15px; padding: 8px 0">‹ Design options</a>
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #8E1B3B">New scene · step 4 of 4</div>
+    <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 28px; line-height: 1.1">Two Peaks with River</h1>
+    <div style="font-size: 14px; color: #5E4C52">Sat 7:00 PM · 3 hrs · tap a phase to open, drag ⋮⋮ to move</div>
+
+    <sc-for list="{{phases}}" as="ph" hint-placeholder-count="6">
+      <div style="border-radius: 16px; overflow: hidden; background: #FFFAF4; border: 1px solid #E2D5C7">
+        <button type="button" onClick="{{ph.toggle}}" aria-expanded="{{ph.open}}" style="width: 100%; display: flex; align-items: center; gap: 10px; background: {{ph.color}}; color: #FFFFFF; border: 0; padding: 12px 14px; font: 700 16px 'DM Sans', sans-serif; text-align: left; min-height: 48px">
+          <span aria-hidden="true" style="opacity: 0.8">⋮⋮</span>
+          <span style="flex-grow: 1">{{ph.name}}</span>
+          <span style="font-weight: 500; font-size: 14px">{{ph.time}}</span>
+        </button>
+        <sc-if value="{{ph.open}}" hint-placeholder-val="{{true}}">
+          <div style="display: flex; flex-direction: column; padding: 4px 10px 10px">
+            <sc-for list="{{ph.beats}}" as="b" hint-placeholder-count="2">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid #EFE4D8">
+                <span aria-hidden="true" style="color: #A8968A">⋮⋮</span>
+                <span style="font-size: 13px; color: #5E4C52; width: 42px">{{b.t}}</span>
+                <span style="flex-grow: 1; font-size: 15px; font-weight: 500">{{b.title}}</span>
+                <sc-if value="{{b.surprise}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; font-weight: 700; color: #6E1530; background: #F6E3EA; padding: 3px 7px; border-radius: 6px">★ surprise</span></sc-if>
+                <span style="font-size: 13px; font-weight: 700; background: #EADCCB; padding: 3px 8px; border-radius: 6px">{{b.i}}</span>
+              </div>
+              <sc-if value="{{b.warn}}" hint-placeholder-val="{{false}}">
+                <div style="margin: 6px 0; background: #FFF3DD; border: 1px solid #E8A33A; border-radius: 10px; padding: 8px 10px; font-size: 13px; color: #4A2F04">⚠ {{b.warnText}} <button type="button" style="border: 0; background: none; color: #8E1B3B; font: 700 13px 'DM Sans', sans-serif; padding: 0; text-decoration: underline">Keep with reason</button></div>
+              </sc-if>
+            </sc-for>
+            <button type="button" style="align-self: flex-start; margin-top: 8px; background: none; border: 0; color: #8E1B3B; font: 700 14px 'DM Sans', sans-serif; padding: 8px 4px; min-height: 40px">+ Add beat</button>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+    <div style="background: #FFFAF4; border: 2px solid #1E1418; border-radius: 16px; padding: 12px 14px; font-size: 14px; line-height: 1.4"><span style="font-weight: 700">Close card</span> · readiness check before River leaves · check-in set for Sun 1:00 PM</div>
+  </div>
+  <div style="display: flex; gap: 10px; padding: 12px 20px 18px; background: #FFFAF4; border-top: 1px solid #E2D5C7">
+    <a href="SceneVibe.dc.html" style="flex-grow: 1; text-align: center; background: #0B5D61; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 15px; padding: 14px; border-radius: 14px">Share SceneVibe</a>
+    <a href="Live.dc.html" style="flex-grow: 1; text-align: center; background: #B8400C; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 15px; padding: 14px; border-radius: 14px">Start scene</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: { arrival: true, peak1: true } }; }
+  renderVals() {
+    const raw = [
+      { id: 'arrival', name: 'Arrival and grounding', color: '#8B6000', time: '7:00', beats: [
+        { t: '7:00', title: 'Pre-scene check, signals aloud', i: '1' },
+        { t: '7:10', title: 'Opening ritual: kneel, blindfold on', i: '2' }] },
+      { id: 'peak1', name: 'First peak', color: '#2E6B2E', time: '7:20', beats: [
+        { t: '7:20', title: 'Hand warm-up, thighs and butt', i: '3' },
+        { t: '7:35', title: 'Flogger build (thuddy)', i: '6', warn: true, warnText: 'Intensity jumps from 3 to 6. Consider a light implement first.' },
+        { t: '7:55', title: 'Peak and spoken landing', i: '7' }] },
+      { id: 'rec', name: 'Recovery', color: '#4A4A4A', time: '8:05', beats: [
+        { t: '8:05', title: 'Water, hands on, check-in', i: '1' }] },
+      { id: 'peak2', name: 'Second peak', color: '#1A3A6B', time: '8:20', beats: [
+        { t: '8:20', title: 'Wax over the blindfold', i: '5', surprise: true },
+        { t: '8:40', title: 'Toys and edging', i: '8' }] },
+      { id: 'desc', name: 'Descent and close', color: '#6E5A4E', time: '8:55', beats: [
+        { t: '8:55', title: '“We are coming down now”', i: '2' }] },
+      { id: 'after', name: 'Aftercare · Cocoon', color: '#8B0000', time: '9:00', beats: [
+        { t: '9:00', title: 'Blanket, water, holding, quiet', i: '0' },
+        { t: '9:30', title: 'Soft talk when she is ready', i: '0' }] }
+    ];
+    const phases = raw.map((p) => ({ ...p,
+      open: !!this.state.open[p.id],
+      beats: p.beats.map((b) => ({ ...b, warn: !!b.warn, warnText: b.warnText || '', surprise: !!b.surprise })),
+      toggle: () => this.setState((s) => ({ open: { ...s.open, [p.id]: !s.open[p.id] } })) }));
+    return { phases };
+  }
+}
+</script>
+</body>
+</html>

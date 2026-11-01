@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Heat, Hold, Flow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=DM+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#8E1B3B}a:hover{color:#5E0F26}
+.grain{background-color:#F7E9EC;background-image:radial-gradient(rgba(60,10,30,0.07) 1px,transparent 1px);background-size:5px 5px}
+</style>
+</helmet>
+<div class="grain" style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #1E1418; overflow: hidden">
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px; padding: 22px 20px; overflow-y: auto">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 22px; color: #8E1B3B">ember</div>
+      <a href="Main.dc.html" style="font-size: 14px; color: #5E4C52; text-decoration: none; padding: 8px 0">Switch to Top</a>
+    </div>
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #8E1B3B">Quick path · for your scene with Alex</div>
+    <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 30px; line-height: 1.1">{{g.question}}</h1>
+
+    <div role="tablist" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; background: #EED3DA; padding: 4px; border-radius: 14px">
+      <sc-for list="{{groups}}" as="t" hint-placeholder-count="3">
+        <sc-if value="{{t.on}}" hint-placeholder-val="{{false}}"><button type="button" role="tab" aria-selected="true" onClick="{{t.pick}}" style="background: {{t.color}}; color: #FFFFFF; border: 0; font: 700 15px 'DM Sans', sans-serif; padding: 11px 0; border-radius: 10px; min-height: 44px">{{t.name}}</button></sc-if>
+        <sc-if value="{{t.off}}" hint-placeholder-val="{{true}}"><button type="button" role="tab" aria-selected="false" onClick="{{t.pick}}" style="background: transparent; color: #4A3A40; border: 0; font: 500 15px 'DM Sans', sans-serif; padding: 11px 0; border-radius: 10px; min-height: 44px">{{t.name}} {{t.count}}</button></sc-if>
+      </sc-for>
+    </div>
+
+    <div style="font-size: 14px; color: #5E4C52">Pick one or two. Tap a word to read what it means.</div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <sc-for list="{{opts}}" as="o" hint-placeholder-count="8">
+        <sc-if value="{{o.on}}" hint-placeholder-val="{{false}}">
+          <button type="button" onClick="{{o.pick}}" aria-pressed="true" style="background: {{g.color}}; color: #FFFFFF; border: 2px solid {{g.color}}; border-radius: 16px; padding: 14px 12px; font: 700 18px 'Bricolage Grotesque', sans-serif; text-align: left; min-height: 64px">✓ {{o.word}}</button>
+        </sc-if>
+        <sc-if value="{{o.off}}" hint-placeholder-val="{{true}}">
+          <button type="button" onClick="{{o.pick}}" aria-pressed="false" style="background: #FFFAF7; color: #1E1418; border: 2px solid #E3C6CE; border-radius: 16px; padding: 14px 12px; font: 700 18px 'Bricolage Grotesque', sans-serif; text-align: left; min-height: 64px">{{o.word}}</button>
+        </sc-if>
+      </sc-for>
+    </div>
+
+    <div aria-live="polite" style="background: #FFFAF7; border: 1px solid #E3C6CE; border-radius: 16px; padding: 14px; min-height: 64px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: {{g.color}}">ⓘ {{infoWord}}</div>
+      <div style="font-size: 16px; line-height: 1.4; margin-top: 4px">{{infoText}}</div>
+    </div>
+  </div>
+  <div style="display: flex; gap: 10px; padding: 12px 20px 18px; background: #FFFAF7; border-top: 1px solid #E3C6CE">
+    <button type="button" onClick="{{skip}}" style="background: #EED3DA; border: 0; color: #1E1418; font: 500 15px 'DM Sans', sans-serif; padding: 14px 18px; border-radius: 14px; min-height: 48px">Skip</button>
+    <sc-if value="{{notLast}}" hint-placeholder-val="{{true}}">
+      <button type="button" onClick="{{nextGroup}}" style="flex-grow: 1; background: #8E1B3B; border: 0; color: #FFFFFF; font: 700 16px 'DM Sans', sans-serif; padding: 14px; border-radius: 14px; min-height: 48px">Next ›</button>
+    </sc-if>
+    <sc-if value="{{isLast}}" hint-placeholder-val="{{false}}">
+      <a href="SceneVibe.dc.html" style="flex-grow: 1; text-align: center; background: #8E1B3B; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 16px; padding: 14px; border-radius: 14px">Share with Alex</a>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { group: 0, picks: { 0: ['Velvet'], 1: [], 2: [] }, info: 'Velvet' }; }
+  renderVals() {
+    const G = [
+      { name: 'Heat', question: 'What should it feel like?', color: '#B8400C', opts: [
+        ['Smolder', 'A low, steady burn. Anticipation that simmers and never quite boils over.'],
+        ['Blaze', 'Big, loud, full-bodied sensation. Turn it up.'],
+        ['Velvet', 'Soft, luxurious, skin-forward pleasure. Lingering touch and indulgence.'],
+        ['Electric', 'Sharp and crackling. Nerves awake, adrenaline up, every touch a jolt.'],
+        ['Feral', 'Primal and untamed. Less polish, more instinct, a little messy.'],
+        ['Mischief', 'Playful trouble. Grins, giggles, games and getting caught.'],
+        ['Reverent', 'Sacred and devotional. Ceremony, weight and meaning in every gesture.'],
+        ['Dreamy', 'Floaty and hazy. Drifting toward an altered, faraway state.']] },
+      { name: 'Hold', question: 'How do you want us to connect?', color: '#0B5D61', opts: [
+        ['Cherish me', 'Tenderness first. I want to feel treasured and handled with care.'],
+        ['Claim me', 'Take me firmly, within what we agreed. I want to feel possessed.'],
+        ['Command me', 'Clear instructions and protocol. Tell me what to do.'],
+        ['Serve me', 'Your focus is my pleasure. Make it about my experience.'],
+        ['Test me', 'Challenge me. Let me earn it, push me and see what I can take.'],
+        ['Play with me', 'We meet as equals. Banter, games and tussling for fun.'],
+        ['Read me', 'Few words. Follow my body and answer what you see.'],
+        ['Guide me', 'Teach me as we go. Explain, encourage and help me learn.']] },
+      { name: 'Flow', question: 'How should it move?', color: '#8E1B3B', opts: [
+        ['Slow Climb', 'One long, patient ascent to a single summit.'],
+        ['Surge', 'Start strong and peak early, then a long, easy descent.'],
+        ['Ripple', 'Many small peaks with short breaths between them.'],
+        ['Staircase', 'Step up, settle on a plateau, then step up again.'],
+        ['Edge', 'Approach the peak again and again without crossing it.'],
+        ['Pulse', 'A steady, rhythmic repetition that turns hypnotic.'],
+        ['Drift', 'Unhurried and wandering, with no destination in mind.'],
+        ['Storm', 'Unpredictable. Sudden shifts, surprises and changes of weather.']] }
+    ];
+    const s = this.state;
+    const g = G[s.group];
+    const picks = s.picks[s.group] || [];
+    const opts = g.opts.map(([word, desc]) => {
+      const on = picks.indexOf(word) >= 0;
+      return { word, on, off: !on, pick: () => this.setState((p) => {
+        const cur = p.picks[p.group] || [];
+        let next = cur.indexOf(word) >= 0 ? cur.filter((w) => w !== word) : cur.concat([word]);
+        if (next.length > 2) next = next.slice(next.length - 2);
+        return { picks: { ...p.picks, [p.group]: next }, info: word };
+      }) };
+    });
+    const found = g.opts.find(([w]) => w === s.info);
+    const groups = G.map((x, i) => {
+      const n = (s.picks[i] || []).length;
+      return { name: x.name, color: x.color, on: i === s.group, off: i !== s.group, count: n ? '· ' + n : '',
+        pick: () => this.setState({ group: i, info: '' }) };
+    });
+    return {
+      g: { question: g.question, color: g.color }, groups, opts,
+      infoWord: found ? found[0] : g.name,
+      infoText: found ? found[1] : 'Tap any word to see its description here.',
+      notLast: s.group < 2, isLast: s.group === 2,
+      nextGroup: () => this.setState((p) => ({ group: Math.min(2, p.group + 1), info: '' })),
+      skip: () => this.setState((p) => ({ group: Math.min(2, p.group + 1), info: '' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

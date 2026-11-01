@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ember Home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=DM+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#8E1B3B}a:hover{color:#5E0F26}
+.grain{background-color:#F5EDE3;background-image:radial-gradient(rgba(30,20,24,0.07) 1px,transparent 1px);background-size:5px 5px}
+</style>
+</helmet>
+<div class="grain" style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #1E1418; overflow: hidden">
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; padding: 24px 20px 16px; overflow-y: auto">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 26px; color: #B8400C; letter-spacing: -0.5px">ember</div>
+      <div style="display: flex; background: #EADCCB; border-radius: 999px; padding: 4px">
+        <button type="button" style="border: 0; background: #1E1418; color: #FFFAF4; font: 500 14px 'DM Sans', sans-serif; padding: 8px 16px; border-radius: 999px; min-height: 36px">Top</button>
+        <a href="Words.dc.html" style="color: #5E4C52; text-decoration: none; font: 500 14px 'DM Sans', sans-serif; padding: 8px 16px; border-radius: 999px; display: flex; align-items: center">bottom</a>
+      </div>
+    </div>
+    <h1 style="margin: 4px 0 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 30px; line-height: 1.1">What needs you today</h1>
+
+    <div style="background: #E8A33A; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #3A2410">Check-in due</div>
+      <div style="font-size: 18px; font-weight: 700">Jade, 18 hours after your scene</div>
+      <div style="font-size: 14px; color: #3A2410">Her debrief is in. She marked “Loved that, again please.”</div>
+      <a href="Connection.dc.html" style="align-self: flex-start; background: #1E1418; color: #FFFAF4; text-decoration: none; font-weight: 500; font-size: 15px; padding: 12px 18px; border-radius: 12px">Write check-in</a>
+    </div>
+
+    <div style="background: #FFFAF4; border: 1px solid #E2D5C7; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #5E4C52">Next scene</div>
+        <div style="font-size: 13px; color: #8E1B3B; font-weight: 700">in 2 days</div>
+      </div>
+      <div style="font-size: 18px; font-weight: 700">River · Saturday, 7:00 PM · 3 hrs</div>
+      <svg viewBox="0 0 350 70" width="100%" height="70" role="img" aria-label="Intensity curve: two peaks with recovery between">
+        <path d="M0 62 C40 60 60 50 90 40 S140 8 170 12 S205 48 230 44 S280 6 305 8 S332 52 350 60" fill="none" stroke="#B8400C" stroke-width="4" stroke-linecap="round"></path>
+        <circle cx="170" cy="12" r="6" fill="#0B5D61"></circle>
+        <circle cx="305" cy="8" r="6" fill="#8E1B3B"></circle>
+      </svg>
+      <div style="display: flex; gap: 10px">
+        <a href="Live.dc.html" style="flex-grow: 1; text-align: center; background: #B8400C; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 15px; padding: 13px; border-radius: 12px">Open guide</a>
+        <a href="Editor.dc.html" style="flex-grow: 1; text-align: center; background: #EADCCB; color: #1E1418; text-decoration: none; font-weight: 500; font-size: 15px; padding: 13px; border-radius: 12px">Edit plan</a>
+      </div>
+    </div>
+
+    <div style="background: #0B5D61; color: #F2FBFA; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #BDE6E3">Today’s note</div>
+      <div style="font-size: 16px; line-height: 1.4">A pause can be the most intense moment of a scene. Stillness lets sensation land and anticipation build.</div>
+    </div>
+
+    <div style="display: flex; gap: 10px">
+      <a href="Mutual.dc.html" style="flex-grow: 1; text-align: center; background: #8E1B3B; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 15px; padding: 14px; border-radius: 14px">New scene</a>
+      <button type="button" style="flex-grow: 1; background: transparent; border: 2px solid #8E1B3B; color: #8E1B3B; font: 700 15px 'DM Sans', sans-serif; padding: 12px; border-radius: 14px; min-height: 48px">Invite</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #5E4C52">Connections</div>
+      <a href="Connection.dc.html" style="display: flex; align-items: center; gap: 12px; background: #FFFAF4; border: 1px solid #E2D5C7; border-radius: 14px; padding: 12px; text-decoration: none; color: #1E1418">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: #0B5D61; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700">R</div>
+        <div style="flex-grow: 1"><div style="font-weight: 700">River</div><div style="font-size: 13px; color: #5E4C52">Scene planned · intake complete</div></div>
+      </a>
+    </div>
+  </div>
+
+  <nav aria-label="Main" style="display: flex; justify-content: space-around; background: #FFFAF4; border-top: 1px solid #E2D5C7; padding: 8px 4px 14px">
+    <a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: #B8400C; text-decoration: none; min-width: 56px; font-weight: 700"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Home</a>
+    <a href="Connection.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: #5E4C52; text-decoration: none; min-width: 56px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M15 20c0-2.5 1.5-4.5 4-4.5"></path></svg>Connections</a>
+    <a href="Editor.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: #5E4C52; text-decoration: none; min-width: 56px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 17c3 0 4-10 7-10s3 8 6 8 3-6 5-6"></path></svg>Scenes</a>
+    <button type="button" style="display: flex; flex-direction: column; align-items: center; gap: 2px; font: 400 11px 'DM Sans', sans-serif; color: #5E4C52; background: none; border: 0; min-width: 56px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M4 14l5-4 4 3 3-2 4 3"></path></svg>Toys</button>
+    <button type="button" style="display: flex; flex-direction: column; align-items: center; gap: 2px; font: 400 11px 'DM Sans', sans-serif; color: #5E4C52; background: none; border: 0; min-width: 56px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"></path></svg>Me</button>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+/* Design tokens from the prototype (prototype/*.dc.html). */
+:root {
+  --ink: #1e1418;
+  --muted: #5e4c52;
+  --ember: #b8400c;
+  --garnet: #8e1b3b;
+  --teal: #0b5d61;
+  --saffron: #e8a33a;
+  --on-dark: #fffaf4;
+
+  /* Live Scene Mode phase colors (customizable per Top later). */
+  --phase-arrival: #8b6000;
+  --phase-ritual: #5a005a;
+  --phase-first-peak: #2e6b2e;
+  --phase-recovery: #4a4a4a;
+  --phase-second-peak: #1a3a6b;
+  --phase-aftercare: #8b0000;
+
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+
+  --radius-card: 18px;
+  --radius-control: 14px;
+  --touch: 44px;
+  --gutter: 20px;
+}
+
+/* Planning screens (Top view): warm paper. */
+[data-theme='paper'] {
+  --ground: #f5ede3;
+  --grain: rgba(30, 20, 24, 0.07);
+  --surface: #fffaf4;
+  --surface-sunk: #eadccb;
+  --line: #e2d5c7;
+  --accent: var(--ember);
+  --accent-strong: var(--garnet);
+  --text: var(--ink);
+  --text-muted: var(--muted);
+}
+
+/* Bottom view: rose, warmer and lighter. */
+[data-theme='rose'] {
+  --ground: #f7e9ec;
+  --grain: rgba(60, 10, 30, 0.07);
+  --surface: #fffaf7;
+  --surface-sunk: #eed3da;
+  --line: #e3c6ce;
+  --accent: var(--garnet);
+  --accent-strong: var(--garnet);
+  --text: var(--ink);
+  --text-muted: var(--muted);
+}
+
+/* Live Scene Mode and the lock screen: near-black. */
+[data-theme='live'] {
+  --ground: #141012;
+  --grain: rgba(255, 240, 230, 0.03);
+  --surface: #221c1f;
+  --surface-sunk: #3a3034;
+  --line: #3a3034;
+  --accent: #ff7a3d;
+  --accent-strong: #ff7a3d;
+  --text: #f5ede3;
+  --text-muted: #c9b8ae;
+}

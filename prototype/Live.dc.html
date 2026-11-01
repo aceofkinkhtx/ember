@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Live Scene Mode</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=DM+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F5EDE3}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #141012; font-family: 'DM Sans', system-ui, sans-serif; color: #F5EDE3; overflow: hidden">
+  <div style="background: #000000; border-bottom: 2px solid #8B0000; padding: 14px 16px 10px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 18px">River · Two Peaks</div>
+      <div style="font-size: 15px; color: #C9B8AE">0:42 elapsed</div>
+    </div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap">
+      <span style="background: #C62828; color: #FFFFFF; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px">RED = STOP</span>
+      <span style="background: #E8A33A; color: #1E1418; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px">YELLOW = SLOW</span>
+      <span style="background: #2E7D4F; color: #FFFFFF; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px">GREEN = GOOD</span>
+      <span style="background: #2A4A7A; color: #FFFFFF; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px">HAND: two taps</span>
+    </div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap">
+      <span style="background: #5A0000; color: #FFC9C9; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 10px">NO face impact</span>
+      <span style="background: #5A0000; color: #FFC9C9; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 10px">NO degrading words</span>
+      <span style="background: #4A3A00; color: #FFE3A3; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 10px">MAYBE hair</span>
+      <span style="background: #1A3A4A; color: #A8E6FF; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 10px">Left knee: short kneels</span>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; overflow-y: auto">
+    <div style="background: #2E6B2E; border-radius: 12px; padding: 8px 12px; font-weight: 700; font-size: 14px; letter-spacing: 0.5px">FIRST PEAK</div>
+    <div style="background: #FFFAF4; color: #1E1418; border-radius: 18px; overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px">
+        <span style="background: #2E6B2E; color: #FFFFFF; font-weight: 700; font-size: 14px; padding: 5px 10px; border-radius: 8px">{{beat.time}}</span>
+        <span style="flex-grow: 1; font-weight: 700; font-size: 17px">{{beat.title}}</span>
+        <span style="font-size: 13px; font-weight: 700; background: #EADCCB; padding: 3px 8px; border-radius: 6px">{{beat.i}}</span>
+      </div>
+      <div role="tablist" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid #E2D5C7; border-bottom: 1px solid #E2D5C7">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+          <sc-if value="{{t.on}}" hint-placeholder-val="{{false}}"><button type="button" role="tab" aria-selected="true" onClick="{{t.pick}}" style="background: #1E1418; color: #FFFAF4; border: 0; font: 700 14px 'DM Sans', sans-serif; padding: 12px 0; min-height: 44px">{{t.label}}</button></sc-if>
+          <sc-if value="{{t.off}}" hint-placeholder-val="{{true}}"><button type="button" role="tab" aria-selected="false" onClick="{{t.pick}}" style="background: #FFFAF4; color: #5E4C52; border: 0; font: 500 14px 'DM Sans', sans-serif; padding: 12px 0; min-height: 44px">{{t.label}}</button></sc-if>
+        </sc-for>
+      </div>
+      <div style="padding: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 190px">
+        <sc-for list="{{lines}}" as="ln" hint-placeholder-count="3">
+          <sc-if value="{{ln.plain}}" hint-placeholder-val="{{true}}"><div style="font-size: 16px; line-height: 1.4">• {{ln.text}}</div></sc-if>
+          <sc-if value="{{ln.quote}}" hint-placeholder-val="{{false}}"><div style="font-size: 16px; line-height: 1.4; font-style: italic; color: #6E1530">“{{ln.text}}”</div></sc-if>
+          <sc-if value="{{ln.watch}}" hint-placeholder-val="{{false}}"><div style="align-self: flex-start; font-size: 14px; font-weight: 700; background: #FFE7B8; color: #4A2F04; padding: 6px 10px; border-radius: 8px">WATCH · {{ln.text}}</div></sc-if>
+          <sc-if value="{{ln.warn}}" hint-placeholder-val="{{false}}"><div style="font-size: 15px; line-height: 1.4; background: #FBE7EA; color: #5E0F26; border: 2px solid #8E1B3B; padding: 10px; border-radius: 10px"><span style="font-weight: 700">Hold steady.</span> {{ln.text}}</div></sc-if>
+        </sc-for>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 0 14px 14px">
+        <button type="button" onClick="{{prev}}" style="background: #EADCCB; border: 0; color: #1E1418; font: 500 15px 'DM Sans', sans-serif; padding: 10px 16px; border-radius: 10px; min-height: 44px">‹ Prev beat</button>
+        <button type="button" onClick="{{next}}" style="background: #1E1418; border: 0; color: #FFFAF4; font: 700 15px 'DM Sans', sans-serif; padding: 10px 16px; border-radius: 10px; min-height: 44px">Next beat ›</button>
+      </div>
+    </div>
+    <div style="font-size: 14px; color: #C9B8AE">Beat timer 06:12 · yellows logged: <span style="font-weight: 700; color: #FFE7B8">{{yellows}}</span></div>
+    <a href="Debrief.dc.html" style="align-self: center; color: #C9B8AE; font-size: 14px; padding: 10px">End scene and go to aftercare</a>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 10px 16px">
+    <a href="Red.dc.html" style="background: #C62828; color: #FFFFFF; text-decoration: none; text-align: center; font-weight: 700; font-size: 15px; padding: 14px 0; border-radius: 14px">RED</a>
+    <button type="button" onClick="{{toggleKit}}" style="background: #0B5D61; color: #FFFFFF; border: 0; font: 700 14px 'DM Sans', sans-serif; padding: 14px 0; border-radius: 14px; min-height: 48px">Toolkit</button>
+    <button type="button" onClick="{{logYellow}}" style="background: #E8A33A; color: #1E1418; border: 0; font: 700 14px 'DM Sans', sans-serif; padding: 14px 0; border-radius: 14px; min-height: 48px">Log yellow</button>
+    <button type="button" style="background: #3A3034; color: #F5EDE3; border: 0; font: 700 14px 'DM Sans', sans-serif; padding: 14px 0; border-radius: 14px; min-height: 48px">Pause</button>
+  </div>
+  <nav aria-label="Phases" style="display: flex; justify-content: center; gap: 14px; padding: 8px 0 16px">
+    <span title="Arrival" style="width: 14px; height: 14px; border-radius: 50%; background: #8B6000"></span>
+    <span title="First peak" style="width: 14px; height: 14px; border-radius: 50%; background: #2E6B2E; outline: 2px solid #F5EDE3; outline-offset: 2px"></span>
+    <span title="Recovery" style="width: 14px; height: 14px; border-radius: 50%; background: #6A6A6A"></span>
+    <span title="Second peak" style="width: 14px; height: 14px; border-radius: 50%; background: #2F5EA8"></span>
+    <span title="Descent" style="width: 14px; height: 14px; border-radius: 50%; background: #8C7366"></span>
+    <span title="Aftercare" style="width: 14px; height: 14px; border-radius: 50%; background: #B11B1B"></span>
+  </nav>
+
+  <sc-if value="{{kit}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFAF4; color: #1E1418; border-radius: 24px 24px 0 0; padding: 20px 18px 26px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 -8px 30px rgba(0,0,0,0.5)">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 22px">Regulation toolkit</div>
+        <button type="button" onClick="{{toggleKit}}" aria-label="Close toolkit" style="background: #EADCCB; border: 0; border-radius: 50%; width: 44px; height: 44px; font-size: 18px">✕</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+        <div style="background: #FCE6D6; border-radius: 14px; padding: 12px"><div style="font-size: 12px; font-weight: 700; color: #7A2A07">BODY</div><div style="font-size: 15px; margin-top: 4px">Breathe with them, slow and audible</div><div style="font-size: 15px; margin-top: 4px">Still hands, firm contact</div></div>
+        <div style="background: #DDF0EE; border-radius: 14px; padding: 12px"><div style="font-size: 12px; font-weight: 700; color: #084649">MIND</div><div style="font-size: 15px; margin-top: 4px">Say their name</div><div style="font-size: 15px; margin-top: 4px">“Stay with my voice”</div></div>
+        <div style="background: #F6E3EA; border-radius: 14px; padding: 12px"><div style="font-size: 12px; font-weight: 700; color: #6E1530">EMOTION</div><div style="font-size: 15px; margin-top: 4px">Name what you see, gently</div><div style="font-size: 15px; margin-top: 4px">Let tears move</div></div>
+        <div style="background: #FFF3DD; border-radius: 14px; padding: 12px"><div style="font-size: 12px; font-weight: 700; color: #6B4405">SUPPORT</div><div style="font-size: 15px; margin-top: 4px">Check in: more, less, different?</div><div style="font-size: 15px; margin-top: 4px">Drop one intensity level</div></div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { idx: 1, tab: 'say', kit: false, yellows: 0 }; }
+  renderVals() {
+    const s = this.state;
+    const beats = [
+      { time: '7:20', title: 'Hand warm-up', i: '3',
+        do: ['Start at the thighs, light and rhythmic', 'Move to the butt as skin pinks', 'Keep her standing time short (knee)'],
+        say: ['Let your body find my rhythm', 'Look how your skin is answering me'],
+        watch: [{ k: 'watch', t: 'Shoulders rising' }, { k: 'watch', t: 'Breath going shallow' }],
+        notes: ['Bare hand only', 'Areas: thighs, butt (low risk)'] },
+      { time: '7:35', title: 'Flogger build (thuddy)', i: '6',
+        do: ['Suede flogger, slow figure eights', 'Build weight in layers every few minutes', 'Pause and press your palm on warm skin'],
+        say: ['You can take this, and I have you', 'Give me a color'],
+        watch: [{ k: 'watch', t: 'Going quiet: she needs to be asked' }, { k: 'watch', t: 'Rigid body, not softening' }],
+        notes: ['Thuddy feel, River’s favorite', 'Cane is opted out for River'] },
+      { time: '7:55', title: 'Peak and spoken landing', i: '7',
+        do: ['Hold the peak, don’t rush it', 'Slow the rhythm, then stop', 'Hands on, full stillness'],
+        say: ['We are coming down now', 'You stayed with me through every stroke'],
+        watch: [{ k: 'warn', t: 'Crying can be release. Stay close, stay quiet, let her lead.' }, { k: 'watch', t: 'Glassy eyes: say her name' }],
+        notes: ['Then recovery: water, check-in'] }
+    ];
+    const b = beats[s.idx];
+    const raw = s.tab === 'do' ? b.do.map((t) => ({ k: 'plain', t })) :
+      s.tab === 'say' ? b.say.map((t) => ({ k: 'quote', t })) :
+      s.tab === 'watch' ? b.watch : b.notes.map((t) => ({ k: 'plain', t }));
+    const lines = raw.map((l) => ({ text: l.t, plain: l.k === 'plain', quote: l.k === 'quote', watch: l.k === 'watch', warn: l.k === 'warn' }));
+    const tabs = [['do', 'DO'], ['say', 'SAY'], ['watch', 'WATCH'], ['notes', 'NOTES']].map(([id, label]) => ({
+      label, on: s.tab === id, off: s.tab !== id, pick: () => this.setState({ tab: id }) }));
+    return {
+      beat: b, tabs, lines, kit: s.kit, yellows: s.yellows,
+      prev: () => this.setState((p) => ({ idx: Math.max(0, p.idx - 1) })),
+      next: () => this.setState((p) => ({ idx: Math.min(beats.length - 1, p.idx + 1) })),
+      toggleKit: () => this.setState((p) => ({ kit: !p.kit })),
+      logYellow: () => this.setState((p) => ({ yellows: p.yellows + 1, kit: true }))
+    };
+  }
+}
+</script>
+</body>
+</html>

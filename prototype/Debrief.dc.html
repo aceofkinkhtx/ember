@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Top debrief</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=DM+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#8E1B3B}a:hover{color:#5E0F26}
+.grain{background-color:#F5EDE3;background-image:radial-gradient(rgba(30,20,24,0.07) 1px,transparent 1px);background-size:5px 5px}
+input[type=range]{width:100%;accent-color:#B8400C;height:28px}
+</style>
+</helmet>
+<div class="grain" style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #1E1418; overflow: hidden">
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px; padding: 22px 20px; overflow-y: auto">
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #8E1B3B">After River’s scene</div>
+    <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 28px; line-height: 1.1">Your debrief</h1>
+    <div style="font-size: 15px; color: #5E4C52">Slide, add a note if you like, skip anything.</div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 6px">
+      <span style="background: #FFE7B8; color: #4A2F04; font-size: 13px; font-weight: 700; padding: 5px 10px; border-radius: 8px">7:41 yellow</span>
+      <span style="background: #DDF0EE; color: #084649; font-size: 13px; font-weight: 700; padding: 5px 10px; border-radius: 8px">8:22 highlight: wax</span>
+    </div>
+
+    <div style="background: #FFFAF4; border: 1px solid #E2D5C7; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
+      <label for="q1" style="font-weight: 700; font-size: 16px">Authentic</label>
+      <div style="font-size: 14px; color: #5E4C52">Did I show up as myself, honest about my capacity?</div>
+      <input id="q1" type="range" min="1" max="10" value="8">
+    </div>
+    <div style="background: #FFFAF4; border: 1px solid #E2D5C7; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
+      <label for="q2" style="font-weight: 700; font-size: 16px">Communicative</label>
+      <div style="font-size: 14px; color: #5E4C52">Did I listen and hold space for what actually happened?</div>
+      <input id="q2" type="range" min="1" max="10" value="7">
+    </div>
+    <div style="background: #FFFAF4; border: 1px solid #E2D5C7; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
+      <label for="q3" style="font-weight: 700; font-size: 16px">Exploratory</label>
+      <div style="font-size: 14px; color: #5E4C52">Did I follow the experience, not just the plan?</div>
+      <input id="q3" type="range" min="1" max="10" value="8">
+    </div>
+    <div style="background: #FFFAF4; border: 1px solid #E2D5C7; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
+      <label for="q4" style="font-weight: 700; font-size: 16px">Mattering</label>
+      <div style="font-size: 14px; color: #5E4C52">Did she feel seen and important to me in there?</div>
+      <input id="q4" type="range" min="1" max="10" value="9">
+    </div>
+    <div style="background: #FFFAF4; border: 1px solid #E2D5C7; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+      <label for="q5" style="font-weight: 700; font-size: 16px">Observations for her profile</label>
+      <textarea id="q5" rows="2" placeholder="Softened fast with thuddy; went quiet at 7:41" style="font: 400 15px 'DM Sans', sans-serif; border: 1px solid #CDBBA9; border-radius: 10px; padding: 10px; background: #FFFFFF; color: #1E1418; resize: none"></textarea>
+    </div>
+    <div style="background: #FFFAF4; border: 1px solid #E2D5C7; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
+      <label for="q6" style="font-weight: 700; font-size: 16px">My own state</label>
+      <div style="font-size: 14px; color: #5E4C52">How am I after this, and what do I need?</div>
+      <input id="q6" type="range" min="1" max="10" value="6">
+    </div>
+  </div>
+  <div style="padding: 12px 20px 18px; background: #FFFAF4; border-top: 1px solid #E2D5C7; display: flex; flex-direction: column; gap: 6px">
+    <a href="Main.dc.html" style="text-align: center; background: #B8400C; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 16px; padding: 15px; border-radius: 14px">Save debrief</a>
+    <div style="font-size: 13px; color: #5E4C52; text-align: center">Check-in reminder set for tomorrow, about 1:00 PM</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
