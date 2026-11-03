@@ -5,7 +5,9 @@ import { PinSetup } from '../components/PinSetup';
 import { SettingSwitch } from '../components/Switch';
 import { roleLabel, type RoleChoice } from '../content/copy';
 import { pronounLabel } from '../content/identity';
+import { signOut } from '../lib/account';
 import { eraseAll } from '../lib/storage';
+import { useAccount } from '../state/account';
 import { roleFor, useSettings, type Depth } from '../state/settings';
 
 // M1 (Top) and BM1 (bottom): settings for this device.
@@ -128,6 +130,8 @@ export function Me() {
         <p className="note">On iPhone, notifications work only after Ember is added to your Home Screen.</p>
       </section>
 
+      <AccountSection />
+
       <section className="card" aria-label="Your data">
         <div className="eyebrow">Your data</div>
         <button type="button" className="btn btn-outline" onClick={() => setConfirmErase(true)}>
@@ -147,13 +151,15 @@ export function Me() {
         <div className="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="me-erase-title">
           <div className="sheet">
             <h2 id="me-erase-title">Erase everything on this phone?</h2>
-            <p>This removes your settings and PIN from this phone and starts Ember over. It can't be undone.</p>
+            <p>This removes your settings, PIN and keys from this phone and starts Ember over. If you have an account, you can sign in again afterward and your locked data comes back.</p>
             <button
               type="button"
               className="btn btn-danger btn-block"
               onClick={() => {
-                eraseAll();
-                window.location.assign('/');
+                void signOut().finally(() => {
+                  eraseAll();
+                  window.location.assign('/');
+                });
               }}
             >
               Erase and start over
@@ -165,5 +171,26 @@ export function Me() {
         </div>
       )}
     </main>
+  );
+}
+
+function AccountSection() {
+  const account = useAccount();
+  if (account.status !== 'signed-in') return null;
+  return (
+    <section className="card" aria-label="Account">
+      <div className="eyebrow">Account</div>
+      <p className="setting-desc">Signed in as {account.email}</p>
+      <button
+        type="button"
+        className="btn btn-outline"
+        onClick={async () => {
+          await signOut();
+          await account.refresh();
+        }}
+      >
+        Sign out on this phone
+      </button>
+    </section>
   );
 }

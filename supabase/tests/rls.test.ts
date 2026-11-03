@@ -277,3 +277,22 @@ describe('connection keys', () => {
     expect(error).not.toBeNull();
   });
 });
+
+describe('connection cards', () => {
+  it('are shared between the two people and hidden from everyone else', async () => {
+    const { data: conn } = await river.db.from('connections').select('id').eq('bottom_id', jade.id).single();
+    expect((await jade.db.from('connection_cards').insert({ connection_id: conn!.id, user_id: jade.id, sealed_card: 'card-jade' })).error).toBeNull();
+    const seen = await river.db.from('connection_cards').select('sealed_card').eq('user_id', jade.id);
+    expect(seen.data).toEqual([{ sealed_card: 'card-jade' }]);
+    expect((await sol.db.from('connection_cards').select('sealed_card')).data).toEqual([]);
+    expect((await anon.from('connection_cards').select('sealed_card')).data ?? []).toEqual([]);
+  });
+
+  it("can't be written for the other person or for a connection you're not in", async () => {
+    const { data: conn } = await river.db.from('connections').select('id').eq('bottom_id', jade.id).single();
+    expect((await river.db.from('connection_cards').insert({ connection_id: conn!.id, user_id: jade.id, sealed_card: 'forged' })).error).not.toBeNull();
+    const changed = await river.db.from('connection_cards').update({ sealed_card: 'forged' }).eq('user_id', jade.id).select();
+    expect(changed.data).toEqual([]);
+    expect((await sol.db.from('connection_cards').insert({ connection_id: conn!.id, user_id: sol.id, sealed_card: 'x' })).error).not.toBeNull();
+  });
+});

@@ -1,19 +1,23 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { LockGate } from './components/LockGate';
 import { TabBar } from './components/TabBar';
 import { tabsByRole } from './content/copy';
+import { Connections } from './screens/Connections';
+import { Guest } from './screens/Guest';
 import { Home } from './screens/Home';
+import { JoinInvite } from './screens/JoinInvite';
 import { Me } from './screens/Me';
 import { Onboarding } from './screens/onboarding/Onboarding';
 import { Placeholder } from './screens/Placeholder';
+import { AccountProvider } from './state/account';
 import { SettingsProvider, useSettings, type Settings } from './state/settings';
 
 const themeColor = { paper: '#F5EDE3', rose: '#F7E9EC' } as const;
 
-function useTheme() {
+function useTheme(guest: boolean) {
   const { settings } = useSettings();
-  const bottomView = settings.onboarding === 'done' ? settings.activeRole === 'bottom' : settings.roles === 'bottom';
+  const bottomView = guest || (settings.onboarding === 'done' ? settings.activeRole === 'bottom' : settings.roles === 'bottom');
   const theme = bottomView ? 'rose' : 'paper';
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -29,8 +33,10 @@ function Shell() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/me" element={<Me />} />
+        <Route path="/connections" element={<Connections />} />
+        <Route path="/join/:code" element={<JoinInvite />} />
         {tabs
-          .filter((t) => t !== 'home' && t !== 'me')
+          .filter((t) => t !== 'home' && t !== 'me' && t !== 'connections')
           .map((t) => (
             <Route key={t} path={`/${t}`} element={<Placeholder tab={t} />} />
           ))}
@@ -43,16 +49,27 @@ function Shell() {
 
 function Root() {
   const { settings } = useSettings();
-  useTheme();
+  // Guests have no account or setup on this phone, so their pages skip both.
+  const guest = useLocation().pathname.startsWith('/guest/');
+  useTheme(guest);
+  if (guest) {
+    return (
+      <Routes>
+        <Route path="/guest/:code" element={<Guest />} />
+      </Routes>
+    );
+  }
   return <LockGate>{settings.onboarding === 'done' ? <Shell /> : <Onboarding />}</LockGate>;
 }
 
 export function App({ initialSettings }: { initialSettings?: Settings }) {
   return (
     <SettingsProvider initial={initialSettings}>
-      <BrowserRouter>
-        <Root />
-      </BrowserRouter>
+      <AccountProvider>
+        <BrowserRouter>
+          <Root />
+        </BrowserRouter>
+      </AccountProvider>
     </SettingsProvider>
   );
 }
