@@ -27,7 +27,7 @@ These can never be removed or skipped by any user setting:
 1. Safe words and signals confirmed aloud at the start of every scene (pre-scene check).
 2. The limit strip (no items in red, maybe items in amber, physical care in blue) is visible throughout Live Scene Mode.
 3. Every scene has an aftercare phase.
-4. Sub drop risk is noted. Right after the scene, the Top and the bottom each give a simple 1 to 5 rating of how they feel. The bottom then gets a 1 to 5 feelings check-in notification once a day for 3 days, to catch drop, and the Top gets a check-in reminder about 18 hours after the scene. (Updated Nov 4, 2026.)
+4. Sub drop risk is noted. Right after the scene, the Top and the bottom each answer a three-question 1 to 5 check-in (see the decisions log), and a low rating offers extra care. The bottom then gets a 1 to 5 feelings check-in notification once a day for 3 days, to catch drop, and the Top gets a check-in reminder about 18 hours after the scene. (Updated Nov 4, 2026.)
 5. A readiness check before the scene starts (part of the pre-scene check-in). (Updated Nov 4, 2026; it was a readiness check before the bottom leaves.)
 6. Trauma and trigger flags appear as warning boxes on the beats where they are most likely to surface.
 

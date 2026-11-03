@@ -10,7 +10,11 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
   - The bottom then gets one notification a day for 3 days, opening a simple 1 to 5 "how are you feeling" log, to catch sub drop.
   - The Top's check-in reminder about 18 hours after the scene stays.
   - As with every check-in, turning off the notification stops only the phone alert; the check-in still waits inside the app.
-  - Claude's proposal, for Michael to confirm: a low rating (1 or 2) right after the scene suggests staying together a little longer before heading home, and a low rating during the 3 days offers the bottom an easy way to reach out to their Top or a friend.
+  - Low ratings (approved): a 1 or 2 on "how are you feeling" right after the scene suggests staying together a little longer before heading home and not driving until steady; a 1 or 2 during the 3 days offers an easy way to message their Top or a friend.
+- **Every check-in has three questions** (wording in `src/content/checkins.ts`; scales are 1 to 5):
+  - **Pre-scene check-in (M6):** how you're feeling; whether you've had your final pre-scene negotiation (yes or no); how excited you are for this scene.
+  - **Post-scene check-in, Top and bottom (M7):** how you're feeling; how attentive your Top was (asked of the bottom) or how responsive your bottom was (asked of the Top); an overall rating of the experience.
+  - **Follow-up, once a day for 3 days (M7):** how you're feeling in body and mind; whether anything has changed since the scene (yes or no, with an optional note); notes for your Top or bottom, shared with them.
 - **Personal codes show the Me tab.** The scene name and role shown with a personal code always match the Me tab (a "both" setting shows as switch), with no "usually."
 - **App icon:** Michael supplied new icon files (Ember icon.png, ember_icon.svg, ember_icon_transparent.png), which replace the app icon.
 
