@@ -399,23 +399,79 @@ input {
   color: var(--accent);
 }
 
-.mark-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 38%, #ffc27a 0%, #ff6a1f 35%, #d9330b 80%);
-  box-shadow: 0 0 10px 3px rgba(255, 106, 31, 0.55);
+.mark-glyph {
+  flex: none;
+  filter: drop-shadow(0 0 4px rgba(255, 106, 31, 0.6));
 }
 
 .mark-large {
   font-size: 40px;
-  gap: 14px;
+  gap: 12px;
 }
 
-.mark-large .mark-dot {
-  width: 30px;
-  height: 30px;
-  box-shadow: 0 0 22px 8px rgba(255, 106, 31, 0.5);
+.mark-large .mark-glyph {
+  filter: drop-shadow(0 0 10px rgba(255, 106, 31, 0.55));
+}
+
+/* Form fields and chips */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.field-label {
+  font-weight: 700;
+  font-size: 17px;
+  padding: 0;
+}
+
+.field-hint {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.input {
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  font-size: 16px;
+}
+
+.input:focus {
+  border-color: var(--accent-strong);
+  outline: none;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  min-height: var(--touch);
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  font-weight: 500;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'],
+.chip[aria-checked='true'] {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #ffffff;
 }
 
 /* Progress dots for onboarding */

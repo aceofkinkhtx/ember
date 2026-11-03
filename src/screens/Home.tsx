@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { EmberMark } from '../components/EmberMark';
+import { DonationPrompt } from '../components/DonationPrompt';
 import { RoleToggle } from '../components/RoleToggle';
 import { useSettings } from '../state/settings';
 
@@ -13,6 +14,7 @@ export function Home() {
 
   return (
     <main className="screen">
+      <DonationPrompt />
       <div className="topbar">
         <EmberMark />
         <RoleToggle />

@@ -1,4 +1,4 @@
-import { activities, categories, impactAreas } from './activities';
+import { activities, categories, feelings, impactAreas } from './activities';
 
 describe('activity library', () => {
   it('has unique ids', () => {
@@ -16,16 +16,37 @@ describe('activity library', () => {
     expect(edge).toEqual(expect.arrayContaining(['choking', 'knife-play', 'sharps']));
   });
 
-  it('flags every penis and oral item as STI check and negotiated only', () => {
+  it('needs the STI checkbox for oral contact, and whenever a penis is involved', () => {
     activities
-      .filter((a) => /penis in|oral|anal licking/i.test(a.label))
+      .filter((a) => /oral|anal licking/i.test(a.label))
+      .forEach((a) => expect(a.stiCheck).toBe('always'));
+    activities
+      .filter((a) => /penis/i.test(a.label) && a.category === 'penetration')
       .forEach((a) => {
-        expect(a.stiCheck).toBe(true);
+        expect(a.stiCheck).toBe('if-penis');
         expect(a.negotiatedOnly).toBe(true);
       });
   });
 
   it('never offers kidneys as an impact area', () => {
     expect(impactAreas.some((x) => /kidney/i.test(x.label))).toBe(false);
+  });
+});
+
+describe('inclusive wording', () => {
+  const allLabels = [...activities.map((a) => a.label), ...impactAreas.map((x) => x.label), ...feelings];
+
+  it('never assumes a gender', () => {
+    const gendered = /\b(he|him|his|she|her|hers|man|men|woman|women|male|female|boy|girl|guy|lady)\b/i;
+    expect(allLabels.filter((l) => gendered.test(l))).toEqual([]);
+  });
+
+  it('pairs penis with strap-on and vagina with front hole', () => {
+    activities.filter((a) => /penis/i.test(a.label)).forEach((a) => expect(a.label).toMatch(/strap-on/i));
+    activities.filter((a) => /vagina/i.test(a.label)).forEach((a) => expect(a.label).toMatch(/front hole/i));
+  });
+
+  it('never names breasts or vulva alone', () => {
+    expect(allLabels.filter((l) => /^(breasts|vulva)$/i.test(l))).toEqual([]);
   });
 });

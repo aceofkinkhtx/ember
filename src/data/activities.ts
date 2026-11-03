@@ -1,6 +1,10 @@
 // Starter activity library, taken from the A.C.E. Pre-Negotiation Form.
 // Every activity becomes a yes / maybe / no choice in the detailed intake.
 //
+// Inclusive wording: labels never assume anyone's anatomy or gender. Items that
+// involve a penis say "penis or strap-on", vaginal items say "vagina or front
+// hole", and items are written from the bottom's side ("my", "my Top's").
+//
 // The library is a starting point, not a closed list:
 // - Tops can hide, rename or add activities in their offerings (M3).
 // - Bottoms can add their own under "Something else" in each category (M2).
@@ -15,8 +19,12 @@ export interface Activity {
   category: CategoryId;
   /** Edge play: never auto-added, needs Studio mode and explicit negotiation. */
   edge?: boolean;
-  /** Needs the in-person STI checkbox (results are never stored). */
-  stiCheck?: boolean;
+  /**
+   * Needs the in-person STI checkbox (results are never stored).
+   * 'always' for oral contact; 'if-penis' when the item says "penis or
+   * strap-on" and a penis rather than a strap-on is involved.
+   */
+  stiCheck?: 'always' | 'if-penis';
   /** Off by default for every Top; included only when negotiated for that scene. */
   negotiatedOnly?: boolean;
   /** Bondage steps start the restraint timer in Live Scene Mode. */
@@ -89,23 +97,23 @@ export const activities: Activity[] = [
   a('touch', 'groping', 'Groping'),
   a('touch', 'body-kissing', 'Body kissing'),
   a('touch', 'mouth-kissing', 'Mouth kissing'),
-  a('touch', 'hands-genitals', 'Hands on genitals'),
-  a('touch', 'toys-genitals', 'Toys on genitals'),
+  a('touch', 'hands-genitals', 'Hands on my genitals'),
+  a('touch', 'toys-genitals', 'Toys on my genitals'),
   a('touch', 'orgasms', 'Orgasms'),
-  a('touch', 'hands-penis', 'Hands on penis'),
-  a('touch', 'giving-oral', 'Giving oral sex', { stiCheck: true, negotiatedOnly: true }),
-  a('touch', 'receiving-oral', 'Receiving oral sex', { stiCheck: true, negotiatedOnly: true }),
-  a('touch', 'receiving-anal-licking', 'Receiving anal licking', { stiCheck: true, negotiatedOnly: true }),
+  a('touch', 'touch-top', 'Touching my Top’s genitals or strap-on'),
+  a('touch', 'giving-oral', 'Giving oral sex', { stiCheck: 'always', negotiatedOnly: true }),
+  a('touch', 'receiving-oral', 'Receiving oral sex', { stiCheck: 'always', negotiatedOnly: true }),
+  a('touch', 'receiving-anal-licking', 'Receiving anal licking', { stiCheck: 'always', negotiatedOnly: true }),
 
   // Penetration
   a('penetration', 'fingers-mouth', 'Fingers in mouth'),
-  a('penetration', 'fingers-vagina', 'Fingers in vagina'),
+  a('penetration', 'fingers-vagina', 'Fingers in vagina or front hole'),
   a('penetration', 'fingers-anus', 'Fingers in anus'),
-  a('penetration', 'penis-mouth', 'Penis in mouth', { stiCheck: true, negotiatedOnly: true }),
-  a('penetration', 'penis-vagina', 'Penis in vagina', { stiCheck: true, negotiatedOnly: true }),
-  a('penetration', 'penis-anus', 'Penis in anus', { stiCheck: true, negotiatedOnly: true }),
+  a('penetration', 'penis-strap-mouth', 'Penis or strap-on in mouth', { stiCheck: 'if-penis', negotiatedOnly: true }),
+  a('penetration', 'penis-strap-vagina', 'Penis or strap-on in vagina or front hole', { stiCheck: 'if-penis', negotiatedOnly: true }),
+  a('penetration', 'penis-strap-anus', 'Penis or strap-on in anus', { stiCheck: 'if-penis', negotiatedOnly: true }),
   a('penetration', 'toys-mouth', 'Toys in mouth'),
-  a('penetration', 'toys-vagina', 'Toys in vagina'),
+  a('penetration', 'toys-vagina', 'Toys in vagina or front hole'),
   a('penetration', 'toys-anus', 'Toys in anus')
 ];
 
@@ -137,14 +145,14 @@ export const impactAreas: { id: string; label: string; risk: Risk }[] = [
   { id: 'back-thigh', label: 'Back of thigh', risk: 'low' },
   { id: 'front-thigh', label: 'Front of thigh', risk: 'low' },
   { id: 'forearms', label: 'Forearms', risk: 'low' },
-  { id: 'breasts', label: 'Breasts', risk: 'moderate' },
+  { id: 'chest', label: 'Chest or breasts', risk: 'moderate' },
   { id: 'upper-back', label: 'Upper back', risk: 'moderate' },
   { id: 'upper-arm', label: 'Upper arm', risk: 'moderate' },
   { id: 'inner-thigh', label: 'Inner thigh', risk: 'moderate' },
   { id: 'calves', label: 'Calves', risk: 'moderate' },
   { id: 'soles', label: 'Soles of the feet', risk: 'moderate' },
   { id: 'face', label: 'Face', risk: 'high' },
-  { id: 'vulva', label: 'Vulva', risk: 'high' }
+  { id: 'genitals', label: 'Genitals', risk: 'high' }
 ];
 
 export const impactPositions = [

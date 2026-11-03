@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Role, RoleChoice } from '../content/copy';
+import { emptyIdentity, type Identity } from '../content/identity';
 import type { PinRecord } from '../lib/pin';
 import { readJson, writeJson } from '../lib/storage';
 
 // Device settings. Until accounts arrive (M1) these live only on this phone.
 
-export type OnboardingStep = 'welcome' | 'privacy' | 'depth' | 'safety' | 'done';
+export type OnboardingStep = 'welcome' | 'about' | 'privacy' | 'depth' | 'safety' | 'done';
 export type Depth = 'simple' | 'studio';
 
 export interface Settings {
@@ -13,12 +14,15 @@ export interface Settings {
   onboarding: OnboardingStep;
   ageConfirmedAt: string | null;
   roles: RoleChoice | null;
+  identity: Identity;
   activeRole: Role;
   depth: Depth;
   discreet: boolean;
   pin: PinRecord | null;
   safetyFloorAcknowledgedAt: string | null;
   notifications: { dailyTips: boolean; checkIns: boolean };
+  /** When the monthly donation note last appeared. */
+  donationPromptedAt: string | null;
 }
 
 export const SETTINGS_KEY = 'ember.settings';
@@ -28,12 +32,14 @@ export const defaultSettings: Settings = {
   onboarding: 'welcome',
   ageConfirmedAt: null,
   roles: null,
+  identity: emptyIdentity,
   activeRole: 'top',
   depth: 'simple',
   discreet: false,
   pin: null,
   safetyFloorAcknowledgedAt: null,
-  notifications: { dailyTips: true, checkIns: true }
+  notifications: { dailyTips: true, checkIns: true },
+  donationPromptedAt: null
 };
 
 export function loadSettings(): Settings {
@@ -42,6 +48,7 @@ export function loadSettings(): Settings {
   return {
     ...defaultSettings,
     ...saved,
+    identity: { ...emptyIdentity, ...saved.identity },
     notifications: { ...defaultSettings.notifications, ...saved.notifications }
   };
 }
@@ -53,7 +60,7 @@ export function roleFor(choice: RoleChoice): Role {
 
 /** The order of onboarding steps for a role choice. Bottoms skip the depth step. */
 export function onboardingSteps(roles: RoleChoice | null): OnboardingStep[] {
-  return roles === 'bottom' ? ['welcome', 'privacy', 'safety'] : ['welcome', 'privacy', 'depth', 'safety'];
+  return roles === 'bottom' ? ['welcome', 'about', 'privacy', 'safety'] : ['welcome', 'about', 'privacy', 'depth', 'safety'];
 }
 
 export function nextStep(current: OnboardingStep, roles: RoleChoice | null): OnboardingStep {

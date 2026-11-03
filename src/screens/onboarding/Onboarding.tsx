@@ -1,13 +1,34 @@
 import { useState, type ReactNode } from 'react';
 import { DepthIcon, RoleIcon } from '../../components/Icons';
 import { EmberMark } from '../../components/EmberMark';
+import { IdentityForm } from '../../components/IdentityForm';
 import { PinSetup } from '../../components/PinSetup';
 import { SettingSwitch } from '../../components/Switch';
 import { safetyFloor, type RoleChoice } from '../../content/copy';
 import { nextStep, onboardingSteps, roleFor, useSettings, type Depth } from '../../state/settings';
 
-// O1 Welcome, O2 Privacy setup, O3 Depth (Tops only), O6 Safety floor.
+// O1 Welcome, About you, O2 Privacy setup, O3 Depth (Tops only), O6 Safety floor.
 // O4, O5 and O7 (offerings, settings, toys) arrive with M3.
+
+function About({ progress, onNext }: { progress: ReactNode; onNext: () => void }) {
+  const { settings, update } = useSettings();
+  return (
+    <div className="app">
+      <main className="screen">
+        {progress}
+        <h1>About you</h1>
+        <p className="lede">So Ember can talk about you the way you want. Everything here is optional and you can change it anytime in Me.</p>
+        <IdentityForm value={settings.identity} onChange={(change) => update((s) => ({ identity: change(s.identity) }))} />
+        <p className="note">Your partners see your name and pronouns. You decide who sees your gender identity.</p>
+      </main>
+      <footer className="screen-footer">
+        <button type="button" className="btn btn-primary btn-block" onClick={onNext}>
+          Continue
+        </button>
+      </footer>
+    </div>
+  );
+}
 
 export function Onboarding() {
   const { settings, update } = useSettings();
@@ -25,6 +46,8 @@ export function Onboarding() {
   switch (settings.onboarding) {
     case 'welcome':
       return <Welcome onNext={advance} />;
+    case 'about':
+      return <About progress={progress} onNext={advance} />;
     case 'privacy':
       return <Privacy progress={progress} onNext={advance} />;
     case 'depth':

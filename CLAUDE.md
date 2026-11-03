@@ -13,6 +13,7 @@ Read these before writing code. If this brief and the spec disagree, the spec wi
 | `spec/screens-top.md` | Every Top screen: purpose, elements, where it leads |
 | `spec/screens-bottom.md` | Every bottom screen, including the guest link |
 | `spec/daily-tips.md` | 120 tips for Tops and 120 for bottoms |
+| `spec/decisions.md` | Michael's later decisions. Where it conflicts with the spec tabs or this brief, the decisions log wins |
 | `prototype/*.dc.html` | Clickable design prototype: layout, colors, type, copy tone. Reference only, not production code |
 
 ## What Ember is, in one paragraph
@@ -33,7 +34,9 @@ These can never be removed or skipped by any user setting:
 ## Key product decisions (already made; do not relitigate)
 
 - **Intake choices are yes, maybe, no.** The auto-designer uses only yes items.
-- **Overrides:** the Top may add maybe items (amber flag, "Discussed together?") and no items (immediate red flag plus a required confirmation: "They marked this as no. Have you talked and agreed to include it?"). Every override is logged with its date in the connection's history, and the bottom sees overrides in their history after the scene, never before.
+- **Overrides (updated Nov 3, 2026):** the Top may add maybe items (amber flag, "Discussed together?"). A no item is blocked outright unless the bottom has turned on "My Top may override a no after we talk" in their intake, which is off by default. Only then can the Top add it, with an immediate red flag and the required confirmation: "They marked this as no. Have you talked and agreed to include it?" Every override is logged with its date in the connection's history. Maybes included in a scene are shown to the bottom at the pre-scene check-in unless they chose not to know; no overrides appear in their history after the scene.
+- **Per-scene intake:** the bottom fills an intake for each scene or reuses an earlier one. Every scene records which intake version it was designed from.
+- **Inclusive by default:** pronouns and gender identity are asked at the start; copy uses each person's pronouns (they/them until known); activity labels never assume anatomy from gender (for example "penis or strap-on"). Gender identity never decides which activities appear.
 - **Plan privacy:** the bottom sees the SceneVibe by default. They can request the full plan; the Top decides whether to send it. No bottom approval step.
 - **Consent snapshot:** the bottom's limits and preferences lock automatically when the bottom submits the pre-scene check.
 - **Aftercare length:** a Top setting, defaulting to 25% of scene length, 33% for scenes marked intense, with "more if needed" always available.

@@ -8,7 +8,7 @@ const done = (patch: Partial<Settings>): Settings => ({
   ...defaultSettings,
   onboarding: 'done',
   ageConfirmedAt: '2026-11-01T00:00:00Z',
-  safetyFloorAcknowledgedAt: '2026-11-01T00:00:00Z',
+  safetyFloorAcknowledgedAt: new Date().toISOString(),
   ...patch
 });
 
@@ -33,6 +33,11 @@ describe('onboarding', () => {
     await user.click(screen.getByRole('checkbox', { name: "I'm 18 or older" }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
+    expect(screen.getByRole('heading', { name: 'About you' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'they/them' }));
+    await user.click(screen.getByRole('button', { name: 'Nonbinary' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
     expect(screen.getByRole('heading', { name: 'Protect Ember first.' })).toBeInTheDocument();
     await user.click(screen.getByRole('switch', { name: 'Discreet mode' }));
     await user.click(screen.getByRole('button', { name: 'Continue without a PIN' }));
@@ -47,11 +52,15 @@ describe('onboarding', () => {
     expect(screen.getByRole('heading', { name: 'What needs you today' })).toBeInTheDocument();
     const saved = loadSettings();
     expect(saved.discreet).toBe(true);
+    expect(saved.identity.pronouns).toEqual(['they']);
+    expect(saved.identity.genders).toEqual(['Nonbinary']);
     expect(saved.ageConfirmedAt).not.toBeNull();
     expect(saved.safetyFloorAcknowledgedAt).not.toBeNull();
   });
 
-  it('skips the depth step for bottoms', () => {
+  it('asks everyone about themselves, and skips the depth step for bottoms', () => {
+    expect(nextStep('welcome', 'bottom')).toBe('about');
+    expect(nextStep('welcome', 'top')).toBe('about');
     expect(nextStep('privacy', 'bottom')).toBe('safety');
     expect(nextStep('privacy', 'top')).toBe('depth');
   });
@@ -84,6 +93,27 @@ describe('navigation', () => {
     const nav = screen.getByRole('navigation', { name: 'Main' });
     expect(nav).not.toHaveTextContent(/Scenes|Toys/);
     expect(nav).toHaveTextContent('Plans');
+  });
+});
+
+describe('donation note', () => {
+  it('appears once the month is up, and not again right after', async () => {
+    const user = userEvent.setup();
+    const long = '2026-01-01T00:00:00Z';
+    const { unmount } = render(<App initialSettings={done({ roles: 'top', safetyFloorAcknowledgedAt: long })} />);
+    expect(screen.getByRole('dialog', { name: 'Help keep Ember free' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: '$5' })).toHaveAttribute('aria-checked', 'true');
+    await user.click(screen.getByRole('button', { name: 'Not this month' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    unmount();
+
+    render(<App initialSettings={loadSettings()} />);
+    expect(screen.queryByRole('dialog', { name: 'Help keep Ember free' })).not.toBeInTheDocument();
+  });
+
+  it('does not appear in the first week', () => {
+    render(<App initialSettings={done({ roles: 'top', safetyFloorAcknowledgedAt: new Date().toISOString() })} />);
+    expect(screen.queryByRole('dialog', { name: 'Help keep Ember free' })).not.toBeInTheDocument();
   });
 });
 

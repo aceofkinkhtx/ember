@@ -1,19 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#FF6A1F" stop-opacity="0.9"/>
-      <stop offset="40%" stop-color="#E8440C" stop-opacity="0.5"/>
-      <stop offset="72%" stop-color="#B8400C" stop-opacity="0.14"/>
+    <radialGradient id="halo" cx="50%" cy="56%" r="50%">
+      <stop offset="0%" stop-color="#FF6A1F" stop-opacity="0.75"/>
+      <stop offset="40%" stop-color="#E8440C" stop-opacity="0.32"/>
+      <stop offset="75%" stop-color="#B8400C" stop-opacity="0.08"/>
       <stop offset="100%" stop-color="#B8400C" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="core" cx="42%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#FFC27A"/>
-      <stop offset="30%" stop-color="#FF6A1F"/>
-      <stop offset="75%" stop-color="#D9330B"/>
-      <stop offset="100%" stop-color="#A3200A"/>
+    <radialGradient id="heat" cx="48%" cy="52%" r="62%">
+      <stop offset="0%" stop-color="#FFE2A8"/>
+      <stop offset="22%" stop-color="#FFB347"/>
+      <stop offset="55%" stop-color="#FF6A1F"/>
+      <stop offset="100%" stop-color="#C2300A"/>
     </radialGradient>
+    <linearGradient id="char" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5A1A0C"/>
+      <stop offset="100%" stop-color="#2A0A06"/>
+    </linearGradient>
+    <radialGradient id="spark" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFE2A8"/>
+      <stop offset="60%" stop-color="#FF8A2A"/>
+      <stop offset="100%" stop-color="#FF6A1F" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="coal">
+      <path d="M124 318 C112 268 146 214 206 200 C246 190 270 168 318 176 C378 186 404 236 394 290 C386 338 344 372 286 378 C226 384 138 370 124 318 Z"/>
+    </clipPath>
   </defs>
+
   <rect width="512" height="512" fill="#141012"/>
-  <circle cx="256" cy="256" r="230" fill="url(#glow)"/>
-  <circle cx="256" cy="256" r="92" fill="url(#core)"/>
+  <ellipse cx="258" cy="292" rx="236" ry="210" fill="url(#halo)"/>
+
+  <!-- The coal: glowing heat underneath, charred plates on top, bright cracks between them. -->
+  <g clip-path="url(#coal)">
+    <rect x="100" y="150" width="320" height="250" fill="url(#heat)"/>
+    <g fill="url(#char)">
+      <path d="M104 300 L146 210 L218 192 L236 260 L180 322 Z"/>
+      <path d="M248 182 L322 162 L360 222 L306 254 L254 244 Z"/>
+      <path d="M370 210 L414 246 L404 330 L344 322 L322 266 Z"/>
+      <path d="M184 336 L244 280 L306 296 L330 340 L274 396 L176 396 Z"/>
+      <path d="M104 334 L170 330 L168 396 L100 396 Z"/>
+      <path d="M342 338 L410 340 L386 396 L290 396 Z"/>
+    </g>
+  </g>
+
+  <!-- Sparks rising -->
+  <circle cx="300" cy="132" r="13" fill="url(#spark)"/>
+  <circle cx="226" cy="112" r="9" fill="url(#spark)"/>
+  <circle cx="338" cy="84" r="7" fill="url(#spark)"/>
 </svg>
