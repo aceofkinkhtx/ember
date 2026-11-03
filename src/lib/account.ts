@@ -55,6 +55,8 @@ export const MIN_PASSWORD = 10;
 function friendly(message: string): string {
   if (/invalid login credentials/i.test(message)) return "That email and password don't match an account.";
   if (/email not confirmed/i.test(message)) return 'Confirm your email first. The link is in your inbox.';
+  if (/sending (confirmation|recovery|magic link)? ?email|smtp/i.test(message))
+    return "Ember couldn't send the email, so the account wasn't made. Please try again later.";
   if (/rate limit|too many/i.test(message)) return 'Too many tries. Wait a few minutes and try again.';
   if (/fetch|network/i.test(message)) return "Ember can't reach the server. Check your connection and try again.";
   return message;
