@@ -362,6 +362,8 @@ export interface Connection {
   /** Your role with this person. */
   myRole: Role;
   status: 'active' | 'paused' | 'ended';
+  /** Only the person who paused can resume. */
+  pausedByMe: boolean;
   since: string;
   /** Null until the other person's card arrives. */
   them: Card | null;
@@ -374,7 +376,7 @@ export interface Connection {
  */
 export async function listConnections(keys: StoredKeys, me: Card): Promise<Connection[]> {
   const [conns, keyRows, cards] = await Promise.all([
-    db.from('connections').select('id, top_id, bottom_id, status, created_at').order('created_at', { ascending: false }),
+    db.from('connections').select('id, top_id, bottom_id, status, paused_by, created_at').order('created_at', { ascending: false }),
     db.from('connection_keys').select('connection_id, wrapped_key').eq('user_id', keys.userId),
     db.from('connection_cards').select('connection_id, user_id, sealed_card')
   ]);
@@ -387,13 +389,19 @@ export async function listConnections(keys: StoredKeys, me: Card): Promise<Conne
       const myRole: Role = c.top_id === keys.userId ? 'top' : 'bottom';
       const otherId = myRole === 'top' ? c.bottom_id : c.top_id;
       const wrapped = keyRows.data?.find((k) => k.connection_id === c.id)?.wrapped_key;
-      const base = { id: c.id, myRole, status: c.status as Connection['status'], since: c.created_at };
+      const base = {
+        id: c.id,
+        myRole,
+        status: c.status as Connection['status'],
+        pausedByMe: c.paused_by === keys.userId,
+        since: c.created_at
+      };
       if (!wrapped) return { ...base, them: null, ready: false };
       const shared = await openSealed(wrapped, keys);
       const theirs = cards.data?.find((x) => x.connection_id === c.id && x.user_id === otherId);
       const mine = cards.data?.find((x) => x.connection_id === c.id && x.user_id === keys.userId);
       const myCurrent = mine ? await unlock(mine.sealed_card, shared).catch(() => null) : null;
-      if (myCurrent !== meJson) await writeCard(keys, c.id, shared, me);
+      if (myCurrent !== meJson && c.status !== 'ended') await writeCard(keys, c.id, shared, me);
       let them: Card | null = null;
       if (theirs) {
         try {
@@ -405,4 +413,18 @@ export async function listConnections(keys: StoredKeys, me: Card): Promise<Conne
       return { ...base, them, ready: true };
     })
   );
+}
+
+/** Rewrites your card on every connection, so a new name or pronouns show up right away. */
+export async function refreshMyCards(keys: StoredKeys, me: Card): Promise<void> {
+  await listConnections(keys, me);
+}
+
+/**
+ * Pause, resume or end a connection. Ending is final for both people and
+ * withdraws everything either one shared; only a new invite reconnects.
+ */
+export async function setConnectionStatus(id: string, status: Connection['status']): Promise<void> {
+  const { error } = await db.from('connections').update({ status }).eq('id', id);
+  if (error) throw new AccountError(friendly(error.message));
 }

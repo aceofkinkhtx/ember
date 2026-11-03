@@ -129,6 +129,16 @@ describe('account flow', () => {
     await account.signOut();
   });
 
+  it('shows a new name to the other person as soon as it changes', async () => {
+    await account.signIn(jadeUser.email, jadeUser.password);
+    await account.refreshMyCards(account.loadKeys()!, { name: 'Jade Rivers', pronouns: 'they/them' });
+    await account.signOut();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    expect((await account.listConnections(account.loadKeys()!, river))[0].them).toEqual({ name: 'Jade Rivers', pronouns: 'they/them' });
+    await account.signOut();
+  });
+
   it('carries a guest answer to the inviter, locked for them alone', async () => {
     await account.signIn(riverUser.email, riverUser.password);
     const keys = account.loadKeys()!;

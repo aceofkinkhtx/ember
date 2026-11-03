@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { db, loadKeys, saveProfile, signOut, type StoredKeys } from '../lib/account';
+import { cardFor, db, loadKeys, refreshMyCards, saveProfile, signOut, type StoredKeys } from '../lib/account';
 import { useSettings } from './settings';
 
 // Who is signed in on this phone, and their unlocked keys.
@@ -46,7 +46,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     return () => data.subscription.unsubscribe();
   }, [refresh]);
 
-  // Keep the locked copy of "About you" current, a moment after the last change.
+  // Keep the locked copy of "About you" and your card on each connection
+  // current, a moment after the last change.
   const first = useRef(true);
   useEffect(() => {
     if (first.current) {
@@ -55,7 +56,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     }
     if (!state.keys) return;
     const keys = state.keys;
-    const timer = window.setTimeout(() => void saveProfile(keys, { identity: settings.identity }).catch(() => undefined), 2000);
+    const timer = window.setTimeout(() => {
+      void saveProfile(keys, { identity: settings.identity }).catch(() => undefined);
+      void refreshMyCards(keys, cardFor(settings.identity)).catch(() => undefined);
+    }, 2000);
     return () => window.clearTimeout(timer);
   }, [settings.identity, state.keys]);
 

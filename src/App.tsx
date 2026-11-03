@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { LockGate } from './components/LockGate';
 import { TabBar } from './components/TabBar';
 import { tabsByRole } from './content/copy';
+import { ConnectionDetail } from './screens/ConnectionDetail';
 import { Connections } from './screens/Connections';
 import { Guest } from './screens/Guest';
 import { Home } from './screens/Home';
@@ -34,6 +35,7 @@ function Shell() {
         <Route path="/" element={<Home />} />
         <Route path="/me" element={<Me />} />
         <Route path="/connections" element={<Connections />} />
+        <Route path="/connections/:id" element={<ConnectionDetail />} />
         <Route path="/join/:code" element={<JoinInvite />} />
         {tabs
           .filter((t) => t !== 'home' && t !== 'me' && t !== 'connections')

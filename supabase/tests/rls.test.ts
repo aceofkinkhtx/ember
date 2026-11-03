@@ -278,6 +278,55 @@ describe('connection keys', () => {
   });
 });
 
+describe('ending a connection', () => {
+  it('is final for both, withdraws shared profiles, and only a new invite reconnects', async () => {
+    const ash = await person('ash');
+    const kit = await person('kit');
+    const first = await invite(ash, 'account', 'top');
+    expect((await kit.db.rpc('accept_invite', { invite_code: first.code })).error).toBeNull();
+    const { data: conn } = await kit.db.from('connections').select('id').eq('top_id', ash.id).single();
+    await kit.db.from('profile_shares').insert({ owner_id: kit.id, recipient_id: ash.id, wrapped_profile_key: 'k' });
+    await kit.db.from('intakes').insert({ owner_id: kit.id, sealed_intake: 'kit-v1' });
+    expect((await ash.db.from('intakes').select('id').eq('owner_id', kit.id)).data!.length).toBe(1);
+
+    expect((await kit.db.from('connections').update({ status: 'ended' }).eq('id', conn!.id)).error).toBeNull();
+    expect((await ash.db.from('intakes').select('id').eq('owner_id', kit.id)).data).toEqual([]);
+    expect((await kit.db.from('profile_shares').select('recipient_id')).data).toEqual([]);
+    expect((await ash.db.from('public_keys').select('public_key').eq('user_id', kit.id)).data).toEqual([]);
+
+    const reopen = await ash.db.from('connections').update({ status: 'active' }).eq('id', conn!.id);
+    expect(reopen.error?.message).toMatch(/has ended/);
+
+    const again = await invite(ash, 'account', 'top');
+    expect((await kit.db.rpc('accept_invite', { invite_code: again.code })).data).toBe(conn!.id);
+    expect((await kit.db.from('connections').select('status').eq('id', conn!.id).single()).data!.status).toBe('active');
+  });
+});
+
+describe('pausing a connection', () => {
+  it('can only be undone by the person who paused', async () => {
+    const lee = await person('lee');
+    const max = await person('max');
+    const inv = await invite(lee, 'account', 'top');
+    await max.db.rpc('accept_invite', { invite_code: inv.code });
+    const { data: conn } = await max.db.from('connections').select('id').eq('top_id', lee.id).single();
+
+    expect((await max.db.from('connections').update({ status: 'paused' }).eq('id', conn!.id)).error).toBeNull();
+    const byLee = await lee.db.from('connections').update({ status: 'active' }).eq('id', conn!.id);
+    expect(byLee.error?.message).toMatch(/Only the person who paused/);
+    expect((await lee.db.from('connections').select('paused_by').eq('id', conn!.id).single()).data!.paused_by).toBe(max.id);
+
+    expect((await max.db.from('connections').update({ status: 'active' }).eq('id', conn!.id)).error).toBeNull();
+    expect((await max.db.from('connections').select('status, paused_by').eq('id', conn!.id).single()).data).toEqual({ status: 'active', paused_by: null });
+  });
+
+  it("can't be faked by setting who paused", async () => {
+    const { data: conn } = await river.db.from('connections').select('id').eq('bottom_id', jade.id).single();
+    const { error } = await river.db.from('connections').update({ paused_by: jade.id }).eq('id', conn!.id);
+    expect(error).not.toBeNull();
+  });
+});
+
 describe('connection cards', () => {
   it('are shared between the two people and hidden from everyone else', async () => {
     const { data: conn } = await river.db.from('connections').select('id').eq('bottom_id', jade.id).single();

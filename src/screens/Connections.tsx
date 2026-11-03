@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AccountForm } from '../components/AccountForm';
 import { roleLabel, tabLabel } from '../content/copy';
 import {
@@ -17,6 +17,7 @@ import {
   type InviteKind,
   type MyInvite
 } from '../lib/account';
+import { readJson, writeJson } from '../lib/storage';
 import { useAccount } from '../state/account';
 import { useSettings } from '../state/settings';
 
@@ -24,7 +25,30 @@ import { useSettings } from '../state/settings';
 // joining with a code.
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-const shortDate = (iso: string) => dateFmt.format(new Date(iso));
+export const shortDate = (iso: string) => dateFmt.format(new Date(iso));
+
+type SortBy = 'newest' | 'oldest' | 'name';
+const SORT_KEY = 'ember.connectionSort';
+const sortOptions: { id: SortBy; label: string }[] = [
+  { id: 'newest', label: 'Newest' },
+  { id: 'oldest', label: 'Oldest' },
+  { id: 'name', label: 'Name' }
+];
+
+function sorted(list: Connection[], by: SortBy): Connection[] {
+  const copy = [...list];
+  if (by === 'name') return copy.sort((a, b) => displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' }));
+  copy.sort((a, b) => a.since.localeCompare(b.since));
+  return by === 'oldest' ? copy : copy.reverse();
+}
+
+export function displayName(c: Connection): string {
+  return c.them?.name || (c.ready ? 'Your connection' : 'Finishing setup...');
+}
+
+export function connectionSummary(c: Connection, discreet: boolean): string {
+  return [c.them?.pronouns, `You're the ${roleLabel(c.myRole, discreet)}`, `Since ${shortDate(c.since)}`].filter(Boolean).join(' · ');
+}
 
 export function Connections() {
   const { settings } = useSettings();
@@ -87,6 +111,13 @@ function ConnectionsSignedIn({ title }: { title: string }) {
   const guests = invites.filter((i) => i.kind === 'guest' && (i.sealedAnswers || new Date(i.expiresAt) > new Date()));
   const pending = invites.filter((i) => i.kind === 'account' && !i.used && new Date(i.expiresAt) > new Date());
   const isTop = settings.activeRole === 'top';
+  // Ended connections leave both lists; only a new invite brings them back.
+  const active = (connections ?? []).filter((c) => c.status !== 'ended');
+  const [sort, setSort] = useState<SortBy>(() => readJson<SortBy>(SORT_KEY) ?? 'newest');
+  const chooseSort = (next: SortBy) => {
+    setSort(next);
+    writeJson(SORT_KEY, next);
+  };
 
   return (
     <main className="screen">
@@ -103,28 +134,40 @@ function ConnectionsSignedIn({ title }: { title: string }) {
       </div>
 
       <section className="stack" aria-labelledby="people-title">
-        <h2 id="people-title" className="eyebrow">
-          Connected
-        </h2>
+        <div className="person">
+          <h2 id="people-title" className="eyebrow">
+            Connected
+          </h2>
+          {active.length > 1 && (
+            <label className="note" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              Sort
+              <select className="input" style={{ minHeight: 40, padding: '6px 10px' }} value={sort} onChange={(e) => chooseSort(e.target.value as SortBy)}>
+                {sortOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
         {connections === null ? (
           <p className="note">Loading...</p>
-        ) : connections.length === 0 ? (
+        ) : active.length === 0 ? (
           <div className="card">
             <p>No one yet. Invite someone, or enter the code someone sent you.</p>
           </div>
         ) : (
           <ul className="person-list">
-            {connections.map((c) => (
-              <li key={c.id} className="card person">
-                <div>
-                  <div className="person-name">{c.them?.name || (c.ready ? 'Your connection' : 'Finishing setup...')}</div>
-                  <div className="note">
-                    {[c.them?.pronouns, `You ${roleLabel(c.myRole, settings.discreet)}`, `Since ${shortDate(c.since)}`]
-                      .filter(Boolean)
-                      .join(' · ')}
+            {sorted(active, sort).map((c) => (
+              <li key={c.id}>
+                <Link to={`/connections/${c.id}`} className="card person" style={{ color: 'inherit', textDecoration: 'none' }}>
+                  <div>
+                    <div className="person-name">{displayName(c)}</div>
+                    <div className="note">{connectionSummary(c, settings.discreet)}</div>
                   </div>
-                </div>
-                {c.status !== 'active' && <span className="chip">{c.status === 'paused' ? 'Paused' : 'Ended'}</span>}
+                  {c.status === 'paused' ? <span className="chip">Paused</span> : <span aria-hidden="true">›</span>}
+                </Link>
               </li>
             ))}
           </ul>
