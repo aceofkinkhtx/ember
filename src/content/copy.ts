@@ -57,7 +57,7 @@ export const safetyFloor: { title: string; detail: string }[] = [
   {
     title: 'Sub drop is planned for',
     detail:
-      'Right after the scene, you both rate how you feel from 1 to 5. The bottom gets a quick 1 to 5 check-in each day for 3 days, and the Top gets a reminder to check in about 18 hours after.'
+      'Right after the scene, you both check in on how you feel. For 3 days after, you each get a quick daily check-in, because drop can hit Tops and bottoms alike.'
   },
   {
     title: 'Ready before starting',

@@ -54,7 +54,7 @@ export function checkInQuestions(kind: CheckInKind, myRole: Role, discreet = fal
   }
 }
 
-/** The bottom's follow-ups: once a day for 3 days after the scene. */
+/** Follow-ups for both the Top and the bottom: once a day for 3 days after the scene. */
 export const FOLLOWUP_DAYS = 3;
 
 /** A 1 or 2 on "how are you feeling" means extra care is offered. */

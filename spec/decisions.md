@@ -7,10 +7,10 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 - **Safety floor 5 is now "Ready before starting."** The readiness check happens before the scene begins, inside the pre-scene check-in (M6). It replaces the readiness check before the bottom leaves.
 - **After-scene and drop check-ins** (safety floor 4, M7):
   - Right after the scene, the Top and the bottom each give a simple 1 to 5 rating of how they feel.
-  - The bottom then gets one notification a day for 3 days, opening a simple 1 to 5 "how are you feeling" log, to catch sub drop.
+  - The Top and the bottom then each get one notification a day for 3 days, opening the follow-up check-in, to catch sub drop and Top drop. (Michael, Nov 4: both get them.)
   - The Top's check-in reminder about 18 hours after the scene stays.
   - As with every check-in, turning off the notification stops only the phone alert; the check-in still waits inside the app.
-  - Low ratings (approved): a 1 or 2 on "how are you feeling" right after the scene suggests staying together a little longer before heading home and not driving until steady; a 1 or 2 during the 3 days offers an easy way to message their Top or a friend.
+  - Low ratings (approved): a 1 or 2 on "how are you feeling" right after the scene suggests staying together a little longer before heading home and not driving until steady; a 1 or 2 during the 3 days offers an easy way to message their partner or a friend.
 - **Every check-in has three questions** (wording in `src/content/checkins.ts`; scales are 1 to 5):
   - **Pre-scene check-in (M6):** how you're feeling; whether you've had your final pre-scene negotiation (yes or no); how excited you are for this scene.
   - **Post-scene check-in, Top and bottom (M7):** how you're feeling; how attentive your Top was (asked of the bottom) or how responsive your bottom was (asked of the Top); an overall rating of the experience.
