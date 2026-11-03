@@ -4,6 +4,10 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 4, 2026
 
+- **M2 intake choices:**
+  - **Quick path:** all three word groups (Heat, Hold, Flow) are required once someone picks the quick path; no skipping a group. The desire decoder follows each of the three groups, whatever words were chosen, and the decoder itself can be skipped.
+  - **Honorific suggestions:** Sir, Ma'am, Mx., Daddy, Mommy, Master, Mistress, Boss, Captain, Coach, plus "use my name" and write your own.
+  - **Emergency contact** is part of "essentials only" sharing. "Call 911" is always an option for anyone who would rather not share a family member's or friend's details.
 - **Safety floor 5 is now "Ready before starting."** The readiness check happens before the scene begins, inside the pre-scene check-in (M6). It replaces the readiness check before the bottom leaves.
 - **After-scene and drop check-ins** (safety floor 4, M7):
   - Right after the scene, the Top and the bottom each give a simple 1 to 5 rating of how they feel.

@@ -76,7 +76,11 @@ export type SignInResult =
 /** What Ember keeps, locked, so a new phone gets your setup back. */
 export interface SavedProfile {
   identity?: Identity;
+  /** The keys that lock your intakes (see lib/intake.ts). */
+  keyRing?: { gens: { g: number; essentials: string; full: string }[] };
 }
+
+const RING = 'ember.profileKeys';
 
 async function finishSignIn(userId: string, wrapKey: Uint8Array, salt: string): Promise<SignInResult> {
   const { data: profile, error } = await db
@@ -102,6 +106,8 @@ async function finishSignIn(userId: string, wrapKey: Uint8Array, salt: string): 
     if (profile.sealed_settings) {
       try {
         saved = JSON.parse(await openSealed(profile.sealed_settings, keys)) as SavedProfile;
+        // A new phone gets the intake keys back.
+        if (saved.keyRing && !readJson(RING)) writeJson(RING, saved.keyRing);
       } catch {
         saved = null;
       }
@@ -156,14 +162,23 @@ export async function signIn(email: string, password: string): Promise<SignInRes
 
 export async function signOut(): Promise<void> {
   clearKeys();
+  // Intake keys and any unsaved intake belong to this person, not the phone.
+  try {
+    window.localStorage.removeItem(RING);
+    window.localStorage.removeItem('ember.intakeDraft');
+  } catch {
+    // Storage unavailable: nothing was saved.
+  }
   await db.auth.signOut({ scope: 'local' });
 }
 
 /** Saves your setup, locked so only you can open it. */
 export async function saveProfile(keys: StoredKeys, saved: SavedProfile): Promise<void> {
+  // The key ring always rides along, so saving one part never drops another.
+  const merged: SavedProfile = { ...saved, keyRing: saved.keyRing ?? readJson<SavedProfile['keyRing']>(RING) ?? undefined };
   await db
     .from('profiles')
-    .update({ sealed_settings: await sealFor(JSON.stringify(saved), keys.publicKey), updated_at: new Date().toISOString() })
+    .update({ sealed_settings: await sealFor(JSON.stringify(merged), keys.publicKey), updated_at: new Date().toISOString() })
     .eq('id', keys.userId);
 }
 
@@ -288,6 +303,8 @@ export interface GuestAnswers {
   pronouns: string;
   message: string;
   adultConfirmedAt: string;
+  /** The full intake (M2). Older guest answers have none. */
+  intake?: import('./intake').Intake;
 }
 
 export async function submitGuestAnswers(code: string, inviterPublicKey: string, answers: GuestAnswers): Promise<void> {
@@ -379,6 +396,8 @@ export interface Connection {
   theirRole: Role;
   /** Which column holds your role. */
   mySide: 'a' | 'b';
+  /** The other person's account id. */
+  otherId: string;
   status: 'active' | 'paused' | 'ended';
   /** Only the person who paused can resume. */
   pausedByMe: boolean;
@@ -417,6 +436,7 @@ export async function listConnections(keys: StoredKeys, me: Card): Promise<Conne
         myRole,
         theirRole,
         mySide,
+        otherId,
         status: c.status as Connection['status'],
         pausedByMe: c.paused_by === keys.userId,
         since: c.created_at

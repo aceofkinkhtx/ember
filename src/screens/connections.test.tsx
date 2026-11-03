@@ -92,13 +92,35 @@ describe('guest link', () => {
     await userEvent.click(screen.getByLabelText("I'm 18 or older"));
     await userEvent.click(screen.getByRole('button', { name: 'Start' }));
     await userEvent.type(screen.getByLabelText(/Your scene name/), 'Sol');
-    await userEvent.click(screen.getByRole('button', { name: 'Send my answers' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    // The full intake: essentials first, and the safety details can't be skipped.
+    expect(await screen.findByRole('heading', { name: 'The essentials' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('radio', { name: 'Call 911' }));
+    await userEvent.click(screen.getByLabelText(/no play when either of us is noticeably intoxicated/));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    // River suggested the detailed path; Sol picks the map instead.
+    expect(screen.getByRole('checkbox', { name: /Detailed/ })).toHaveAttribute('aria-checked', 'true');
+    await userEvent.click(screen.getByRole('checkbox', { name: /Detailed/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Map/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(screen.getByRole('heading', { name: /Where do you want this scene to take you/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(screen.getByRole('heading', { name: 'Aftercare' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Send my answers' }));
 
     expect(await screen.findByText(/River has your answers now/)).toBeInTheDocument();
     const [code, publicKey, answers] = vi.mocked(account.submitGuestAnswers).mock.calls[0];
     expect(code).toBe('ABCDEFGHJKMNPQRSTUVWXYZ2');
     expect(publicKey).toBe('pk-river');
     expect(answers.name).toBe('Sol');
+    expect(answers.intake?.essentials.emergency).toEqual({ kind: '911' });
+    expect(answers.intake?.paths).toEqual(['map']);
   });
 
   it('says so plainly when the link was already used', async () => {

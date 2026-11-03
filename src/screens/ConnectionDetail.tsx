@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { RolePicker } from '../components/RolePicker';
+import { IntakeSummary } from '../components/intake/IntakeSummary';
+import { SharePanel } from '../components/intake/SharePanel';
+import { readSharedProfile, type SharedProfile } from '../lib/intake';
 import { AccountError, cardFor, listConnections, rolesFit, setConnectionStatus, setMyRole, type Connection, type Role } from '../lib/account';
 import { useAccount } from '../state/account';
 import { useSettings } from '../state/settings';
@@ -24,6 +27,14 @@ export function ConnectionDetail() {
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [theirProfile, setTheirProfile] = useState<SharedProfile | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!keys || !connection) return;
+    readSharedProfile(keys, connection.otherId)
+      .then(setTheirProfile)
+      .catch(() => setTheirProfile(null));
+  }, [keys, connection?.otherId]);
 
   useEffect(() => {
     if (!keys) return;
@@ -106,6 +117,34 @@ export function ConnectionDetail() {
           Each of you chooses your own role. With a switch, whoever designs a scene picks the role they design it as.
         </p>
       </section>
+
+      {connection.theirRole !== 'top' && (
+        <section className="stack" aria-labelledby="their-profile">
+          <h2 id="their-profile" className="eyebrow">
+            {name}'s profile
+          </h2>
+          {theirProfile === undefined ? (
+            <p className="note">Loading...</p>
+          ) : theirProfile ? (
+            <>
+              <p className="note">
+                Intake #{theirProfile.version}
+                {theirProfile.full ? '' : ', essentials only'}
+              </p>
+              <IntakeSummary intake={theirProfile.intake} full={theirProfile.full} />
+            </>
+          ) : (
+            <p className="card">{name} hasn't shared a profile with you yet.</p>
+          )}
+        </section>
+      )}
+
+      {connection.myRole !== 'top' && (
+        <section className="card stack" aria-label="Your sharing">
+          <div className="eyebrow">Your profile</div>
+          <SharePanel only={connection.otherId} />
+        </section>
+      )}
 
       {comingSections.map((s) => (
         <section key={s.title} className="card">

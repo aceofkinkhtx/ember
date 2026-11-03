@@ -32,6 +32,8 @@ export interface Activity {
   /** Impact implements, in escalation order (bare hand first). */
   impactLevel?: 1 | 2 | 3 | 4;
   custom?: boolean;
+  /** Shown only to people who said this fits their body in "My body" (or who skipped it). */
+  anatomy?: 'front-hole';
 }
 
 export const categories: { id: CategoryId; label: string }[] = [
@@ -107,13 +109,13 @@ export const activities: Activity[] = [
 
   // Penetration
   a('penetration', 'fingers-mouth', 'Fingers in mouth'),
-  a('penetration', 'fingers-vagina', 'Fingers in vagina or front hole'),
+  a('penetration', 'fingers-vagina', 'Fingers in vagina or front hole', { anatomy: 'front-hole' }),
   a('penetration', 'fingers-anus', 'Fingers in anus'),
   a('penetration', 'penis-strap-mouth', 'Penis or strap-on in mouth', { stiCheck: 'if-penis', negotiatedOnly: true }),
-  a('penetration', 'penis-strap-vagina', 'Penis or strap-on in vagina or front hole', { stiCheck: 'if-penis', negotiatedOnly: true }),
+  a('penetration', 'penis-strap-vagina', 'Penis or strap-on in vagina or front hole', { stiCheck: 'if-penis', negotiatedOnly: true, anatomy: 'front-hole' }),
   a('penetration', 'penis-strap-anus', 'Penis or strap-on in anus', { stiCheck: 'if-penis', negotiatedOnly: true }),
   a('penetration', 'toys-mouth', 'Toys in mouth'),
-  a('penetration', 'toys-vagina', 'Toys in vagina or front hole'),
+  a('penetration', 'toys-vagina', 'Toys in vagina or front hole', { anatomy: 'front-hole' }),
   a('penetration', 'toys-anus', 'Toys in anus')
 ];
 

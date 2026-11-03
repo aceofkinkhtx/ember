@@ -119,7 +119,7 @@ describe('account flow', () => {
     expect(riverView[0].them).toEqual(jade);
     expect(riverView[0].myRole).toBe('top');
 
-    const { data: cards } = await admin.from('connection_cards').select('sealed_card');
+    const { data: cards } = await admin.from('connection_cards').select('sealed_card').in('user_id', [riverUser.id, jadeUser.id]);
     expect(cards!.length).toBe(2);
     cards!.forEach((c) => expect(c.sealed_card).not.toMatch(/Jade|River/));
     await account.signOut();
@@ -169,6 +169,61 @@ describe('account flow', () => {
     await account.signIn(riverUser.email, riverUser.password);
     const riverView = await account.listConnections(account.loadKeys()!, river);
     expect(riverView.find((c) => c.them?.name === 'Sol')).toMatchObject({ them: sol, myRole: 'switch' });
+    await account.signOut();
+  });
+
+  it('shares an intake as essentials only or in full, and revoking locks out what comes next', async () => {
+    const intakeLib = await import('../../src/lib/intake');
+    const jadeIdentity = { name: 'Jade', pronouns: ['she', 'they'], pronounsCustom: '', genders: [], genderCustom: '' };
+
+    await account.signIn(jadeUser.email, jadeUser.password);
+    const jadeKeys = account.loadKeys()!;
+    const intake = intakeLib.emptyIntake();
+    intake.essentials.emergency = { kind: '911' };
+    intake.essentials.substanceAgreedAt = new Date().toISOString();
+    intake.essentials.triggers.notes = 'Hands near my throat';
+    intake.detailed = { ...intakeLib.emptyDetailed(), answers: { gag: { choice: 'no' }, rope: { choice: 'yes', intensity: 3 } } };
+    const saved = await intakeLib.saveVersion(jadeKeys, jadeIdentity, { intake, basedOn: null });
+    expect(saved.version).toBeGreaterThan(0);
+
+    const { data: raw } = await admin.from('intakes').select('sealed_intake').eq('id', saved.id).single();
+    expect(raw!.sealed_intake).not.toMatch(/throat|gag|rope/);
+
+    await intakeLib.setShare(jadeKeys, jadeIdentity, riverUser.id, 'essentials');
+    await account.signOut();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    const essentialsOnly = await intakeLib.readSharedProfile(account.loadKeys()!, jadeUser.id);
+    expect(essentialsOnly).toMatchObject({ full: false });
+    expect(essentialsOnly!.intake.essentials.triggers.notes).toBe('Hands near my throat');
+    expect(essentialsOnly!.intake.detailed).toBeNull();
+    // Limits travel with essentials, so even essentials-only sharing shows every no.
+    expect(intakeLib.limitsOf(essentialsOnly!.intake).hard).toEqual(['Gags']);
+    await account.signOut();
+
+    await account.signIn(jadeUser.email, jadeUser.password);
+    await intakeLib.setShare(account.loadKeys()!, jadeIdentity, riverUser.id, 'full');
+    await account.signOut();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    const full = await intakeLib.readSharedProfile(account.loadKeys()!, jadeUser.id);
+    expect(full!.full).toBe(true);
+    expect(intakeLib.limitsOf(full!.intake).hard).toEqual(['Gags']);
+    await account.signOut();
+
+    // A new phone gets the intake keys back at sign-in.
+    await account.signIn(jadeUser.email, jadeUser.password);
+    expect(intakeLib.loadRing()?.gens).toHaveLength(1);
+    await intakeLib.setShare(account.loadKeys()!, jadeIdentity, riverUser.id, null);
+    expect(intakeLib.loadRing()?.gens).toHaveLength(2);
+    const later = await intakeLib.saveVersion(account.loadKeys()!, jadeIdentity, { intake, basedOn: { id: saved.id, version: saved.version } });
+    expect(later.reusedFrom).toBe(saved.id);
+    const mine = await intakeLib.listVersions(account.loadKeys()!);
+    expect(mine.map((v) => v.version)).toEqual([later.version, saved.version]);
+    await account.signOut();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    expect(await intakeLib.readSharedProfile(account.loadKeys()!, jadeUser.id)).toBeNull();
     await account.signOut();
   });
 

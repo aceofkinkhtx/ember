@@ -4,15 +4,19 @@ import { EmberMark } from '../components/EmberMark';
 import { IdentityForm } from '../components/IdentityForm';
 import { emptyIdentity, pronounLabel, type Identity } from '../content/identity';
 import { AccountError, lookupInvite, submitGuestAnswers, type InviteInfo } from '../lib/account';
+import { emptyDetailed, emptyIntake, type Intake, type PathId } from '../lib/intake';
+import { IntakeFlow } from './intake/IntakeFlow';
 
-// G1 and G2: someone without an account answers in the browser. The full
-// intake joins these screens in M2; for now a guest shares who they are and a note.
+// G1 and G2: someone without an account fills the full intake in the browser.
+// Answers stay in memory only (never saved in a browser that may be shared)
+// and are locked for the inviter before they are sent.
 
 export function Guest() {
   const { code = '' } = useParams();
   const { hash } = useLocation();
   const [invite, setInvite] = useState<InviteInfo | null | undefined>(undefined);
-  const [step, setStep] = useState<'welcome' | 'answers' | 'done'>('welcome');
+  const [step, setStep] = useState<'welcome' | 'answers' | 'intake' | 'done'>('welcome')
+  const [intake, setIntake] = useState<Intake>(emptyIntake);
   const [identity, setIdentity] = useState<Identity>(emptyIdentity);
   const [message, setMessage] = useState('');
   const [adult, setAdult] = useState(false);
@@ -21,7 +25,19 @@ export function Guest() {
 
   useEffect(() => {
     lookupInvite(code, hash.slice(1) || undefined)
-      .then(setInvite)
+      .then((found) => {
+        setInvite(found);
+        // Start on the way of answering the inviter suggested.
+        const suggested: Record<string, PathId> = { words: 'quick', map: 'map', detailed: 'detailed' };
+        const path = found?.suggestedPath ? suggested[found.suggestedPath] : undefined;
+        if (path)
+          setIntake((i) => ({
+            ...i,
+            paths: [path],
+            quick: path === 'quick' ? { words: { heat: [], hold: [], flow: [] }, decoder: {} } : null,
+            detailed: path === 'detailed' ? emptyDetailed() : null
+          }));
+      })
       .catch(() => setInvite(null));
   }, [code, hash]);
 
@@ -44,7 +60,8 @@ export function Guest() {
         name: identity.name.trim(),
         pronouns: pronounLabel(identity),
         message: message.trim(),
-        adultConfirmedAt: new Date().toISOString()
+        adultConfirmedAt: new Date().toISOString(),
+        intake
       });
       setStep('done');
     } catch (err) {
@@ -52,6 +69,27 @@ export function Guest() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (invite && !problem && step === 'intake') {
+    return (
+      <div className="app" data-theme="rose">
+        <IntakeFlow
+          value={intake}
+          onChange={setIntake}
+          title={`For ${who}`}
+          review={() => (
+            <div className="stack">
+              {error && <p className="note error" role="alert">{error}</p>}
+              <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={send}>
+                {busy ? 'Locking and sending...' : 'Send my answers'}
+              </button>
+              <p className="note">Locked in this browser so only {invite.note?.name || 'they'} can read it. Nothing is kept here after you leave.</p>
+            </div>
+          )}
+        />
+      </div>
+    );
   }
 
   return (
@@ -70,10 +108,10 @@ export function Guest() {
                 Ember helps partners plan scenes with care. {who} would like to know a little about you before you play.
               </p>
               <p>
-                <strong>What they'll see:</strong> only what you enter on the next screen. <strong>What they won't:</strong> anything
+                <strong>What they'll see:</strong> only what you enter here. <strong>What they won't:</strong> anything
                 else about you, your browser, or where you are.
               </p>
-              <p className="note">It takes about two minutes. Your answers are locked in this browser before they're sent, so only {invite.note?.name || 'they'} can read them.</p>
+              <p className="note">It takes 5 to 15 minutes, depending on how much you share. Your answers are locked in this browser before they're sent, so only {invite.note?.name || 'they'} can read them.</p>
             </section>
             <label className="check">
               <input type="checkbox" checked={adult} onChange={(e) => setAdult(e.target.checked)} />
@@ -95,9 +133,8 @@ export function Guest() {
               <span className="field-hint">Optional.</span>
               <textarea className="input" rows={4} maxLength={2000} value={message} onChange={(e) => setMessage(e.target.value)} />
             </label>
-            {error && <p className="note error" role="alert">{error}</p>}
-            <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={send}>
-              {busy ? 'Locking and sending...' : 'Send my answers'}
+            <button type="button" className="btn btn-primary btn-block" onClick={() => setStep('intake')}>
+              Continue
             </button>
           </>
         )}

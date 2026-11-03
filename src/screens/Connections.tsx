@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AccountForm } from '../components/AccountForm';
+import { IntakeSummary } from '../components/intake/IntakeSummary';
 import { RolePicker, usualRole } from '../components/RolePicker';
 import { roleLabel, tabLabel } from '../content/copy';
 import {
@@ -251,6 +252,14 @@ function ConnectionsSignedIn({ title }: { title: string }) {
                       <div className="person-name">{a?.name || 'A guest'}</div>
                       {a?.pronouns && <div className="note">{a.pronouns}</div>}
                       {a?.message && <p>{a.message}</p>}
+                      {a?.intake && (
+                        <details>
+                          <summary className="btn btn-quiet" style={{ cursor: 'pointer' }}>
+                            See their intake
+                          </summary>
+                          <IntakeSummary intake={a.intake} />
+                        </details>
+                      )}
                       {!a && <p className="note">These answers couldn't be opened on this phone.</p>}
                     </>
                   ) : (
