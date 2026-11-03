@@ -1,16 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AccountForm } from '../components/AccountForm';
+import { RolePicker, usualRole } from '../components/RolePicker';
 import { roleLabel, tabLabel } from '../content/copy';
 import {
   AccountError,
   cancelInvite,
   cardFor,
   createInvite,
+  cleanCode,
+  complement,
+  getMyCode,
   listConnections,
   listMyInvites,
+  listRequests,
   openGuestAnswers,
+  respondToRequest,
+  rolesFit,
+  saveMyCode,
+  withdrawRequest,
   type Connection,
+  type IncomingRequest,
+  type OutgoingRequest,
+  type PersonalCode,
+  type Role,
   type CreatedInvite,
   type GuestAnswers,
   type IntakePath,
@@ -47,7 +60,9 @@ export function displayName(c: Connection): string {
 }
 
 export function connectionSummary(c: Connection, discreet: boolean): string {
-  return [c.them?.pronouns, `You're the ${roleLabel(c.myRole, discreet)}`, `Since ${shortDate(c.since)}`].filter(Boolean).join(' · ');
+  return [c.them?.pronouns, `You: ${roleLabel(c.myRole, discreet)}`, `Them: ${roleLabel(c.theirRole, discreet)}`, `Since ${shortDate(c.since)}`]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 export function Connections() {
@@ -84,15 +99,19 @@ function ConnectionsSignedIn({ title }: { title: string }) {
   const [answers, setAnswers] = useState<Record<string, GuestAnswers | null>>({});
   const [error, setError] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [incoming, setIncoming] = useState<IncomingRequest[]>([]);
+  const [outgoing, setOutgoing] = useState<OutgoingRequest[]>([]);
   const me = cardFor(settings.identity);
 
   const load = useCallback(async () => {
     if (!keys) return;
     try {
       setError('');
-      const [conns, mine] = await Promise.all([listConnections(keys, me), listMyInvites(keys)]);
+      const [conns, mine, requests] = await Promise.all([listConnections(keys, me), listMyInvites(keys), listRequests(keys)]);
       setConnections(conns);
       setInvites(mine);
+      setIncoming(requests.incoming);
+      setOutgoing(requests.outgoing);
       const opened: Record<string, GuestAnswers | null> = {};
       for (const inv of mine) if (inv.sealedAnswers) opened[inv.id] = await openGuestAnswers(keys, inv.sealedAnswers);
       setAnswers(opened);
@@ -132,6 +151,47 @@ function ConnectionsSignedIn({ title }: { title: string }) {
         </button>
         <JoinWithCode primary={!isTop} />
       </div>
+
+      {incoming.length > 0 && (
+        <section className="stack" aria-labelledby="requests-title">
+          <h2 id="requests-title" className="eyebrow">
+            Requests for you
+          </h2>
+          <ul className="person-list">
+            {incoming.map((r) => (
+              <IncomingCard key={r.id} request={r} onDone={load} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {outgoing.length > 0 && (
+        <section className="stack" aria-labelledby="sent-title">
+          <h2 id="sent-title" className="eyebrow">
+            Requests you sent
+          </h2>
+          <ul className="person-list">
+            {outgoing.map((r) => (
+              <li key={r.id} className="card person">
+                <div>
+                  <div className="person-name">{r.status === 'declined' ? 'Not accepted' : 'Waiting for an answer'}</div>
+                  <div className="note">Sent {shortDate(r.sentAt)}</div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-quiet"
+                  onClick={async () => {
+                    await withdrawRequest(r.id).catch(() => undefined);
+                    void load();
+                  }}
+                >
+                  {r.status === 'declined' ? 'Clear' : 'Withdraw'}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="stack" aria-labelledby="people-title">
         <div className="person">
@@ -173,6 +233,8 @@ function ConnectionsSignedIn({ title }: { title: string }) {
           </ul>
         )}
       </section>
+
+      <MyCode />
 
       {guests.length > 0 && (
         <section className="stack" aria-labelledby="guests-title">
@@ -284,7 +346,8 @@ function JoinWithCode({ primary }: { primary: boolean }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(primary);
   const [code, setCode] = useState('');
-  const clean = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const clean = cleanCode(code);
+  const ok = clean.length >= 4 && clean.length <= 24;
 
   if (!open) {
     return (
@@ -298,23 +361,23 @@ function JoinWithCode({ primary }: { primary: boolean }) {
       className="card stack"
       onSubmit={(e) => {
         e.preventDefault();
-        if (clean.length === 8) navigate(`/join/${clean}`);
+        if (ok) navigate(`/join/${clean}`);
       }}
     >
       <label className="field">
         <span className="field-label">Join with a code</span>
-        <span className="field-hint">Enter the 8-character code someone sent you.</span>
+        <span className="field-hint">An invite code, or someone's personal code.</span>
         <input
           className="input code"
           autoCapitalize="characters"
           autoComplete="off"
           spellCheck={false}
-          maxLength={12}
+          maxLength={30}
           value={code}
           onChange={(e) => setCode(e.target.value)}
         />
       </label>
-      <button type="submit" className="btn btn-secondary btn-block" disabled={clean.length !== 8}>
+      <button type="submit" className="btn btn-secondary btn-block" disabled={!ok}>
         Look up code
       </button>
     </form>
@@ -337,7 +400,7 @@ function InviteSheet({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState('');
   const [made, setMade] = useState<CreatedInvite | null>(null);
   const [copied, setCopied] = useState(false);
-  const role = settings.activeRole;
+  const [role, setRole] = useState<Role>(usualRole(settings.roles));
 
   async function make() {
     if (!keys) return;
@@ -349,7 +412,7 @@ function InviteSheet({ onClose }: { onClose: () => void }) {
         await createInvite(keys, {
           kind,
           role,
-          path: role === 'top' ? path : null,
+          path: role !== 'bottom' ? path : null,
           note: { name: me.name, pronouns: me.pronouns, message: message.trim() }
         })
       );
@@ -387,7 +450,9 @@ function InviteSheet({ onClose }: { onClose: () => void }) {
               ))}
             </div>
 
-            {role === 'top' && (
+            <RolePicker label="Your role with them" value={role} onChange={setRole} discreet={settings.discreet} />
+
+            {role !== 'bottom' && (
               <fieldset className="field">
                 <legend className="field-label">Suggested way to answer</legend>
                 <span className="field-hint">They can switch anytime.</span>
@@ -448,5 +513,195 @@ function InviteSheet({ onClose }: { onClose: () => void }) {
         </button>
       </div>
     </div>
+  );
+}
+
+const CODE_HINT = 'Use 4 to 20 letters and numbers. Anyone who types it sees your scene name and role, then sends a request you accept or decline.';
+
+/** Your permanent personal code. */
+function MyCode() {
+  const { settings } = useSettings();
+  const { keys } = useAccount();
+  const [code, setCode] = useState<PersonalCode | null | undefined>(undefined);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<PersonalCode>({ code: '', sceneName: '', role: 'switch', active: true });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!keys) return;
+    getMyCode(keys)
+      .then(setCode)
+      .catch(() => setCode(null));
+  }, [keys]);
+
+  function startEditing() {
+    setDraft(
+      code ?? {
+        code: cleanCode(settings.identity.name).slice(0, 20),
+        sceneName: settings.identity.name.trim(),
+        role: usualRole(settings.roles),
+        active: true
+      }
+    );
+    setError('');
+    setEditing(true);
+  }
+
+  async function save(next: PersonalCode) {
+    if (!keys) return;
+    setBusy(true);
+    setError('');
+    try {
+      await saveMyCode(keys, next);
+      setCode({ ...next, code: cleanCode(next.code), sceneName: next.sceneName.trim() });
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof AccountError ? err.message : "Ember couldn't save your code. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (code === undefined) return null;
+
+  const link = code ? `${window.location.origin}/join/${code.code}` : '';
+  const draftCode = cleanCode(draft.code);
+  const draftOk = draftCode.length >= 4 && draftCode.length <= 20 && draft.sceneName.trim().length > 0;
+
+  return (
+    <section className="card stack" aria-labelledby="mycode-title">
+      <h2 id="mycode-title" className="eyebrow">
+        Your personal code
+      </h2>
+      {editing ? (
+        <>
+          <label className="field">
+            <span className="field-label">Code</span>
+            <span className="field-hint">{CODE_HINT}</span>
+            <input
+              className="input code"
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={20}
+              value={draft.code}
+              onChange={(e) => setDraft({ ...draft, code: cleanCode(e.target.value) })}
+            />
+          </label>
+          <label className="field">
+            <span className="field-label">Scene name shown with it</span>
+            <input className="input" maxLength={40} value={draft.sceneName} onChange={(e) => setDraft({ ...draft, sceneName: e.target.value })} />
+          </label>
+          <RolePicker label="Role shown with it" value={draft.role} onChange={(role) => setDraft({ ...draft, role })} discreet={settings.discreet} />
+          {error && <p className="note error" role="alert">{error}</p>}
+          <button type="button" className="btn btn-primary btn-block" disabled={!draftOk || busy} onClick={() => save(draft)}>
+            {busy ? 'Saving...' : 'Save code'}
+          </button>
+          <button type="button" className="btn btn-quiet btn-block" onClick={() => setEditing(false)}>
+            Cancel
+          </button>
+        </>
+      ) : code ? (
+        <>
+          <div className="person">
+            <div>
+              <div className="code" style={{ fontSize: 22, opacity: code.active ? 1 : 0.5 }}>
+                {code.code}
+              </div>
+              <div className="note">
+                {code.sceneName} · {roleLabel(code.role, settings.discreet)}
+                {code.active ? '' : ' · Turned off'}
+              </div>
+            </div>
+            <CopyButton text={code.code} label="Copy code" />
+          </div>
+          {code.active && (
+            <div className="person" style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+              <CopyButton text={link} label="Copy link" />
+              {typeof navigator.share === 'function' && (
+                <button type="button" className="btn btn-quiet" onClick={() => void navigator.share({ text: `Connect with me on Ember: ${link}` }).catch(() => undefined)}>
+                  Share
+                </button>
+              )}
+            </div>
+          )}
+          <p className="note">
+            {code.active
+              ? 'Share it anywhere. Every request waits for you to accept or decline.'
+              : 'Your code is off. No one can send you requests with it.'}
+          </p>
+          {error && <p className="note error" role="alert">{error}</p>}
+          <div className="person" style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+            <button type="button" className="btn btn-outline" onClick={startEditing}>
+              Change
+            </button>
+            <button type="button" className="btn btn-outline" disabled={busy} onClick={() => save({ ...code, active: !code.active })}>
+              {code.active ? 'Turn off' : 'Turn on'}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p>Make a permanent code people can use to find you, like a handle. You pick it, and you approve everyone who uses it.</p>
+          <button type="button" className="btn btn-secondary btn-block" onClick={startEditing}>
+            Make my code
+          </button>
+        </>
+      )}
+    </section>
+  );
+}
+
+/** A request someone sent with your personal code. */
+function IncomingCard({ request, onDone }: { request: IncomingRequest; onDone: () => void }) {
+  const { settings } = useSettings();
+  const { keys } = useAccount();
+  const [myRole, setMyRole] = useState<Role>(complement(request.fromRole));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const fits = rolesFit(request.fromRole, myRole);
+  const name = request.from?.name || 'Someone';
+
+  async function answer(a: { accept: true } | { accept: false; block: boolean }) {
+    if (!keys) return;
+    setBusy(true);
+    setError('');
+    try {
+      await respondToRequest(keys, request.id, a.accept ? { accept: true, myRole, me: cardFor(settings.identity) } : a);
+      onDone();
+    } catch (err) {
+      setError(err instanceof AccountError ? err.message : "That didn't work. Please try again.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <li className="card stack">
+      <div>
+        <div className="person-name">
+          {name}
+          {request.from?.pronouns ? ` (${request.from.pronouns})` : ''}
+        </div>
+        <div className="note">
+          Wants to connect as {roleLabel(request.fromRole, settings.discreet)} · Sent {shortDate(request.sentAt)}
+        </div>
+      </div>
+      <RolePicker label={`Your role with ${name}`} value={myRole} onChange={setMyRole} discreet={settings.discreet} />
+      {!fits && <p className="note">Those roles don't fit together. One of you needs to Top or switch, and the other to bottom or switch.</p>}
+      {error && <p className="note error" role="alert">{error}</p>}
+      <button type="button" className="btn btn-primary btn-block" disabled={busy || !fits} onClick={() => answer({ accept: true })}>
+        Accept
+      </button>
+      <div className="person">
+        <button type="button" className="btn btn-quiet" disabled={busy} onClick={() => answer({ accept: false, block: false })}>
+          Decline
+        </button>
+        <button type="button" className="btn btn-quiet" disabled={busy} onClick={() => answer({ accept: false, block: true })}>
+          Decline and block
+        </button>
+      </div>
+      <p className="note">Declining is quiet: they only see "not accepted." Blocking also stops their future requests, without telling them.</p>
+    </li>
   );
 }

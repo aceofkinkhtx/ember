@@ -50,7 +50,7 @@ async function person(name: string): Promise<Person> {
   return { id, db };
 }
 
-async function invite(from: Person, kind: 'account' | 'guest', inviterRole: 'top' | 'bottom' = 'top') {
+async function invite(from: Person, kind: 'account' | 'guest', inviterRole: 'top' | 'bottom' | 'switch' = 'top') {
   const { data, error } = await from.db
     .from('invites')
     .insert({ created_by: from.id, kind, inviter_role: inviterRole })
@@ -120,8 +120,10 @@ describe('public keys', () => {
 
 describe('connections', () => {
   it('are visible to both people in them, with the right roles', async () => {
-    const { data } = await jade.db.from('connections').select('top_id, bottom_id');
-    expect(data).toEqual([{ top_id: river.id, bottom_id: jade.id }]);
+    const { data } = await jade.db.from('connections').select('user_a, user_b');
+    expect(data).toEqual([{ user_a: river.id, user_b: jade.id }]);
+    const roles = await jade.db.from('connections').select('role_a, role_b');
+    expect(roles.data).toEqual([{ role_a: 'top', role_b: 'bottom' }]);
   });
 
   it('are invisible to everyone else', async () => {
@@ -130,7 +132,7 @@ describe('connections', () => {
   });
 
   it('cannot be created directly, only by accepting an invite', async () => {
-    const { error } = await sol.db.from('connections').insert({ top_id: sol.id, bottom_id: jade.id });
+    const { error } = await sol.db.from('connections').insert({ user_a: sol.id, user_b: jade.id });
     expect(error).not.toBeNull();
   });
 });
@@ -261,7 +263,7 @@ describe('intakes', () => {
 
 describe('connection keys', () => {
   it('each member reads only their own copy', async () => {
-    const { data: conn } = await river.db.from('connections').select('id').eq('bottom_id', jade.id).single();
+    const { data: conn } = await river.db.from('connections').select('id').eq('user_b', jade.id).single();
     await river.db.from('connection_keys').insert([
       { connection_id: conn!.id, user_id: river.id, wrapped_key: 'for-river' },
       { connection_id: conn!.id, user_id: jade.id, wrapped_key: 'for-jade' }
@@ -272,7 +274,7 @@ describe('connection keys', () => {
   });
 
   it("can't be added to a connection you're not in", async () => {
-    const { data: conn } = await river.db.from('connections').select('id').eq('bottom_id', jade.id).single();
+    const { data: conn } = await river.db.from('connections').select('id').eq('user_b', jade.id).single();
     const { error } = await sol.db.from('connection_keys').insert({ connection_id: conn!.id, user_id: sol.id, wrapped_key: 'x' });
     expect(error).not.toBeNull();
   });
@@ -284,7 +286,7 @@ describe('ending a connection', () => {
     const kit = await person('kit');
     const first = await invite(ash, 'account', 'top');
     expect((await kit.db.rpc('accept_invite', { invite_code: first.code })).error).toBeNull();
-    const { data: conn } = await kit.db.from('connections').select('id').eq('top_id', ash.id).single();
+    const { data: conn } = await kit.db.from('connections').select('id').eq('user_a', ash.id).single();
     await kit.db.from('profile_shares').insert({ owner_id: kit.id, recipient_id: ash.id, wrapped_profile_key: 'k' });
     await kit.db.from('intakes').insert({ owner_id: kit.id, sealed_intake: 'kit-v1' });
     expect((await ash.db.from('intakes').select('id').eq('owner_id', kit.id)).data!.length).toBe(1);
@@ -309,7 +311,7 @@ describe('pausing a connection', () => {
     const max = await person('max');
     const inv = await invite(lee, 'account', 'top');
     await max.db.rpc('accept_invite', { invite_code: inv.code });
-    const { data: conn } = await max.db.from('connections').select('id').eq('top_id', lee.id).single();
+    const { data: conn } = await max.db.from('connections').select('id').eq('user_a', lee.id).single();
 
     expect((await max.db.from('connections').update({ status: 'paused' }).eq('id', conn!.id)).error).toBeNull();
     const byLee = await lee.db.from('connections').update({ status: 'active' }).eq('id', conn!.id);
@@ -321,7 +323,7 @@ describe('pausing a connection', () => {
   });
 
   it("can't be faked by setting who paused", async () => {
-    const { data: conn } = await river.db.from('connections').select('id').eq('bottom_id', jade.id).single();
+    const { data: conn } = await river.db.from('connections').select('id').eq('user_b', jade.id).single();
     const { error } = await river.db.from('connections').update({ paused_by: jade.id }).eq('id', conn!.id);
     expect(error).not.toBeNull();
   });
@@ -329,7 +331,7 @@ describe('pausing a connection', () => {
 
 describe('connection cards', () => {
   it('are shared between the two people and hidden from everyone else', async () => {
-    const { data: conn } = await river.db.from('connections').select('id').eq('bottom_id', jade.id).single();
+    const { data: conn } = await river.db.from('connections').select('id').eq('user_b', jade.id).single();
     expect((await jade.db.from('connection_cards').insert({ connection_id: conn!.id, user_id: jade.id, sealed_card: 'card-jade' })).error).toBeNull();
     const seen = await river.db.from('connection_cards').select('sealed_card').eq('user_id', jade.id);
     expect(seen.data).toEqual([{ sealed_card: 'card-jade' }]);
@@ -338,10 +340,134 @@ describe('connection cards', () => {
   });
 
   it("can't be written for the other person or for a connection you're not in", async () => {
-    const { data: conn } = await river.db.from('connections').select('id').eq('bottom_id', jade.id).single();
+    const { data: conn } = await river.db.from('connections').select('id').eq('user_b', jade.id).single();
     expect((await river.db.from('connection_cards').insert({ connection_id: conn!.id, user_id: jade.id, sealed_card: 'forged' })).error).not.toBeNull();
     const changed = await river.db.from('connection_cards').update({ sealed_card: 'forged' }).eq('user_id', jade.id).select();
     expect(changed.data).toEqual([]);
     expect((await sol.db.from('connection_cards').insert({ connection_id: conn!.id, user_id: sol.id, sealed_card: 'x' })).error).not.toBeNull();
+  });
+});
+
+describe('roles in a connection', () => {
+  it('each person changes only their own, and the pair has to fit', async () => {
+    const { data: conn } = await river.db.from('connections').select('id').eq('user_b', jade.id).single();
+    const theirs = await river.db.from('connections').update({ role_b: 'switch' }).eq('id', conn!.id);
+    expect(theirs.error?.message).toMatch(/only change your own role/);
+
+    expect((await jade.db.from('connections').update({ role_b: 'switch' }).eq('id', conn!.id)).error).toBeNull();
+    expect((await river.db.from('connections').update({ role_a: 'switch' }).eq('id', conn!.id)).error).toBeNull();
+    const bothSwitch = await jade.db.from('connections').select('role_a, role_b').eq('id', conn!.id).single();
+    expect(bothSwitch.data).toEqual({ role_a: 'switch', role_b: 'switch' });
+
+    expect((await river.db.from('connections').update({ role_a: 'bottom' }).eq('id', conn!.id)).error).toBeNull();
+    const clash = await jade.db.from('connections').update({ role_b: 'bottom' }).eq('id', conn!.id);
+    expect(clash.error).not.toBeNull();
+
+    // Back to how the other tests expect it.
+    await jade.db.from('connections').update({ role_b: 'bottom' }).eq('id', conn!.id);
+    await river.db.from('connections').update({ role_a: 'top' }).eq('id', conn!.id);
+  });
+
+  it("can't move the people in a connection", async () => {
+    const { data: conn } = await river.db.from('connections').select('id').eq('user_b', jade.id).single();
+    const { error } = await river.db.from('connections').update({ user_b: sol.id }).eq('id', conn!.id);
+    expect(error).not.toBeNull();
+  });
+
+  it('lets a switch invite and the invitee choose their role', async () => {
+    const pat = await person('pat');
+    const rae = await person('rae');
+    const inv = await invite(pat, 'account', 'switch');
+    expect((await rae.db.rpc('accept_invite', { invite_code: inv.code, my_role: 'switch' })).error).toBeNull();
+    const { data } = await rae.db.from('connections').select('role_a, role_b').eq('user_a', pat.id).single();
+    expect(data).toEqual({ role_a: 'switch', role_b: 'switch' });
+
+    const bad = await invite(pat, 'account', 'top');
+    const two = await person('two');
+    const clash = await two.db.rpc('accept_invite', { invite_code: bad.code, my_role: 'top' });
+    expect(clash.error?.message).toMatch(/fit together/);
+  });
+});
+
+describe('personal codes and requests', () => {
+  let owner: Person;
+  let asker: Person;
+  const code = ('ACE' + run).toUpperCase().slice(0, 12);
+
+  beforeAll(async () => {
+    owner = await person('owner');
+    asker = await person('asker');
+  }, 60_000);
+
+  it('are chosen by their owner, unique, and show only scene name and role', async () => {
+    const made = await owner.db
+      .from('personal_codes')
+      .insert({ user_id: owner.id, code: code.toLowerCase(), scene_name: 'Ace', role: 'top' })
+      .select('code')
+      .single();
+    expect(made.data?.code).toBe(code);
+
+    const taken = await asker.db.from('personal_codes').insert({ user_id: asker.id, code, scene_name: 'Copy', role: 'top' });
+    expect(taken.error).not.toBeNull();
+    const forSomeoneElse = await asker.db
+      .from('personal_codes')
+      .insert({ user_id: owner.id, code: ('OTHER' + run).toUpperCase(), scene_name: 'x', role: 'top' });
+    expect(forSomeoneElse.error).not.toBeNull();
+
+    const { data } = await anon.rpc('get_personal_code', { personal_code: code.toLowerCase() });
+    expect(data).toEqual([{ scene_name: 'Ace', role: 'top', owner_public_key: 'pk-owner' }]);
+    expect((await asker.db.from('personal_codes').select('code')).data).toEqual([]);
+  });
+
+  it('send a request that the owner accepts, with each person picking a role', async () => {
+    expect((await asker.db.rpc('send_request', { personal_code: code, my_role: 'bottom', card: 'sealed-asker' })).error).toBeNull();
+    const again = await asker.db.rpc('send_request', { personal_code: code, my_role: 'bottom', card: 'sealed-asker' });
+    expect(again.error?.message).toMatch(/already waiting/);
+
+    const mine = await owner.db.from('connection_requests').select('id, from_role, sealed_card, status');
+    expect(mine.data).toHaveLength(1);
+    expect(mine.data![0]).toMatchObject({ from_role: 'bottom', sealed_card: 'sealed-asker', status: 'pending' });
+    expect((await sol.db.from('connection_requests').select('id')).data).toEqual([]);
+
+    const stranger = await sol.db.rpc('respond_request', { request_id: mine.data![0].id, accept: true });
+    expect(stranger.error).not.toBeNull();
+
+    const accepted = await owner.db.rpc('respond_request', { request_id: mine.data![0].id, accept: true, my_role: 'switch' });
+    expect(accepted.error).toBeNull();
+    const conn = await asker.db.from('connections').select('user_a, user_b, role_a, role_b').eq('id', accepted.data).single();
+    expect(conn.data).toEqual({ user_a: asker.id, user_b: owner.id, role_a: 'bottom', role_b: 'switch' });
+
+    const connected = await asker.db.rpc('send_request', { personal_code: code, my_role: 'bottom', card: 'x' });
+    expect(connected.error?.message).toMatch(/already connected/);
+  });
+
+  it('can be declined, and a block stays invisible to the person blocked', async () => {
+    const pest = await person('pest');
+    expect((await pest.db.rpc('send_request', { personal_code: code, my_role: 'bottom', card: 'sealed-pest' })).error).toBeNull();
+    const req = (await owner.db.from('connection_requests').select('id').eq('from_id', pest.id).single()).data!;
+    expect((await owner.db.rpc('respond_request', { request_id: req.id, accept: false, block: true })).error).toBeNull();
+    expect((await pest.db.from('connection_requests').select('status')).data).toEqual([{ status: 'declined' }]);
+
+    // Their next request looks sent to them, but the owner never sees it.
+    await pest.db.from('connection_requests').delete().eq('from_id', pest.id);
+    expect((await pest.db.rpc('send_request', { personal_code: code, my_role: 'bottom', card: 'again' })).error).toBeNull();
+    expect((await pest.db.from('connection_requests').select('status')).data).toEqual([{ status: 'pending' }]);
+    expect((await owner.db.from('connection_requests').select('id').eq('from_id', pest.id)).data).toEqual([]);
+    expect((await pest.db.from('connection_requests').select('silenced')).error).not.toBeNull();
+    expect((await pest.db.from('blocks').select('blocker_id')).data).toEqual([]);
+  });
+
+  it("stop working when turned off, and can't be used on yourself", async () => {
+    const self = await owner.db.rpc('send_request', { personal_code: code, my_role: 'top', card: 'x' });
+    expect(self.error?.message).toMatch(/your own code/);
+    await owner.db.from('personal_codes').update({ active: false }).eq('user_id', owner.id);
+    expect((await anon.rpc('get_personal_code', { personal_code: code })).data).toEqual([]);
+    const off = await sol.db.rpc('send_request', { personal_code: code, my_role: 'bottom', card: 'x' });
+    expect(off.error?.message).toMatch(/not found/);
+  });
+
+  it('need an account to send', async () => {
+    const { error } = await anon.rpc('send_request', { personal_code: code, my_role: 'bottom', card: 'x' });
+    expect(error).not.toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AccountError, cardFor, listConnections, setConnectionStatus, type Connection } from '../lib/account';
+import { RolePicker } from '../components/RolePicker';
+import { AccountError, cardFor, listConnections, rolesFit, setConnectionStatus, setMyRole, type Connection, type Role } from '../lib/account';
 import { useAccount } from '../state/account';
 import { useSettings } from '../state/settings';
 import { connectionSummary, displayName } from './Connections';
@@ -32,6 +33,23 @@ export function ConnectionDetail() {
     // Loaded once per visit; the card text is refreshed by the account provider.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keys, id]);
+
+  async function changeRole(role: Role) {
+    if (!connection) return;
+    setError('');
+    if (!rolesFit(connection.theirRole, role)) {
+      setError("Those roles don't fit together. One of you needs to Top or switch, and the other to bottom or switch.");
+      return;
+    }
+    const before = connection;
+    setConnection({ ...connection, myRole: role });
+    try {
+      await setMyRole(before, role);
+    } catch (err) {
+      setConnection(before);
+      setError(err instanceof AccountError ? err.message : "That didn't work. Please try again.");
+    }
+  }
 
   async function change(next: Connection['status']) {
     if (!connection) return;
@@ -81,6 +99,13 @@ export function ConnectionDetail() {
         <p className="note">{connectionSummary(connection, settings.discreet)}</p>
         {paused && <span className="chip">Paused</span>}
       </div>
+
+      <section className="card stack" aria-label="Roles">
+        <RolePicker label={`Your role with ${name}`} value={connection.myRole} onChange={changeRole} discreet={settings.discreet} />
+        <p className="note">
+          Each of you chooses your own role. With a switch, whoever designs a scene picks the role they design it as.
+        </p>
+      </section>
 
       {comingSections.map((s) => (
         <section key={s.title} className="card">

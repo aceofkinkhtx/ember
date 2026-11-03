@@ -107,7 +107,7 @@ describe('account flow', () => {
     const first = await account.signIn(jadeUser.email, jadeUser.password);
     expect(first.kind).toBe('new');
     const jadeKeys = account.loadKeys()!;
-    await account.acceptInvite(jadeKeys, inviteCode, jade);
+    await account.acceptInvite(jadeKeys, inviteCode, jade, 'bottom');
     const jadeView = await account.listConnections(jadeKeys, jade);
     expect(jadeView).toHaveLength(1);
     expect(jadeView[0].myRole).toBe('bottom');
@@ -136,6 +136,39 @@ describe('account flow', () => {
 
     await account.signIn(riverUser.email, riverUser.password);
     expect((await account.listConnections(account.loadKeys()!, river))[0].them).toEqual({ name: 'Jade Rivers', pronouns: 'they/them' });
+    await account.signOut();
+  });
+
+  it('connects through a personal code and an accepted request, with names locked on the way', async () => {
+    const solUser = await makeUser('sol');
+    const sol = { name: 'Sol', pronouns: 'he/they' };
+    const code = `SOL${run}`.toUpperCase();
+    await account.signIn(solUser.email, solUser.password);
+    await account.saveMyCode(account.loadKeys()!, { code, sceneName: 'Sol', role: 'switch', active: true });
+    await account.signOut();
+
+    const owner = await account.lookupPersonalCode(code.toLowerCase());
+    expect(owner).toMatchObject({ sceneName: 'Sol', role: 'switch' });
+
+    await account.signIn(riverUser.email, riverUser.password);
+    await account.sendRequest(code, owner!, 'switch', river);
+    const { data: raw } = await admin.from('connection_requests').select('sealed_card').eq('to_id', solUser.id).single();
+    expect(raw!.sealed_card).not.toContain('River');
+    await account.signOut();
+
+    await account.signIn(solUser.email, solUser.password);
+    const solKeys = account.loadKeys()!;
+    const { incoming } = await account.listRequests(solKeys);
+    expect(incoming).toHaveLength(1);
+    expect(incoming[0]).toMatchObject({ fromRole: 'switch', from: river });
+    await account.respondToRequest(solKeys, incoming[0].id, { accept: true, myRole: 'switch', me: sol });
+    const solView = await account.listConnections(solKeys, sol);
+    expect(solView[0]).toMatchObject({ myRole: 'switch', theirRole: 'switch' });
+    await account.signOut();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    const riverView = await account.listConnections(account.loadKeys()!, river);
+    expect(riverView.find((c) => c.them?.name === 'Sol')).toMatchObject({ them: sol, myRole: 'switch' });
     await account.signOut();
   });
 

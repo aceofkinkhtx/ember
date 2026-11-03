@@ -17,8 +17,8 @@ export function IdentityForm({ value, onChange }: IdentityFormProps) {
   return (
     <div className="stack" style={{ gap: 20 }}>
       <label className="field">
-        <span className="field-label">What should people call you?</span>
-        <span className="field-hint">A first name, scene name or nickname.</span>
+        <span className="field-label">Your scene name</span>
+        <span className="field-hint">The name people see in Ember. It doesn't have to be your real name, so share only what you're comfortable with.</span>
         <input
           className="input"
           type="text"

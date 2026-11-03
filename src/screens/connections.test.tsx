@@ -11,6 +11,7 @@ vi.mock('../lib/account', async (original) => {
   return {
     ...real,
     lookupInvite: vi.fn(),
+    lookupPersonalCode: vi.fn(),
     submitGuestAnswers: vi.fn(),
     signUp: vi.fn()
   };
@@ -43,6 +44,7 @@ function visit(path: string) {
 
 afterEach(() => {
   vi.mocked(account.lookupInvite).mockReset();
+  vi.mocked(account.lookupPersonalCode).mockReset();
   vi.mocked(account.submitGuestAnswers).mockReset();
   vi.mocked(account.signUp).mockReset();
   visit('/');
@@ -89,7 +91,7 @@ describe('guest link', () => {
 
     await userEvent.click(screen.getByLabelText("I'm 18 or older"));
     await userEvent.click(screen.getByRole('button', { name: 'Start' }));
-    await userEvent.type(screen.getByLabelText(/What should people call you/), 'Sol');
+    await userEvent.type(screen.getByLabelText(/Your scene name/), 'Sol');
     await userEvent.click(screen.getByRole('button', { name: 'Send my answers' }));
 
     expect(await screen.findByText(/River has your answers now/)).toBeInTheDocument();
@@ -112,7 +114,29 @@ describe('accept invite', () => {
     vi.mocked(account.lookupInvite).mockResolvedValue({ ...guestInvite, kind: 'account' });
     visit('/join/ABCD2345#notekey');
     render(<App initialSettings={done({ roles: 'bottom', activeRole: 'bottom' })} />);
-    expect(await screen.findByText(/River \(they\/them\) wants to connect as your Top/)).toBeInTheDocument();
+    expect(await screen.findByText('River (they/them)')).toBeInTheDocument();
+    expect(screen.getByText('Joining as Top')).toBeInTheDocument();
+    // The invitee picks their own role, starting from the usual match.
+    expect(screen.getByRole('radio', { name: 'Bottom' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByText('To connect, create an account or sign in.')).toBeInTheDocument();
+  });
+});
+
+describe('personal code', () => {
+  it("shows the owner's scene name and role, and warns when the roles can't work together", async () => {
+    vi.mocked(account.lookupInvite).mockResolvedValue(null);
+    vi.mocked(account.lookupPersonalCode).mockResolvedValue({ sceneName: 'Ace', role: 'top', publicKey: 'pk-ace' });
+    visit('/join/ACEOFKINK');
+    render(<App initialSettings={done({ roles: 'bottom', activeRole: 'bottom' })} />);
+
+    expect(await screen.findByRole('heading', { name: 'Connect with Ace' })).toBeInTheDocument();
+    expect(screen.getByText('Usually Top')).toBeInTheDocument();
+    expect(account.lookupPersonalCode).toHaveBeenCalledWith('ACEOFKINK');
+    expect(screen.getByText('To send a request, create an account or sign in.')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Top' }));
+    expect(screen.getByText(/Those roles don't fit together/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: 'Switch' }));
+    expect(screen.queryByText(/Those roles don't fit together/)).not.toBeInTheDocument();
   });
 });

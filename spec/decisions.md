@@ -4,6 +4,10 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 3, 2026
 
+- **Personal codes and requests, no directory.** Anyone can keep a permanent personal code they choose (4 to 20 letters and numbers), alongside the 7-day invite codes and guest links. Typing someone's code shows their scene name and role and sends a request they accept or decline. Declining is quiet; "decline and block" also stops future requests without telling the sender. Codes can be changed or turned off. There is no searchable list of people.
+- **Scene names.** Every name field asks for a scene name, so people share only what they choose. The scene name on a personal code is the one name Ember keeps readable on the server, because anyone with the code sees it.
+- **Each person picks their own role in each connection:** Top, bottom or switch, and can change it later. Two switches can connect; two Tops or two bottoms can't, since no scene could be planned. With a switch, whoever designs a scene chooses the role they design it as (M4).
+- **Readiness check (safety floor 5):** Michael asked about moving it before the scene. Claude recommended keeping "Ready before leaving" and adding a pre-scene readiness check as well. Awaiting Michael's decision.
 - **Electricity is not edge play.** It stays a regular sensation activity (Michael confirmed). The edge flags for choking, knife play, sharps and mummification are unchanged.
 - **Specific toys are a toggle, not a separate design type.** Replaces the "Centerpiece" idea. Every scene design gets a toggle, "Use specific toys," off by default. When it is on, the designer picks toys to build around. (M4.)
   - A bottom designing for a chosen Top sees that Top's shared toys when they ask for them, through a "Show their toys" button, not up front.

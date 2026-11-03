@@ -23,7 +23,9 @@ export function tabLabel(tab: TabId, discreet: boolean): string {
   return discreet ? tabLabels[tab].discreet : tabLabels[tab].plain;
 }
 
-export function roleLabel(role: Role, discreet: boolean): string {
+/** A role in a connection can also be switch: either way, decided scene by scene. */
+export function roleLabel(role: Role | 'switch', discreet: boolean): string {
+  if (role === 'switch') return discreet ? 'Either' : 'switch';
   if (discreet) return role === 'top' ? 'Lead' : 'Share';
   return role === 'top' ? 'Top' : 'bottom';
 }

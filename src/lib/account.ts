@@ -57,6 +57,10 @@ function friendly(message: string): string {
   if (/email not confirmed/i.test(message)) return 'Confirm your email first. The link is in your inbox.';
   if (/sending (confirmation|recovery|magic link)? ?email|smtp/i.test(message))
     return "Ember couldn't send the email, so the account wasn't made. Please try again later.";
+  if (/connections_roles_fit|fit together/i.test(message))
+    return "Those roles don't fit together. One of you needs to Top or switch, and the other to bottom or switch.";
+  if (/personal_codes_code_key|code is taken/i.test(message)) return 'That code is taken. Try another.';
+  if (/personal_codes_code_check/i.test(message)) return 'Use 4 to 20 letters and numbers, with no spaces.';
   if (/rate limit|too many/i.test(message)) return 'Too many tries. Wait a few minutes and try again.';
   if (/fetch|network/i.test(message)) return "Ember can't reach the server. Check your connection and try again.";
   return message;
@@ -166,7 +170,8 @@ export async function saveProfile(keys: StoredKeys, saved: SavedProfile): Promis
 // Invites ---------------------------------------------------------------
 
 export type InviteKind = 'account' | 'guest';
-export type Role = 'top' | 'bottom';
+/** Each person's own role in a connection. Two switches can connect. */
+export type Role = 'top' | 'bottom' | 'switch';
 export type IntakePath = 'detailed' | 'words' | 'map';
 
 /** What the person invited sees about who invited them. */
@@ -311,8 +316,18 @@ export function cardFor(identity: Identity): Card {
   return { name: identity.name.trim(), pronouns: pronounLabel(identity) };
 }
 
-export async function acceptInvite(keys: StoredKeys, code: string, me: Card): Promise<string> {
-  const { data: connectionId, error } = await db.rpc('accept_invite', { invite_code: code.trim().toUpperCase() });
+/** The usual role opposite someone: a Top's bottom, a bottom's Top, a switch's switch. */
+export function complement(role: Role): Role {
+  return role === 'top' ? 'bottom' : role === 'bottom' ? 'top' : 'switch';
+}
+
+/** Two Tops or two bottoms can't plan a scene together; anything with a switch can. */
+export function rolesFit(a: Role, b: Role): boolean {
+  return a !== b || a === 'switch';
+}
+
+export async function acceptInvite(keys: StoredKeys, code: string, me: Card, myRole: Role): Promise<string> {
+  const { data: connectionId, error } = await db.rpc('accept_invite', { invite_code: code.trim().toUpperCase(), my_role: myRole });
   if (error) throw new AccountError(friendly(error.message.replace(/^.*?: /, '')));
   await setUpConnection(keys, connectionId as string, me);
   return connectionId as string;
@@ -320,9 +335,9 @@ export async function acceptInvite(keys: StoredKeys, code: string, me: Card): Pr
 
 /** Makes the connection's shared key, locks a copy for each person, and adds your card. */
 async function setUpConnection(keys: StoredKeys, connectionId: string, me: Card): Promise<void> {
-  const { data: conn, error } = await db.from('connections').select('top_id, bottom_id').eq('id', connectionId).single();
+  const { data: conn, error } = await db.from('connections').select('user_a, user_b').eq('id', connectionId).single();
   if (error) throw new AccountError(friendly(error.message));
-  const otherId = conn.top_id === keys.userId ? conn.bottom_id : conn.top_id;
+  const otherId = conn.user_a === keys.userId ? conn.user_b : conn.user_a;
   const { data: other } = await db.from('public_keys').select('public_key').eq('user_id', otherId).single();
   if (!other) throw new AccountError("Ember couldn't find the other person's key. Try again in a moment.");
   const shared = await newSecretKey();
@@ -359,8 +374,11 @@ async function writeCard(keys: StoredKeys, connectionId: string, sharedKey: stri
 
 export interface Connection {
   id: string;
-  /** Your role with this person. */
+  /** Your role with this person, and theirs. Each person sets their own. */
   myRole: Role;
+  theirRole: Role;
+  /** Which column holds your role. */
+  mySide: 'a' | 'b';
   status: 'active' | 'paused' | 'ended';
   /** Only the person who paused can resume. */
   pausedByMe: boolean;
@@ -375,23 +393,30 @@ export interface Connection {
  * name or pronoun change reaches everyone you play with.
  */
 export async function listConnections(keys: StoredKeys, me: Card): Promise<Connection[]> {
-  const [conns, keyRows, cards] = await Promise.all([
-    db.from('connections').select('id, top_id, bottom_id, status, paused_by, created_at').order('created_at', { ascending: false }),
+  const [conns, keyRows, cards, accepted] = await Promise.all([
+    db.from('connections').select('id, user_a, user_b, role_a, role_b, status, paused_by, created_at').order('created_at', { ascending: false }),
     db.from('connection_keys').select('connection_id, wrapped_key').eq('user_id', keys.userId),
-    db.from('connection_cards').select('connection_id, user_id, sealed_card')
+    db.from('connection_cards').select('connection_id, user_id, sealed_card'),
+    // Requests you accepted carry the sender's card, locked for you. It stands
+    // in until their own card arrives the next time they open Ember.
+    db.from('connection_requests').select('from_id, sealed_card').eq('to_id', keys.userId).eq('status', 'accepted')
   ]);
-  const failure = conns.error ?? keyRows.error ?? cards.error;
+  const failure = conns.error ?? keyRows.error ?? cards.error ?? accepted.error;
   if (failure) throw new AccountError(friendly(failure.message));
 
   const meJson = JSON.stringify(me);
   return Promise.all(
     (conns.data ?? []).map(async (c) => {
-      const myRole: Role = c.top_id === keys.userId ? 'top' : 'bottom';
-      const otherId = myRole === 'top' ? c.bottom_id : c.top_id;
+      const mySide: 'a' | 'b' = c.user_a === keys.userId ? 'a' : 'b';
+      const otherId = mySide === 'a' ? c.user_b : c.user_a;
+      const myRole = (mySide === 'a' ? c.role_a : c.role_b) as Role;
+      const theirRole = (mySide === 'a' ? c.role_b : c.role_a) as Role;
       const wrapped = keyRows.data?.find((k) => k.connection_id === c.id)?.wrapped_key;
       const base = {
         id: c.id,
         myRole,
+        theirRole,
+        mySide,
         status: c.status as Connection['status'],
         pausedByMe: c.paused_by === keys.userId,
         since: c.created_at
@@ -406,6 +431,14 @@ export async function listConnections(keys: StoredKeys, me: Card): Promise<Conne
       if (theirs) {
         try {
           them = JSON.parse(await unlock(theirs.sealed_card, shared)) as Card;
+        } catch {
+          them = null;
+        }
+      }
+      const fromRequest = accepted.data?.find((r) => r.from_id === otherId);
+      if (!them && fromRequest) {
+        try {
+          them = JSON.parse(await openSealed(fromRequest.sealed_card, keys)) as Card;
         } catch {
           them = null;
         }
@@ -426,5 +459,133 @@ export async function refreshMyCards(keys: StoredKeys, me: Card): Promise<void> 
  */
 export async function setConnectionStatus(id: string, status: Connection['status']): Promise<void> {
   const { error } = await db.from('connections').update({ status }).eq('id', id);
+  if (error) throw new AccountError(friendly(error.message));
+}
+
+/** Changes your own role in a connection. The other person's role stays theirs to change. */
+export async function setMyRole(connection: Connection, role: Role): Promise<void> {
+  const column = connection.mySide === 'a' ? 'role_a' : 'role_b';
+  const { error } = await db.from('connections').update({ [column]: role }).eq('id', connection.id);
+  if (error) throw new AccountError(friendly(error.message));
+}
+
+// Personal codes and requests -------------------------------------------
+
+/** A permanent code you choose. Anyone who types it sees your scene name and role. */
+export interface PersonalCode {
+  code: string;
+  sceneName: string;
+  role: Role;
+  active: boolean;
+}
+
+export async function getMyCode(keys: StoredKeys): Promise<PersonalCode | null> {
+  const { data, error } = await db
+    .from('personal_codes')
+    .select('code, scene_name, role, active')
+    .eq('user_id', keys.userId)
+    .maybeSingle();
+  if (error) throw new AccountError(friendly(error.message));
+  return data ? { code: data.code, sceneName: data.scene_name, role: data.role as Role, active: data.active } : null;
+}
+
+export function cleanCode(input: string): string {
+  return input.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+export async function saveMyCode(keys: StoredKeys, code: PersonalCode): Promise<void> {
+  const { error } = await db.from('personal_codes').upsert({
+    user_id: keys.userId,
+    code: cleanCode(code.code),
+    scene_name: code.sceneName.trim(),
+    role: code.role,
+    active: code.active
+  });
+  if (error) throw new AccountError(friendly(error.message));
+}
+
+export async function deleteMyCode(keys: StoredKeys): Promise<void> {
+  const { error } = await db.from('personal_codes').delete().eq('user_id', keys.userId);
+  if (error) throw new AccountError(friendly(error.message));
+}
+
+export interface CodeOwner {
+  sceneName: string;
+  role: Role;
+  publicKey: string;
+}
+
+export async function lookupPersonalCode(code: string): Promise<CodeOwner | null> {
+  const { data, error } = await db.rpc('get_personal_code', { personal_code: cleanCode(code) });
+  if (error) throw new AccountError(friendly(error.message));
+  const row = (data as Array<{ scene_name: string; role: Role; owner_public_key: string }> | null)?.[0];
+  return row ? { sceneName: row.scene_name, role: row.role, publicKey: row.owner_public_key } : null;
+}
+
+/** Sends your scene name and pronouns, locked so only the code's owner can read them. */
+export async function sendRequest(code: string, owner: CodeOwner, myRole: Role, me: Card): Promise<void> {
+  const card = await sealFor(JSON.stringify(me), owner.publicKey);
+  const { error } = await db.rpc('send_request', { personal_code: cleanCode(code), my_role: myRole, card });
+  if (error) throw new AccountError(friendly(error.message));
+}
+
+export interface IncomingRequest {
+  id: string;
+  fromRole: Role;
+  from: Card | null;
+  sentAt: string;
+}
+
+export interface OutgoingRequest {
+  id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  sentAt: string;
+}
+
+export async function listRequests(keys: StoredKeys): Promise<{ incoming: IncomingRequest[]; outgoing: OutgoingRequest[] }> {
+  const { data, error } = await db
+    .from('connection_requests')
+    .select('id, from_id, to_id, from_role, sealed_card, status, created_at')
+    .order('created_at', { ascending: false });
+  if (error) throw new AccountError(friendly(error.message));
+  const rows = data ?? [];
+  const incoming = await Promise.all(
+    rows
+      .filter((r) => r.to_id === keys.userId && r.status === 'pending')
+      .map(async (r) => {
+        let from: Card | null = null;
+        try {
+          from = JSON.parse(await openSealed(r.sealed_card, keys)) as Card;
+        } catch {
+          from = null;
+        }
+        return { id: r.id, fromRole: r.from_role as Role, from, sentAt: r.created_at };
+      })
+  );
+  const outgoing = rows
+    .filter((r) => r.from_id === keys.userId && r.status !== 'accepted')
+    .map((r) => ({ id: r.id, status: r.status as OutgoingRequest['status'], sentAt: r.created_at }));
+  return { incoming, outgoing };
+}
+
+/** Accepting makes the connection and its shared key; declining can also block. */
+export async function respondToRequest(
+  keys: StoredKeys,
+  requestId: string,
+  answer: { accept: true; myRole: Role; me: Card } | { accept: false; block: boolean }
+): Promise<void> {
+  const { data, error } = await db.rpc('respond_request', {
+    request_id: requestId,
+    accept: answer.accept,
+    my_role: answer.accept ? answer.myRole : null,
+    block: answer.accept ? false : answer.block
+  });
+  if (error) throw new AccountError(friendly(error.message));
+  if (answer.accept) await setUpConnection(keys, data as string, answer.me);
+}
+
+/** Withdraws a waiting request, or clears one that wasn't accepted. */
+export async function withdrawRequest(id: string): Promise<void> {
+  const { error } = await db.from('connection_requests').delete().eq('id', id);
   if (error) throw new AccountError(friendly(error.message));
 }
