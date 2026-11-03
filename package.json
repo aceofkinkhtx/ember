@@ -10,11 +10,13 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:db": "vitest run --config vitest.db.config.ts",
     "icons": "pwa-assets-generator"
   },
   "dependencies": {
     "@fontsource/bricolage-grotesque": "^5.3.0",
     "@fontsource/dm-sans": "^5.3.0",
+    "@supabase/supabase-js": "^2.118.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5"
