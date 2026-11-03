@@ -14,6 +14,8 @@ describe('activity library', () => {
   it('marks the edge play items from the spec', () => {
     const edge = activities.filter((a) => a.edge).map((a) => a.id);
     expect(edge).toEqual(expect.arrayContaining(['choking', 'knife-play', 'sharps']));
+    // Michael, Nov 3: electricity is a regular sensation, not edge play.
+    expect(edge).not.toContain('electricity');
   });
 
   it('needs the STI checkbox for oral contact, and whenever a penis is involved', () => {

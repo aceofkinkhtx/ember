@@ -77,7 +77,7 @@ Work in milestones. Each ends with something Michael can open on his phone, a sh
 | M0 | Project setup | PWA shell installs on a phone; design tokens from the prototype; bottom tab bars for both roles; role toggle; discreet mode and PIN |
 | M1 | Accounts and connections | Sign-in; invite a connection; guest link opens intake without an account |
 | M2 | Bottom intake and profile | Essentials, word groups, desire map, desire decoder, detailed form, aftercare map, review and share; bottom owns and controls sharing of their profile |
-| M3 | Top setup | Offerings with degree sliders, Top settings, toy directory with photos, three-tap tagging and per-bottom opt-outs |
+| M3 | Top setup | Offerings with degree sliders, Top settings, toy directory with photos, three-tap tagging and per-bottom opt-outs; bottoms can keep a toy collection too (see decisions log) |
 | M4 | Rules engine and editor | Design options screen; scene editor with drag to reorder phases, beats and steps; edit sheet; flags and logged overrides; saved library |
 | M5 | SceneVibe | Static SceneVibe (intensity curve in phase colors, a shape and color per element type, surprise markers); plan request flow |
 | M6 | Live Scene Mode | Pre-scene check that locks the consent snapshot; guide with DO / SAY / WATCH / NOTES; timers and restraint timer; red screen; regulation toolkit; quick log; pause |

@@ -4,6 +4,11 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 3, 2026
 
+- **Electricity is not edge play.** It stays a regular sensation activity (Michael confirmed). The edge flags for choking, knife play, sharps and mummification are unchanged.
+- **Specific toys are a toggle, not a separate design type.** Replaces the "Centerpiece" idea. Every scene design gets a toggle, "Use specific toys," off by default. When it is on, the designer picks toys to build around. (M4.)
+  - A bottom designing for a chosen Top sees that Top's shared toys when they ask for them, through a "Show their toys" button, not up front.
+  - A Top picks from their own toys.
+  - Bottoms can keep their own toy collection too (M3, alongside the Top's toy directory).
 - **Encryption plan approved** as written in `docs/encryption-plan.md`.
 - **Email:** Brevo sends sign-in and password reset emails (Brevo handles email addresses only).
 - **Backend:** Supabase project named `ember`.
@@ -18,7 +23,6 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 - **Donation prompt: once a month.** A polite note about keeping Ember free and open, with amounts starting at $5. Replaces the earlier weekly rule.
 - **Toys belong to people, not roles.** Anyone can keep a toy collection. Within a connection, each person can share their collection with the other.
 - **Either person can design.** A bottom can design a scene with a particular Top in mind, using that Top's shared toys; the design arrives for the Top as a request to accept and edit. A Top can likewise design using a bottom's shared toys. Every rule and block applies the same way. (M4.)
-- **Centerpiece** (working name for a toy-specific design). Pick one or more toys and Ember designs the scene around them. Available to Tops and bottoms. (M4.)
 - **Inclusive by default.** Ember must not assume a male Top and female bottom.
   - Onboarding asks name to be called, pronouns and gender identity (all optional to describe, with self-describe options).
   - All copy uses each person's own pronouns, with they/them until known.
