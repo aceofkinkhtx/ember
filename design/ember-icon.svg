@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="outerGlow" cx="48%" cy="54%" r="48%">
+      <stop offset="0" stop-color="#ff3b00" stop-opacity=".34"/>
+      <stop offset=".48" stop-color="#ff2600" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#ff1600" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="emberBody" x1="24%" y1="90%" x2="78%" y2="10%">
+      <stop offset="0" stop-color="#a91608"/>
+      <stop offset=".28" stop-color="#f12b05"/>
+      <stop offset=".62" stop-color="#ff5a08"/>
+      <stop offset="1" stop-color="#d91c00"/>
+    </linearGradient>
+    <radialGradient id="core" cx="43%" cy="65%" r="58%">
+      <stop offset="0" stop-color="#fff6a0"/>
+      <stop offset=".24" stop-color="#ffe52a"/>
+      <stop offset=".57" stop-color="#ff9d08"/>
+      <stop offset="1" stop-color="#ff4a00" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="innerFlare" x1="35%" y1="90%" x2="65%" y2="5%">
+      <stop offset="0" stop-color="#ffb20c"/>
+      <stop offset=".5" stop-color="#fff044"/>
+      <stop offset="1" stop-color="#ff8a05" stop-opacity=".12"/>
+    </linearGradient>
+    <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="48"/>
+    </filter>
+    <filter id="tightGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="17"/>
+    </filter>
+  </defs>
+
+  <!-- Soft, restrained light bloom; the canvas remains transparent. -->
+  <ellipse cx="500" cy="555" rx="330" ry="300" fill="url(#outerGlow)" filter="url(#softGlow)"/>
+
+  <!-- Main ember silhouette: a single rising, curved lick of incandescent material. -->
+  <path d="M332 760
+           C273 678 274 580 332 493
+           C389 408 496 372 554 284
+           C590 340 614 415 611 489
+           C608 582 553 645 469 686
+           C416 712 373 727 332 760Z"
+        fill="#ff3100" opacity=".78" filter="url(#tightGlow)"/>
+  <path d="M332 760
+           C273 678 274 580 332 493
+           C389 408 496 372 554 284
+           C590 340 614 415 611 489
+           C608 582 553 645 469 686
+           C416 712 373 727 332 760Z"
+        fill="url(#emberBody)"/>
+
+  <!-- Hot center, kept compact for legibility at app-icon size. -->
+  <path d="M344 716
+           C321 652 342 581 397 526
+           C437 486 489 463 531 423
+           C544 487 528 553 487 602
+           C450 646 395 679 344 716Z"
+        fill="#ff6a05" opacity=".9" filter="url(#tightGlow)"/>
+  <path d="M344 716
+           C321 652 342 581 397 526
+           C437 486 489 463 531 423
+           C544 487 528 553 487 602
+           C450 646 395 679 344 716Z"
+        fill="url(#core)"/>
+
+  <!-- Small golden-hot center. -->
+  <path d="M350 696
+           C348 642 382 591 425 561
+           C454 541 484 525 506 500
+           C507 552 483 603 444 640
+           C414 668 379 684 350 696Z"
+        fill="url(#innerFlare)" opacity=".96"/>
+</svg>

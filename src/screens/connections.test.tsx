@@ -115,7 +115,7 @@ describe('accept invite', () => {
     visit('/join/ABCD2345#notekey');
     render(<App initialSettings={done({ roles: 'bottom', activeRole: 'bottom' })} />);
     expect(await screen.findByText('River (they/them)')).toBeInTheDocument();
-    expect(screen.getByText('Joining as Top')).toBeInTheDocument();
+    expect(screen.getByText('Top', { selector: 'p' })).toBeInTheDocument();
     // The invitee picks their own role, starting from the usual match.
     expect(screen.getByRole('radio', { name: 'Bottom' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByText('To connect, create an account or sign in.')).toBeInTheDocument();
@@ -130,7 +130,7 @@ describe('personal code', () => {
     render(<App initialSettings={done({ roles: 'bottom', activeRole: 'bottom' })} />);
 
     expect(await screen.findByRole('heading', { name: 'Connect with Ace' })).toBeInTheDocument();
-    expect(screen.getByText('Usually Top')).toBeInTheDocument();
+    expect(screen.getByText('Top', { selector: 'p' })).toBeInTheDocument();
     expect(account.lookupPersonalCode).toHaveBeenCalledWith('ACEOFKINK');
     expect(screen.getByText('To send a request, create an account or sign in.')).toBeInTheDocument();
 

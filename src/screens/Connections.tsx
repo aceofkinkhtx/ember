@@ -535,15 +535,12 @@ function MyCode() {
       .catch(() => setCode(null));
   }, [keys]);
 
+  // The scene name and role shown with the code always match the Me tab.
+  const sceneName = settings.identity.name.trim();
+  const role = usualRole(settings.roles);
+
   function startEditing() {
-    setDraft(
-      code ?? {
-        code: cleanCode(settings.identity.name).slice(0, 20),
-        sceneName: settings.identity.name.trim(),
-        role: usualRole(settings.roles),
-        active: true
-      }
-    );
+    setDraft(code ?? { code: cleanCode(sceneName).slice(0, 20), sceneName, role, active: true });
     setError('');
     setEditing(true);
   }
@@ -553,8 +550,9 @@ function MyCode() {
     setBusy(true);
     setError('');
     try {
-      await saveMyCode(keys, next);
-      setCode({ ...next, code: cleanCode(next.code), sceneName: next.sceneName.trim() });
+      const withMe = { ...next, code: cleanCode(next.code), sceneName, role };
+      await saveMyCode(keys, withMe);
+      setCode(withMe);
       setEditing(false);
     } catch (err) {
       setError(err instanceof AccountError ? err.message : "Ember couldn't save your code. Please try again.");
@@ -567,7 +565,7 @@ function MyCode() {
 
   const link = code ? `${window.location.origin}/join/${code.code}` : '';
   const draftCode = cleanCode(draft.code);
-  const draftOk = draftCode.length >= 4 && draftCode.length <= 20 && draft.sceneName.trim().length > 0;
+  const draftOk = draftCode.length >= 4 && draftCode.length <= 20 && sceneName.length > 0;
 
   return (
     <section className="card stack" aria-labelledby="mycode-title">
@@ -589,11 +587,11 @@ function MyCode() {
               onChange={(e) => setDraft({ ...draft, code: cleanCode(e.target.value) })}
             />
           </label>
-          <label className="field">
-            <span className="field-label">Scene name shown with it</span>
-            <input className="input" maxLength={40} value={draft.sceneName} onChange={(e) => setDraft({ ...draft, sceneName: e.target.value })} />
-          </label>
-          <RolePicker label="Role shown with it" value={draft.role} onChange={(role) => setDraft({ ...draft, role })} discreet={settings.discreet} />
+          <p className="note">
+            {sceneName
+              ? `Shown with it: ${sceneName} · ${roleLabel(role, settings.discreet)}. These come from the Me tab, so change them there.`
+              : 'Add a scene name in the Me tab first, under About you. It is shown with your code.'}
+          </p>
           {error && <p className="note error" role="alert">{error}</p>}
           <button type="button" className="btn btn-primary btn-block" disabled={!draftOk || busy} onClick={() => save(draft)}>
             {busy ? 'Saving...' : 'Save code'}
@@ -610,7 +608,7 @@ function MyCode() {
                 {code.code}
               </div>
               <div className="note">
-                {code.sceneName} · {roleLabel(code.role, settings.discreet)}
+                {sceneName || code.sceneName} · {roleLabel(role, settings.discreet)}
                 {code.active ? '' : ' · Turned off'}
               </div>
             </div>

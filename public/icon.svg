@@ -1,49 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
-    <radialGradient id="halo" cx="50%" cy="56%" r="50%">
-      <stop offset="0%" stop-color="#FF6A1F" stop-opacity="0.75"/>
-      <stop offset="40%" stop-color="#E8440C" stop-opacity="0.32"/>
-      <stop offset="75%" stop-color="#B8400C" stop-opacity="0.08"/>
-      <stop offset="100%" stop-color="#B8400C" stop-opacity="0"/>
+    <radialGradient id="outerGlow" cx="48%" cy="54%" r="48%">
+      <stop offset="0" stop-color="#ff3b00" stop-opacity=".34"/>
+      <stop offset=".48" stop-color="#ff2600" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#ff1600" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="heat" cx="48%" cy="52%" r="62%">
-      <stop offset="0%" stop-color="#FFE2A8"/>
-      <stop offset="22%" stop-color="#FFB347"/>
-      <stop offset="55%" stop-color="#FF6A1F"/>
-      <stop offset="100%" stop-color="#C2300A"/>
-    </radialGradient>
-    <linearGradient id="char" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#5A1A0C"/>
-      <stop offset="100%" stop-color="#2A0A06"/>
+    <linearGradient id="emberBody" x1="24%" y1="90%" x2="78%" y2="10%">
+      <stop offset="0" stop-color="#a91608"/>
+      <stop offset=".28" stop-color="#f12b05"/>
+      <stop offset=".62" stop-color="#ff5a08"/>
+      <stop offset="1" stop-color="#d91c00"/>
     </linearGradient>
-    <radialGradient id="spark" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#FFE2A8"/>
-      <stop offset="60%" stop-color="#FF8A2A"/>
-      <stop offset="100%" stop-color="#FF6A1F" stop-opacity="0"/>
+    <radialGradient id="core" cx="43%" cy="65%" r="58%">
+      <stop offset="0" stop-color="#fff6a0"/>
+      <stop offset=".24" stop-color="#ffe52a"/>
+      <stop offset=".57" stop-color="#ff9d08"/>
+      <stop offset="1" stop-color="#ff4a00" stop-opacity="0"/>
     </radialGradient>
-    <clipPath id="coal">
-      <path d="M124 318 C112 268 146 214 206 200 C246 190 270 168 318 176 C378 186 404 236 394 290 C386 338 344 372 286 378 C226 384 138 370 124 318 Z"/>
-    </clipPath>
+    <linearGradient id="innerFlare" x1="35%" y1="90%" x2="65%" y2="5%">
+      <stop offset="0" stop-color="#ffb20c"/>
+      <stop offset=".5" stop-color="#fff044"/>
+      <stop offset="1" stop-color="#ff8a05" stop-opacity=".12"/>
+    </linearGradient>
+    <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="48"/>
+    </filter>
+    <filter id="tightGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="17"/>
+    </filter>
   </defs>
 
-  <rect width="512" height="512" fill="#141012"/>
-  <ellipse cx="258" cy="292" rx="236" ry="210" fill="url(#halo)"/>
+  <!-- Soft, restrained light bloom; the canvas remains transparent. -->
+  <ellipse cx="500" cy="555" rx="330" ry="300" fill="url(#outerGlow)" filter="url(#softGlow)"/>
 
-  <!-- The coal: glowing heat underneath, charred plates on top, bright cracks between them. -->
-  <g clip-path="url(#coal)">
-    <rect x="100" y="150" width="320" height="250" fill="url(#heat)"/>
-    <g fill="url(#char)">
-      <path d="M104 300 L146 210 L218 192 L236 260 L180 322 Z"/>
-      <path d="M248 182 L322 162 L360 222 L306 254 L254 244 Z"/>
-      <path d="M370 210 L414 246 L404 330 L344 322 L322 266 Z"/>
-      <path d="M184 336 L244 280 L306 296 L330 340 L274 396 L176 396 Z"/>
-      <path d="M104 334 L170 330 L168 396 L100 396 Z"/>
-      <path d="M342 338 L410 340 L386 396 L290 396 Z"/>
-    </g>
-  </g>
+  <!-- Main ember silhouette: a single rising, curved lick of incandescent material. -->
+  <path d="M332 760
+           C273 678 274 580 332 493
+           C389 408 496 372 554 284
+           C590 340 614 415 611 489
+           C608 582 553 645 469 686
+           C416 712 373 727 332 760Z"
+        fill="#ff3100" opacity=".78" filter="url(#tightGlow)"/>
+  <path d="M332 760
+           C273 678 274 580 332 493
+           C389 408 496 372 554 284
+           C590 340 614 415 611 489
+           C608 582 553 645 469 686
+           C416 712 373 727 332 760Z"
+        fill="url(#emberBody)"/>
 
-  <!-- Sparks rising -->
-  <circle cx="300" cy="132" r="13" fill="url(#spark)"/>
-  <circle cx="226" cy="112" r="9" fill="url(#spark)"/>
-  <circle cx="338" cy="84" r="7" fill="url(#spark)"/>
+  <!-- Hot center, kept compact for legibility at app-icon size. -->
+  <path d="M344 716
+           C321 652 342 581 397 526
+           C437 486 489 463 531 423
+           C544 487 528 553 487 602
+           C450 646 395 679 344 716Z"
+        fill="#ff6a05" opacity=".9" filter="url(#tightGlow)"/>
+  <path d="M344 716
+           C321 652 342 581 397 526
+           C437 486 489 463 531 423
+           C544 487 528 553 487 602
+           C450 646 395 679 344 716Z"
+        fill="url(#core)"/>
+
+  <!-- Small golden-hot center. -->
+  <path d="M350 696
+           C348 642 382 591 425 561
+           C454 541 484 525 506 500
+           C507 552 483 603 444 640
+           C414 668 379 684 350 696Z"
+        fill="url(#innerFlare)" opacity=".96"/>
 </svg>

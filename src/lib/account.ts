@@ -504,6 +504,12 @@ export async function saveMyCode(keys: StoredKeys, code: PersonalCode): Promise<
   if (error) throw new AccountError(friendly(error.message));
 }
 
+/** Keeps the scene name and role shown with your code in step with the Me tab. */
+export async function syncMyCode(keys: StoredKeys, sceneName: string, role: Role): Promise<void> {
+  if (!sceneName.trim()) return;
+  await db.from('personal_codes').update({ scene_name: sceneName.trim(), role }).eq('user_id', keys.userId);
+}
+
 export async function deleteMyCode(keys: StoredKeys): Promise<void> {
   const { error } = await db.from('personal_codes').delete().eq('user_id', keys.userId);
   if (error) throw new AccountError(friendly(error.message));

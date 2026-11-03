@@ -2,12 +2,23 @@
 
 Decisions Michael made outside the spec tabs, newest first. The spec still wins where it is more specific.
 
+## Nov 4, 2026
+
+- **Safety floor 5 is now "Ready before starting."** The readiness check happens before the scene begins, inside the pre-scene check-in (M6). It replaces the readiness check before the bottom leaves.
+- **After-scene and drop check-ins** (safety floor 4, M7):
+  - Right after the scene, the Top and the bottom each give a simple 1 to 5 rating of how they feel.
+  - The bottom then gets one notification a day for 3 days, opening a simple 1 to 5 "how are you feeling" log, to catch sub drop.
+  - The Top's check-in reminder about 18 hours after the scene stays.
+  - As with every check-in, turning off the notification stops only the phone alert; the check-in still waits inside the app.
+  - Claude's proposal, for Michael to confirm: a low rating (1 or 2) right after the scene suggests staying together a little longer before heading home, and a low rating during the 3 days offers the bottom an easy way to reach out to their Top or a friend.
+- **Personal codes show the Me tab.** The scene name and role shown with a personal code always match the Me tab (a "both" setting shows as switch), with no "usually."
+- **App icon:** Michael supplied new icon files (Ember icon.png, ember_icon.svg, ember_icon_transparent.png), which replace the app icon.
+
 ## Nov 3, 2026
 
 - **Personal codes and requests, no directory.** Anyone can keep a permanent personal code they choose (4 to 20 letters and numbers), alongside the 7-day invite codes and guest links. Typing someone's code shows their scene name and role and sends a request they accept or decline. Declining is quiet; "decline and block" also stops future requests without telling the sender. Codes can be changed or turned off. There is no searchable list of people.
 - **Scene names.** Every name field asks for a scene name, so people share only what they choose. The scene name on a personal code is the one name Ember keeps readable on the server, because anyone with the code sees it.
 - **Each person picks their own role in each connection:** Top, bottom or switch, and can change it later. Two switches can connect; two Tops or two bottoms can't, since no scene could be planned. With a switch, whoever designs a scene chooses the role they design it as (M4).
-- **Readiness check (safety floor 5):** Michael asked about moving it before the scene. Claude recommended keeping "Ready before leaving" and adding a pre-scene readiness check as well. Awaiting Michael's decision.
 - **Electricity is not edge play.** It stays a regular sensation activity (Michael confirmed). The edge flags for choking, knife play, sharps and mummification are unchanged.
 - **Specific toys are a toggle, not a separate design type.** Replaces the "Centerpiece" idea. Every scene design gets a toggle, "Use specific toys," off by default. When it is on, the designer picks toys to build around. (M4.)
   - A bottom designing for a chosen Top sees that Top's shared toys when they ask for them, through a "Show their toys" button, not up front.

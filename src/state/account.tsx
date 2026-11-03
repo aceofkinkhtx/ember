@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { cardFor, db, loadKeys, refreshMyCards, saveProfile, signOut, type StoredKeys } from '../lib/account';
+import { usualRole } from '../components/RolePicker';
+import { cardFor, db, loadKeys, refreshMyCards, saveProfile, signOut, syncMyCode, type StoredKeys } from '../lib/account';
 import { useSettings } from './settings';
 
 // Who is signed in on this phone, and their unlocked keys.
@@ -59,9 +60,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     const timer = window.setTimeout(() => {
       void saveProfile(keys, { identity: settings.identity }).catch(() => undefined);
       void refreshMyCards(keys, cardFor(settings.identity)).catch(() => undefined);
+      void syncMyCode(keys, settings.identity.name, usualRole(settings.roles)).catch(() => undefined);
     }, 2000);
     return () => window.clearTimeout(timer);
-  }, [settings.identity, state.keys]);
+  }, [settings.identity, settings.roles, state.keys]);
 
   return <AccountContext.Provider value={{ ...state, refresh }}>{children}</AccountContext.Provider>;
 }

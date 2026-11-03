@@ -27,8 +27,8 @@ These can never be removed or skipped by any user setting:
 1. Safe words and signals confirmed aloud at the start of every scene (pre-scene check).
 2. The limit strip (no items in red, maybe items in amber, physical care in blue) is visible throughout Live Scene Mode.
 3. Every scene has an aftercare phase.
-4. Sub drop risk is noted, and a check-in reminder is scheduled about 18 hours after the scene.
-5. A readiness check before the bottom leaves (the close card).
+4. Sub drop risk is noted. Right after the scene, the Top and the bottom each give a simple 1 to 5 rating of how they feel. The bottom then gets a 1 to 5 feelings check-in notification once a day for 3 days, to catch drop, and the Top gets a check-in reminder about 18 hours after the scene. (Updated Nov 4, 2026.)
+5. A readiness check before the scene starts (part of the pre-scene check-in). (Updated Nov 4, 2026; it was a readiness check before the bottom leaves.)
 6. Trauma and trigger flags appear as warning boxes on the beats where they are most likely to surface.
 
 ## Key product decisions (already made; do not relitigate)
@@ -81,7 +81,7 @@ Work in milestones. Each ends with something Michael can open on his phone, a sh
 | M4 | Rules engine and editor | Design options screen; scene editor with drag to reorder phases, beats and steps; edit sheet; flags and logged overrides; saved library |
 | M5 | SceneVibe | Static SceneVibe (intensity curve in phase colors, a shape and color per element type, surprise markers); plan request flow |
 | M6 | Live Scene Mode | Pre-scene check that locks the consent snapshot; guide with DO / SAY / WATCH / NOTES; timers and restraint timer; red screen; regulation toolkit; quick log; pause |
-| M7 | After the scene and messaging | Aftercare phase; Top and bottom debriefs; profile update suggestions; 18-hour check-in reminder; feelings log; direct messages with block and report |
+| M7 | After the scene and messaging | Aftercare phase; 1 to 5 after-scene rating for both; Top and bottom debriefs; profile update suggestions; 18-hour check-in reminder; 3 days of 1 to 5 drop check-ins for the bottom; feelings log; direct messages with block and report |
 | M8 | Daily tips | Convert the tables in `spec/daily-tips.md` into `data/tips.json` (fields: id, role, number, theme, text); daily scheduling; opt-out; discreet notification text |
 | M9 | Hardening | Security and row-level security review; export and delete my data; accessibility pass (contrast, 44 px touch targets, screen readers); offline Live mode check |
 

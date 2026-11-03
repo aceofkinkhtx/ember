@@ -123,7 +123,7 @@ export function JoinInvite() {
               {pronouns ? ` (${pronouns})` : ''}
             </p>
             <p className="note">
-              {owner ? 'Usually' : 'Joining as'} {roleLabel(theirRole, settings.discreet)}
+              {roleLabel(theirRole, settings.discreet).replace(/^./, (x) => x.toUpperCase())}
             </p>
             {invite?.note?.message && <p>"{invite.note.message}"</p>}
           </section>
