@@ -219,7 +219,10 @@ function ConnectionsSignedIn({ title }: { title: string }) {
                   <div className="person-name code">{p.code}</div>
                   <div className="note">Works until {shortDate(p.expiresAt)}</div>
                 </div>
-                <CancelButton id={p.id} onDone={load} />
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <CopyButton text={p.code} label="Copy" />
+                  <CancelButton id={p.id} onDone={load} />
+                </div>
               </li>
             ))}
           </ul>
@@ -235,6 +238,27 @@ function ConnectionsSignedIn({ title }: { title: string }) {
         />
       )}
     </main>
+  );
+}
+
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="btn btn-quiet"
+      onClick={() =>
+        void navigator.clipboard?.writeText(text).then(
+          () => {
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2000);
+          },
+          () => undefined
+        )
+      }
+    >
+      {copied ? 'Copied' : label}
+    </button>
   );
 }
 
@@ -395,11 +419,14 @@ function InviteSheet({ onClose }: { onClose: () => void }) {
                 ? 'Send this link to your guest. It works once and expires in 7 days.'
                 : 'Send this link, or read them the code to type in Ember. It works once and expires in 7 days.'}
             </p>
-            <div className="card">
-              <div className="eyebrow">Code</div>
-              <div className="code" style={{ fontSize: 22 }}>
-                {made.code}
+            <div className="card person">
+              <div>
+                <div className="eyebrow">Code</div>
+                <div className="code" style={{ fontSize: 22 }}>
+                  {made.code}
+                </div>
               </div>
+              <CopyButton text={made.code} label="Copy code" />
             </div>
             {typeof navigator.share === 'function' && (
               <button type="button" className="btn btn-primary btn-block" onClick={() => void navigator.share({ text: shareText }).catch(() => undefined)}>

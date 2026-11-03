@@ -70,7 +70,7 @@ export function AccountForm({ intro }: { intro?: string }) {
 
       {checkEmail && (
         <p className="card card-teal" role="status">
-          Check your email and tap the link to confirm. Then come back here and sign in with the same password.
+          Check your email and tap the link to confirm. If it isn't in your inbox within a few minutes, look in your spam or junk folder. Then come back here and sign in with the same password.
         </p>
       )}
 
