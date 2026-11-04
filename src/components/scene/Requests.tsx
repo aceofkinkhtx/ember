@@ -47,7 +47,11 @@ export function SceneRequests() {
         request.scene,
         data.ctx,
         { connectionId: from.id, partnerId: from.otherId, partnerName: displayName(from), role, intakeVersion: data.intakeVersion },
-        { fromRequest: { by: displayName(from), at: request.sentAt } }
+        {
+          fromRequest: { by: displayName(from), at: request.sentAt },
+          // A default title names the partner, so it should name them from this side.
+          title: request.scene.title.startsWith('Scene with ') ? `Scene with ${displayName(from)}` : request.scene.title
+        }
       );
       const saved = await acceptSceneRequest(keys, request, scene);
       navigate(`/scenes/${saved.id}`, { state: { changes } });

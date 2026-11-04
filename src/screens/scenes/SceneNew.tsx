@@ -93,7 +93,8 @@ export function SceneNew() {
       return { ...r, intakeVersion: data.intakeVersion, marks };
     });
     if (!picksReady) {
-      setReq((r) => ({ ...r, picks: suggestedPicks(data.ctx) }));
+      // Designing for a Top, picks start in the middle: their range applies when they accept.
+      setReq((r) => ({ ...r, picks: suggestedPicks(data.ctx).map((p) => (r.role === 'bottom' ? { ...p, intensity: Math.min(p.intensity, 6) } : p)) }));
       setPicksReady(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -4,6 +4,13 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 4, 2026
 
+- **M4b choices** (Claude, for Michael to confirm):
+  - **A bottom designs for their Top** from the bottom's own latest intake, with every category open, since the Top's offerings aren't shared. Picks start at 6 of 10. The design is sent as a request, sealed so only the Top can open it; the server sees only who sent it to whom, when, and the answer.
+  - **The Top accepts or passes.** Accepting saves the Top's own copy with their offerings and settings applied: anything that needs the Top's own confirmation (a no override, edge play, a negotiated act) is taken out and listed, aftercare grows to the Top's setting, and the Top's range shows as warnings. Passing is quiet: the bottom sees that the Top passed and can change the design and send it again. Either person can remove a request, and ending the connection removes them.
+  - **A switch chooses the role per scene** in Scene basics. Designing as the bottom sends a request; designing as the Top works as before.
+  - **Gear:** either designer can tap "Show their gear" to add the partner's shared gear to the design. Gear either person keeps out of scenes with the other never appears.
+  - **Use with someone else** copies a design for another connection, checked against their limits and gear. Anything that doesn't fit is taken out and listed; overrides and kept warnings don't carry over.
+
 - **M4 is split in two** (Michael): M4a is the rules engine, scene basics, mutual picks, design options, the editor with drag and edit sheets, flags and overrides, and the saved library. M4b is a bottom designing for a Top as a request, and reusing a library design for another connection.
 - **Design options differ by arc shape** (Michael): one long climb, two peaks, or waves of three. The shape that fits the bottom's Flow word comes first (Slow Climb, Surge and Drift: one climb; Staircase and Storm: two peaks; Ripple, Edge and Pulse: waves). Shorter scenes get fewer shapes (two peaks from 40 minutes, waves from 60).
 - **Scenes are saved on the server, locked** (Michael): each design is sealed to the designer's own key before upload. The server sees only a locked box and two dates, not the title, the partner or anything in it.
