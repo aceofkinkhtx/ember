@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Avatar } from '../components/Avatar';
 import { RolePicker } from '../components/RolePicker';
 import { IntakeSummary } from '../components/intake/IntakeSummary';
 import { SharePanel } from '../components/intake/SharePanel';
@@ -105,10 +106,13 @@ export function ConnectionDetail() {
       <Link to="/connections" className="btn btn-quiet" style={{ alignSelf: 'flex-start' }}>
         ‹ Back
       </Link>
-      <div>
-        <h1>{name}</h1>
-        <p className="note">{connectionSummary(connection, settings.discreet)}</p>
-        {paused && <span className="chip">Paused</span>}
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+        <Avatar ownerId={connection.otherId} photo={connection.them?.photo} name={name} size={64} />
+        <div>
+          <h1 style={{ marginBottom: 4 }}>{name}</h1>
+          <p className="note" style={{ margin: 0 }}>{connectionSummary(connection, settings.discreet)}</p>
+          {paused && <span className="chip">Paused</span>}
+        </div>
       </div>
 
       <section className="card stack" aria-label="Roles">

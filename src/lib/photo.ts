@@ -4,9 +4,9 @@
 
 const MAX_SIDE = 1000;
 
-export async function shrinkPhoto(file: Blob): Promise<Uint8Array> {
+export async function shrinkPhoto(file: Blob, maxSide = MAX_SIDE): Promise<Uint8Array> {
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);

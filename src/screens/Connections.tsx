@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AccountForm } from '../components/AccountForm';
+import { Avatar } from '../components/Avatar';
 import { IntakeSummary } from '../components/intake/IntakeSummary';
 import { RolePicker, usualRole } from '../components/RolePicker';
 import { roleLabel, tabLabel } from '../content/copy';
@@ -222,8 +223,9 @@ function ConnectionsSignedIn({ title }: { title: string }) {
           <ul className="person-list">
             {sorted(active, sort).map((c) => (
               <li key={c.id}>
-                <Link to={`/connections/${c.id}`} className="card person" style={{ color: 'inherit', textDecoration: 'none' }}>
-                  <div>
+                <Link to={`/connections/${c.id}`} className="card person" style={{ color: 'inherit', textDecoration: 'none', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <Avatar ownerId={c.otherId} photo={c.them?.photo} name={displayName(c)} />
+                  <div style={{ flex: 1 }}>
                     <div className="person-name">{displayName(c)}</div>
                     <div className="note">{connectionSummary(c, settings.discreet)}</div>
                   </div>

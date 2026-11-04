@@ -664,3 +664,48 @@ describe('scene requests', () => {
     expect((await admin.from('scene_requests').select('id').in('from_id', [ash.id, birch.id])).data).toEqual([]);
   });
 });
+
+describe('profile pictures', () => {
+  let pip: Person; // has a picture
+  let quinn: Person; // connected to Pip
+  let reed: Person; // a stranger
+  let connId: string;
+
+  async function pictureSize(who: Person | null, owner: Person): Promise<number | null> {
+    const { data } = await (who ? who.db : anon).storage.from('avatars').download(`${owner.id}/avatar`, { cacheNonce: randomBytes(8).toString('hex') });
+    return data ? data.size : null;
+  }
+
+  beforeAll(async () => {
+    [pip, quinn, reed] = await Promise.all([person('pip'), person('quinn'), person('reedling')]);
+    const inv = await invite(pip, 'account', 'top');
+    const accepted = await quinn.db.rpc('accept_invite', { invite_code: inv.code });
+    if (accepted.error) throw accepted.error;
+    connId = accepted.data as string;
+  }, 60_000);
+
+  const bytes = () => new Uint8Array([9, 8, 7, 6, 5]);
+
+  it('are uploaded only into your own folder', async () => {
+    const opts = { contentType: 'application/octet-stream', upsert: true };
+    expect((await reed.db.storage.from('avatars').upload(`${pip.id}/avatar`, bytes(), opts)).error).not.toBeNull();
+    expect((await anon.storage.from('avatars').upload(`${pip.id}/avatar`, bytes(), opts)).error).not.toBeNull();
+    expect((await pip.db.storage.from('avatars').upload(`${pip.id}/avatar`, bytes(), opts)).error).toBeNull();
+  });
+
+  it('are downloaded only by you and your connections', async () => {
+    expect(await pictureSize(pip, pip)).toBe(5);
+    expect(await pictureSize(quinn, pip)).toBe(5);
+    expect(await pictureSize(reed, pip)).toBeNull();
+    expect(await pictureSize(null, pip)).toBeNull();
+  });
+
+  it("can't be replaced or removed by anyone else, and stop reaching a connection that ended", async () => {
+    await quinn.db.storage.from('avatars').remove([`${pip.id}/avatar`]);
+    expect(await pictureSize(pip, pip)).toBe(5);
+    expect((await quinn.db.from('connections').update({ status: 'ended' }).eq('id', connId)).error).toBeNull();
+    expect(await pictureSize(quinn, pip)).toBeNull();
+    expect((await pip.db.storage.from('avatars').remove([`${pip.id}/avatar`])).error).toBeNull();
+    expect((await pip.db.storage.from('avatars').list(pip.id)).data).toEqual([]);
+  });
+});

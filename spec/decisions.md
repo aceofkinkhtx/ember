@@ -4,6 +4,15 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 4, 2026
 
+- **After M4, from Michael's review:**
+  - **Profile pictures for everyone** (Michael). Optional, shown on Me, connections, a connection's page and scene requests, with initials when there's none. Each picture is shrunk to 400 px, cleared of location and camera details, and locked on the phone with its own key; the key travels in the locked connection card, so only connections can open it, and the database lets them download it only while connected. A new picture gets a new key. Known gap for M9: deleting an account must also delete the picture file, like gear photos.
+  - **Sharing levels say exactly what the Top sees** (Michael): Not shared (scene name and pronouns only), Essentials (everything that keeps the bottom safe, no desires or yes answers), Full (everything, and Ember designs from the yes answers).
+  - **Play time goes up to 8 hours** (Michael).
+  - **Design with no one in mind** (Michael), as a Top or a bottom: the design goes to the library and is checked against a person's limits when it's used with them ("Use with someone else"). A bottom's library design can then be sent to a Top. Maybe and unanswered flags apply only to a partner's answers; your own no answers are always blocked.
+  - **Categories first** (Michael): picks and the "Add more" list show only categories until one is opened.
+  - **Impact gear in order** (Michael): in the Impact category, "Gear, in order" lists impact gear in the order to use it, each as one of the impact picks (guessed from its name, changeable). The design spreads it from the warm-up (about a quarter) through the build (about a third) to the peaks.
+  - **Editing time** (Michael): the whole scene's length and each section's length can be changed; beats keep their share, and aftercare grows to fit. Any step can be moved to another beat from its edit sheet.
+
 - **M4b choices** (Claude, for Michael to confirm):
   - **A bottom designs for their Top** from the bottom's own latest intake, with every category open, since the Top's offerings aren't shared. Picks start at 6 of 10. The design is sent as a request, sealed so only the Top can open it; the server sees only who sent it to whom, when, and the answer.
   - **The Top accepts or passes.** Accepting saves the Top's own copy with their offerings and settings applied: anything that needs the Top's own confirmation (a no override, edge play, a negotiated act) is taken out and listed, aftercare grows to the Top's setting, and the Top's range shows as warnings. Passing is quiet: the bottom sees that the Top passed and can change the design and send it again. Either person can remove a request, and ending the connection removes them.

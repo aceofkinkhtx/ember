@@ -83,10 +83,13 @@ export interface SavedProfile {
   toyRing?: { gens: { g: number; key: string }[] };
   /** A Top's offerings and settings. */
   top?: TopSetup;
+  /** The key to your profile picture, or null once removed (see lib/avatar.ts). */
+  avatar?: { key: string; v: number } | null;
 }
 
 const RING = 'ember.profileKeys';
 const TOY_RING = 'ember.toyKeys';
+const AVATAR = 'ember.avatar';
 const SETTINGS = 'ember.settings';
 
 async function finishSignIn(userId: string, wrapKey: Uint8Array, salt: string): Promise<SignInResult> {
@@ -116,6 +119,7 @@ async function finishSignIn(userId: string, wrapKey: Uint8Array, salt: string): 
         // A new phone gets the intake keys back.
         if (saved.keyRing && !readJson(RING)) writeJson(RING, saved.keyRing);
         if (saved.toyRing && !readJson(TOY_RING)) writeJson(TOY_RING, saved.toyRing);
+        if (saved.avatar && !readJson(AVATAR)) writeJson(AVATAR, saved.avatar);
       } catch {
         saved = null;
       }
@@ -176,6 +180,7 @@ export async function signOut(): Promise<void> {
     window.localStorage.removeItem(TOY_RING);
     window.localStorage.removeItem('ember.intakeDraft');
     window.localStorage.removeItem('ember.sceneDraft');
+    window.localStorage.removeItem(AVATAR);
   } catch {
     // Storage unavailable: nothing was saved.
   }
@@ -205,7 +210,9 @@ export async function saveProfile(keys: StoredKeys, saved: SavedProfile = {}): P
     identity: saved.identity ?? local?.identity ?? before.identity,
     top: [saved.top, local?.top].find(topIsSet) ?? before.top,
     keyRing: saved.keyRing ?? readJson<SavedProfile['keyRing']>(RING) ?? before.keyRing,
-    toyRing: saved.toyRing ?? readJson<SavedProfile['toyRing']>(TOY_RING) ?? before.toyRing
+    toyRing: saved.toyRing ?? readJson<SavedProfile['toyRing']>(TOY_RING) ?? before.toyRing,
+    // null means removed, so it can't be filled back in from elsewhere.
+    avatar: 'avatar' in saved ? saved.avatar : (readJson<SavedProfile['avatar']>(AVATAR) ?? before.avatar)
   };
   await db
     .from('profiles')
@@ -354,14 +361,16 @@ export async function openGuestAnswers(keys: StoredKeys, sealed: string): Promis
 
 // Connections -----------------------------------------------------------
 
-/** The small card each person shows the other: name and pronouns. */
+/** The small card each person shows the other: name, pronouns, and the key to their picture. */
 export interface Card {
   name: string;
   pronouns: string;
+  photo?: { key: string; v: number };
 }
 
 export function cardFor(identity: Identity): Card {
-  return { name: identity.name.trim(), pronouns: pronounLabel(identity) };
+  const photo = readJson<{ key: string; v: number }>(AVATAR);
+  return { name: identity.name.trim(), pronouns: pronounLabel(identity), ...(photo ? { photo } : {}) };
 }
 
 /** The usual role opposite someone: a Top's bottom, a bottom's Top, a switch's switch. */

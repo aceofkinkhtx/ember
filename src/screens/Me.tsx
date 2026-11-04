@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DonateOptions } from '../components/DonateOptions';
+import { AvatarEditor } from '../components/Avatar';
 import { IdentityForm } from '../components/IdentityForm';
 import { PinSetup } from '../components/PinSetup';
 import { SettingSwitch } from '../components/Switch';
@@ -42,6 +43,7 @@ export function Me() {
   return (
     <main className="screen">
       <h1>Me</h1>
+      <AvatarEditor />
 
       <details className="card">
         <summary className="card-title" style={{ cursor: 'pointer', minHeight: 'var(--touch)', display: 'flex', alignItems: 'center' }}>

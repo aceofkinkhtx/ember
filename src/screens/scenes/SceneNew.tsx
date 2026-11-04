@@ -375,7 +375,6 @@ function Picks({
   const add = useAddActivity(ctx, (a, overrides) => {
     const range = ctx.top.offerings.categories[a.category];
     set({ picks: [...req.picks, { activityId: a.id, intensity: Math.min(range?.max ?? 6, 6), surprise: false }], overrides: [...req.overrides, ...overrides] });
-    setAdding(false);
   });
   const update = (id: string, patch: Partial<Pick>) => set({ picks: req.picks.map((p) => (p.activityId === id ? { ...p, ...patch } : p)) });
   const remove = (id: string) =>
@@ -445,9 +444,11 @@ function Picks({
               Close
             </button>
           </div>
+          {(ctx.intakeOf ?? 'partner') === 'partner' && (
           <p className="note" style={{ margin: 0 }}>
             Maybes and anything they didn't answer get an amber "Discussed together?" flag. A no needs their permission and your confirmation.
           </p>
+          )}
           <ActivityList ctx={ctx} exclude={req.picks.map((p) => p.activityId)} onChoose={add.start} />
           {add.refused && (
             <p className="note error" role="alert">

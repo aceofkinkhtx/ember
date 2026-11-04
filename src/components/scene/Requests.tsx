@@ -7,6 +7,7 @@ import { useAccount } from '../../state/account';
 import { loadSceneData } from '../../state/sceneContext';
 import { useSettings } from '../../state/settings';
 import { displayName } from '../../screens/Connections';
+import { Avatar } from '../Avatar';
 import { MiniCurve, sceneFacts } from './SceneCurve';
 
 // Designs a connection made for you. Accepting saves your own copy with your
@@ -81,7 +82,10 @@ export function SceneRequests() {
       {requests.map(({ request, from }) => (
         <article key={request.id} className="card stack" style={{ gap: 8 }} aria-label={request.scene.title}>
           <div className="person">
-            <span className="person-name">{request.scene.title}</span>
+            <Avatar ownerId={from.otherId} photo={from.them?.photo} name={displayName(from)} size={36} />
+            <span className="person-name" style={{ flex: 1 }}>
+              {request.scene.title}
+            </span>
             <span className="note">from {displayName(from)}</span>
           </div>
           <MiniCurve scene={request.scene} height={44} />

@@ -329,6 +329,44 @@ describe('account flow', () => {
     expect((await account.openGuestAnswers(account.loadKeys()!, guest.sealedAnswers!))?.message).toBe('Nervous but excited');
   });
 
+  it('locks a profile picture, and hands its key to connections inside their card', async () => {
+    await account.signOut();
+    const avatar = await import('../../src/lib/avatar');
+    const shown: Blob[] = [];
+    URL.createObjectURL = vi.fn((b: Blob) => {
+      shown.push(b);
+      return `blob:avatar-${shown.length}`;
+    });
+    URL.revokeObjectURL = vi.fn();
+    const picture = new Uint8Array([255, 216, 255, 1, 2, 3, 4]);
+
+    await account.signIn(riverUser.email, riverUser.password);
+    const riverKeys = account.loadKeys()!;
+    const key = await avatar.setAvatar(riverKeys, picture);
+    await account.refreshMyCards(riverKeys, account.cardFor({ name: 'River', pronouns: ['they'], pronounsCustom: '', genders: [], genderCustom: '' }));
+    const { data: raw } = await admin.storage.from('avatars').download(`${riverUser.id}/avatar`);
+    expect(new Uint8Array(await raw!.arrayBuffer())).not.toEqual(picture);
+    await account.signOut();
+    // Signing out leaves no picture key on the phone.
+    expect(avatar.loadAvatarKey()).toBeNull();
+
+    await account.signIn(jadeUser.email, jadeUser.password);
+    const conn = (await account.listConnections(account.loadKeys()!, jade)).find((c) => c.otherId === riverUser.id)!;
+    expect(conn.them?.photo).toEqual(key);
+    expect(await avatar.avatarUrl(riverUser.id, conn.them!.photo!)).toBe('blob:avatar-1');
+    expect(new Uint8Array(await shown[0].arrayBuffer())).toEqual(picture);
+    await account.signOut();
+
+    // A new phone gets the key back with the profile, and removing clears it everywhere.
+    await account.signIn(riverUser.email, riverUser.password);
+    expect(avatar.loadAvatarKey()).toEqual(key);
+    await avatar.removeAvatar(account.loadKeys()!);
+    expect((await admin.storage.from('avatars').list(riverUser.id)).data).toEqual([]);
+    await account.signOut();
+    await account.signIn(riverUser.email, riverUser.password);
+    expect(avatar.loadAvatarKey()).toBeNull();
+  });
+
   it("sends a design from bottom to Top as a locked request, accepted into the Top's own scenes", async () => {
     await account.signOut();
     const scenes = await import('../../src/lib/scenes');

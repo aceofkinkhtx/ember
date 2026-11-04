@@ -1,0 +1,71 @@
+import { AccountError, db, saveProfile, type StoredKeys } from './account';
+import { lockBytes, newSecretKey, unlockBytes } from './crypto';
+import { readJson, writeJson } from './storage';
+
+// Profile pictures. Each picture is locked on the phone with its own key
+// before upload. The key goes in your locked connection card, so only your
+// connections can open the picture, and the database lets them download it
+// only while you're connected. A new picture gets a new key.
+
+export interface AvatarKey {
+  key: string;
+  /** Changes with every new picture, so cached copies refresh. */
+  v: number;
+}
+
+export const AVATAR = 'ember.avatar';
+export const AVATAR_BUCKET = 'avatars';
+
+export const loadAvatarKey = () => readJson<AvatarKey>(AVATAR);
+
+const path = (ownerId: string) => `${ownerId}/avatar`;
+
+/** Uploads a new picture (already shrunk), locked with a fresh key. */
+export async function setAvatar(keys: StoredKeys, bytes: Uint8Array): Promise<AvatarKey> {
+  const avatar = { key: await newSecretKey(), v: Date.now() };
+  const { error } = await db.storage
+    .from(AVATAR_BUCKET)
+    .upload(path(keys.userId), await lockBytes(bytes, avatar.key), { upsert: true, contentType: 'application/octet-stream', cacheControl: '0' });
+  if (error) throw new AccountError("Ember couldn't save your picture. Please try again.");
+  writeJson(AVATAR, avatar);
+  await saveProfile(keys, { avatar });
+  forget(keys.userId);
+  return avatar;
+}
+
+export async function removeAvatar(keys: StoredKeys): Promise<void> {
+  await db.storage.from(AVATAR_BUCKET).remove([path(keys.userId)]);
+  try {
+    window.localStorage.removeItem(AVATAR);
+  } catch {
+    // Storage unavailable: nothing was kept.
+  }
+  await saveProfile(keys, { avatar: null });
+  forget(keys.userId);
+}
+
+const urls = new Map<string, { v: number; url: string }>();
+
+function forget(ownerId: string): void {
+  const cached = urls.get(ownerId);
+  if (cached) URL.revokeObjectURL(cached.url);
+  urls.delete(ownerId);
+}
+
+/**
+ * Downloads and unlocks someone's picture, returning a link that lives only in
+ * this tab. Each download asks with a fresh value, so access is checked every
+ * time rather than served from a cache.
+ */
+export async function avatarUrl(ownerId: string, avatar: AvatarKey): Promise<string | null> {
+  const cached = urls.get(ownerId);
+  if (cached?.v === avatar.v) return cached.url;
+  const { data } = await db.storage.from(AVATAR_BUCKET).download(path(ownerId), { cacheNonce: crypto.randomUUID() });
+  if (!data) return null;
+  const bytes = await unlockBytes(new Uint8Array(await data.arrayBuffer()), avatar.key).catch(() => null);
+  if (!bytes) return null;
+  forget(ownerId);
+  const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'image/jpeg' }));
+  urls.set(ownerId, { v: avatar.v, url });
+  return url;
+}

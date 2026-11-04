@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BeatSheet, MinutesSheet, StepSheet } from '../../components/scene/EditSheets';
-import { moveStep, playMinutes, setPhaseMinutes, setPlayMinutes } from '../../lib/scene/timing';
+import { fitAftercare, moveStep, playMinutes, setPhaseMinutes, setPlayMinutes } from '../../lib/scene/timing';
 import { MiniCurve, PhaseStrip, sceneFacts, usePhaseColor } from '../../components/scene/SceneCurve';
 import { RequestCard, ReuseSheet } from '../../components/scene/SceneActions';
 import { moved, useReorder } from '../../components/scene/useReorder';
@@ -293,11 +293,15 @@ export function SceneEditor() {
       {editing?.kind === 'phase-time' && editingPhase && (
         <MinutesSheet
           title={`${phaseLabels[editingPhase.type]} length`}
-          hint="Its beats keep their share of the time."
+          hint={editingPhase.type === 'aftercare' ? 'Its beats keep their share of the time. It can grow, but not below your setting.' : 'Its beats keep their share of the time. Aftercare grows if it needs to.'}
           value={phaseMinutes(editingPhase)}
           min={Math.max(1, editingPhase.beats.length)}
           max={480}
-          onSave={(m) => apply(setPhaseMinutes(scene, editingPhase.id, m))}
+          onSave={(m) => {
+            // Aftercare grows to fit a longer section; changing aftercare itself is checked as is.
+            const next = setPhaseMinutes(scene, editingPhase.id, m);
+            return apply(editingPhase.type === 'aftercare' ? next : fitAftercare(next, ctx.top.settings));
+          }}
           onClose={() => setEditing(null)}
         />
       )}
@@ -553,7 +557,11 @@ function Steps({
 }) {
   const withSteps = (steps: Step[]) => ({ ...scene, phases: scene.phases.map((p) => ({ ...p, beats: p.beats.map((b) => (b.id === beat.id ? { ...b, steps } : b)) })) });
   const reorder = useReorder(beat.steps.length, (from, to) => onApply(withSteps(moved(beat.steps, from, to))));
-  const label = (s: Step) => activityOf(ctx, s.activityId)?.label ?? (s.do.split('.')[0] || 'Step');
+  const label = (s: Step) => {
+    const gear = s.gearId ? ctx.gear.find((g) => g.id === s.gearId)?.name : undefined;
+    const what = activityOf(ctx, s.activityId)?.label ?? (s.do.split('.')[0] || 'Step');
+    return gear ? `${what} (${gear})` : what;
+  };
   return (
     <ol className="stack" style={{ gap: 4, margin: 0, padding: 0, listStyle: 'none' }}>
       {beat.steps.map((s, i) => {
