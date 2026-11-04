@@ -148,22 +148,13 @@ describe('block: impact areas', () => {
   });
 });
 
-describe('block: marks', () => {
-  it('keeps to no marks when that is the setting', () => {
+describe('marks', () => {
+  it('are recorded but never limit implements or intensity (Michael, Nov 4)', () => {
     const s = goodScene();
     s.marks = 'none';
-    expect(blockRules(s)).toContain('marks');
-    beat(s, 'peak').steps = [newStep({ activityId: 'flogger' })];
-    beat(s, 'peak').intensity = 6;
-    expect(blockRules(s)).not.toContain('marks');
-  });
-
-  it('keeps marks to the day when that is the setting', () => {
-    const s = goodScene();
-    beat(s, 'peak').intensity = 8;
-    expect(blockRules(s)).toContain('marks');
-    s.marks = 'week';
-    expect(blockRules(s)).not.toContain('marks');
+    s.nextMorningCheckIn = true;
+    beat(s, 'peak').intensity = 9;
+    expect(blockRules(s)).toEqual([]);
   });
 });
 

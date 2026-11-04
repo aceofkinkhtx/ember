@@ -119,12 +119,12 @@ describe('design options', () => {
     }
   });
 
-  it('leave marking implements out when no marks was agreed', () => {
+  it('keep every implement whatever the marks setting', () => {
     const ctx = context(lots);
     const [scene] = designOptions(request(ctx, { marks: 'none' }), ctx);
     const used = scene.phases.flatMap((p) => p.beats.flatMap((b) => b.steps.map((s) => s.activityId)));
-    expect(used).not.toContain('cane');
-    expect(used).not.toContain('whip');
+    expect(used).toContain('cane');
+    expect(scene.marks).toBe('none');
   });
 
   it('give gear to matching steps, never gear opted out for this person', () => {

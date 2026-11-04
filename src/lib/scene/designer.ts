@@ -84,9 +84,7 @@ export function design(shape: ArcShape, req: DesignRequest, ctx: RuleContext): S
   const now = new Date().toISOString();
   const picked = req.picks
     .map((p) => ({ pick: p, a: activityOf(ctx, p.activityId) }))
-    .filter((x): x is { pick: Pick; a: Activity } => Boolean(x.a))
-    // No marks: leave out implements that mark.
-    .filter((x) => !(req.marks === 'none' && (x.a.impactLevel ?? 0) >= 3));
+    .filter((x): x is { pick: Pick; a: Activity } => Boolean(x.a));
   const byStage = (stage: Stage) => picked.filter((x) => stageOf(x.a) === stage);
   const strongest = Math.max(5, ...picked.map((x) => x.pick.intensity));
 
@@ -110,7 +108,7 @@ export function design(shape: ArcShape, req: DesignRequest, ctx: RuleContext): S
     return [...fresh, ...pool.filter((x) => placed.has(x.a.id))].slice(0, max);
   };
   // A beat goes as far as its strongest pick asks, but never past a hard
-  // limit: the Top's range for any activity in it, or the agreed marks.
+  // limit: the Top's range for any activity in it.
   const capFor = (steps: Step[], wanted: number) => {
     let hard = 10;
     let asked = 0;
@@ -121,8 +119,6 @@ export function design(shape: ArcShape, req: DesignRequest, ctx: RuleContext): S
       asked = Math.max(asked, pick ? Math.max(pick.intensity, 3) : 0);
       const range = ctx.top.offerings.categories[a.category];
       if (range?.on) hard = Math.min(hard, range.max);
-      if (a.impactLevel && req.marks === 'none') hard = Math.min(hard, 6);
-      if (a.impactLevel === 4 && req.marks === 'day') hard = Math.min(hard, 7);
     }
     return Math.max(1, Math.min(wanted, hard, asked || wanted));
   };

@@ -38,7 +38,6 @@ export type RuleId =
   | 'warmup'
   | 'recovery'
   | 'kidneys'
-  | 'marks'
   | 'limits'
   | 'opted-out'
   | 'edge'
@@ -248,16 +247,8 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
     }
   }
 
-  // Marks
-  for (const { beat } of ordered) {
-    const levels = stepsOf(beat).map((s) => activityOf(ctx, s.activityId)?.impactLevel ?? 0);
-    const impact = Math.max(0, ...levels);
-    if (!impact) continue;
-    if (scene.marks === 'none' && (impact >= 3 || beat.intensity > 6))
-      add('marks', 'block', 'No marks was agreed: keep impact light (no canes, whips or punching, intensity 6 or less).', { beatId: beat.id });
-    if (scene.marks === 'day' && impact >= 4 && beat.intensity > 7)
-      add('marks', 'block', 'Marks for the day only: canes and whips stay at intensity 7 or less.', { beatId: beat.id });
-  }
+  // Marks: the setting is recorded with the scene, but it doesn't limit
+  // implements or intensity (Michael, Nov 4, 2026).
 
   // Limits, overrides and gear
   const confirmed = (id: string, kind: string) => scene.overrides.some((o) => o.activityId === id && o.kind === kind);
