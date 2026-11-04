@@ -14,7 +14,6 @@ import { connectionSummary, displayName } from './Connections';
 // fill in here as later milestones land.
 
 const comingSections = [
-  { title: 'Scenes together', body: 'Upcoming and past scenes with this person, each with its curve. Arrives with scene design.' },
   { title: 'History', body: 'Debriefs, check-ins and what changed after each scene, so the next one starts smarter.' },
   { title: 'Progress', body: 'How your play has grown over time: new yeses, softened limits and favorite moments.' }
 ];
@@ -147,6 +146,17 @@ export function ConnectionDetail() {
         </section>
       )}
 
+      {connection.myRole !== 'bottom' && connection.status === 'active' && (
+        <section className="card stack" aria-label="Scenes">
+          <div className="eyebrow">Scenes</div>
+          <p className="setting-desc" style={{ margin: 0 }}>
+            Design a scene from what {name} said yes to and what you offer.
+          </p>
+          <Link to={`/scenes/new?connection=${connection.id}`} className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
+            New scene
+          </Link>
+        </section>
+      )}
       <ConnectionToys connection={connection} name={name} />
 
       {comingSections.map((s) => (

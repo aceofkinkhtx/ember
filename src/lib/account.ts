@@ -175,6 +175,7 @@ export async function signOut(): Promise<void> {
     window.localStorage.removeItem(RING);
     window.localStorage.removeItem(TOY_RING);
     window.localStorage.removeItem('ember.intakeDraft');
+    window.localStorage.removeItem('ember.sceneDraft');
   } catch {
     // Storage unavailable: nothing was saved.
   }

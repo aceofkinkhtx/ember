@@ -573,3 +573,38 @@ describe('toys', () => {
     expect((await kit.db.storage.from('toy-photos').list(kit.id)).data).toEqual([]);
   });
 });
+
+describe('scenes', () => {
+  let rook: Person; // designs scenes
+  let sol: Person; // someone else
+  let sceneId: string;
+
+  beforeAll(async () => {
+    [rook, sol] = await Promise.all([person('rook'), person('quill')]);
+    const made = await rook.db.from('scenes').insert({ sealed_scene: 'locked-design' }).select('id, owner_id').single();
+    if (made.error) throw made.error;
+    expect(made.data.owner_id).toBe(rook.id);
+    sceneId = made.data.id;
+  }, 60_000);
+
+  it('are read only by the person who made them', async () => {
+    expect((await rook.db.from('scenes').select('sealed_scene')).data).toEqual([{ sealed_scene: 'locked-design' }]);
+    expect((await sol.db.from('scenes').select('id')).data).toEqual([]);
+    expect((await anon.from('scenes').select('id')).data ?? []).toEqual([]);
+  });
+
+  it("can't be made in someone else's name", async () => {
+    expect((await sol.db.from('scenes').insert({ owner_id: rook.id, sealed_scene: 'forged' })).error).not.toBeNull();
+    expect((await anon.from('scenes').insert({ sealed_scene: 'anon' })).error).not.toBeNull();
+  });
+
+  it('are changed and deleted only by their owner, and never handed to someone else', async () => {
+    await sol.db.from('scenes').update({ sealed_scene: 'tampered' }).eq('id', sceneId);
+    await sol.db.from('scenes').delete().eq('id', sceneId);
+    expect((await admin.from('scenes').select('sealed_scene').eq('id', sceneId).single()).data?.sealed_scene).toBe('locked-design');
+    expect((await rook.db.from('scenes').update({ owner_id: sol.id }).eq('id', sceneId)).error).not.toBeNull();
+    expect((await rook.db.from('scenes').update({ sealed_scene: 'edited', updated_at: new Date().toISOString() }).eq('id', sceneId)).error).toBeNull();
+    expect((await rook.db.from('scenes').delete().eq('id', sceneId)).error).toBeNull();
+    expect((await admin.from('scenes').select('id').eq('id', sceneId)).data).toEqual([]);
+  });
+});

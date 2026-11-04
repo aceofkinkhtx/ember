@@ -317,3 +317,30 @@ export function tryChange(before: Scene, after: Scene, ctx: RuleContext): Change
   const fresh = blocks(issues).find((i) => !had.has(i.key));
   return fresh ? { ok: false, reason: fresh.message } : { ok: true, issues };
 }
+
+export interface Confirmation {
+  kind: 'no' | 'edge' | 'negotiated';
+  question: string;
+}
+
+/**
+ * Before an activity outside the bottom's yes items goes into a scene: either
+ * a reason it can't, or the questions the designer must answer yes to first.
+ * Maybe and unanswered items need no question; they carry an amber flag.
+ */
+export function confirmationsFor(ctx: RuleContext, a: Activity): { blocked: string } | { confirm: Confirmation[] } {
+  const confirm: Confirmation[] = [];
+  if (choiceOf(ctx, a.id) === 'no') {
+    if (!ctx.intake?.essentials.allowNoOverride.on) return { blocked: `They marked ${a.label} as no, and haven't allowed overrides.` };
+    confirm.push({ kind: 'no', question: 'They marked this as no. Have you talked and agreed to include it?' });
+  }
+  if (a.edge) {
+    if (!ctx.studio) return { blocked: `${a.label} is edge play. It needs Studio mode (Me, then Depth).` };
+    confirm.push({ kind: 'edge', question: `${a.label} is edge play. Have you explicitly negotiated it with them for this scene?` });
+  }
+  if (a.negotiatedOnly) {
+    if (!ctx.top.settings.allowNegotiatedSex) return { blocked: 'Sex acts are off in your settings.' };
+    confirm.push({ kind: 'negotiated', question: `Was ${a.label.toLowerCase()} negotiated with them for this scene?` });
+  }
+  return { confirm };
+}

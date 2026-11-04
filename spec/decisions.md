@@ -4,6 +4,20 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 4, 2026
 
+- **M4 is split in two** (Michael): M4a is the rules engine, scene basics, mutual picks, design options, the editor with drag and edit sheets, flags and overrides, and the saved library. M4b is a bottom designing for a Top as a request, and reusing a library design for another connection.
+- **Design options differ by arc shape** (Michael): one long climb, two peaks, or waves of three. The shape that fits the bottom's Flow word comes first (Slow Climb, Surge and Drift: one climb; Staircase and Storm: two peaks; Ripple, Edge and Pulse: waves). Shorter scenes get fewer shapes (two peaks from 40 minutes, waves from 60).
+- **Scenes are saved on the server, locked** (Michael): each design is sealed to the designer's own key before upload. The server sees only a locked box and two dates, not the title, the partner or anything in it.
+- **M4a choices for Michael to confirm** (Claude):
+  - **Play time and aftercare:** the duration slider is play time; aftercare is added after it, at the Top's percentage.
+  - **Starting intensity** for each pick is the top of the Top's range for that category, or the bottom's own number if they gave one. The Top can lower any pick.
+  - **Marks rules:** with "none", no canes, whips or punching, and impact beats stay at 6 or less. With "for the day", canes and whips stay at 7 or less. "For the week" and "open" add no cap. The Top can choose less than the bottom agreed to, never more.
+  - **Next-morning check-in** is required when any beat reaches 8 or more, or the bottom's decoder answers include emotional release or losing themselves in sensation. It turns on by itself.
+  - **Trigger placement:** names on build and peak beats; hands near the throat on choking, collar and gag steps; being held down on restraints; raised voices on peaks; being ignored on recovery beats and sensory deprivation; darkness on blindfolds and sensory deprivation; smells on wax. Written-in triggers show on every peak. These warnings, the core watch list and the crying guidance are worked out from the intake each time, so no edit can remove them.
+  - **Items they didn't answer** get the same amber "Discussed together?" flag as maybes.
+  - **Warn rules** can be kept with a typed reason; overrides and kept warnings are listed with dates in each scene's Record.
+  - **Conflict check (S3)** is shown inline in the editor for now (injury areas, maybes, and the rest) rather than as its own screen.
+  - **A switch designs as the Top** in M4a; choosing the role per scene comes with M4b.
+
 - **M3 changes after Michael's review:**
   - **How far you go** is a range on a 1 to 10 scale (1 Gentle, 10 Intense), with two handles and a tick for each step. Older one-number saves become a range from 1 up to the same point.
   - **Renaming built-in activities:** press and hold an activity (or use "Rename activities") to give it your own name, for example for gendered language. "Back to" restores Ember's name.

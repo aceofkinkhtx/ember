@@ -85,6 +85,11 @@ input {
   padding: calc(20px + env(safe-area-inset-top)) var(--gutter) 24px;
 }
 
+/* Screens scroll, so nothing inside them should be squeezed to fit. */
+.screen > * {
+  flex-shrink: 0;
+}
+
 .screen-footer {
   display: flex;
   flex-direction: column;
@@ -353,7 +358,8 @@ input {
   cursor: pointer;
 }
 
-.segmented button[aria-checked='true'] {
+.segmented button[aria-checked='true'],
+.segmented button[aria-selected='true'] {
   background: var(--ink);
   color: var(--on-dark);
 }
@@ -800,4 +806,98 @@ input {
 .range-ends {
   display: flex;
   justify-content: space-between;
+}
+
+/* Scene flags: red block or no, amber maybe or warn, blue info, purple partner */
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.tag-red {
+  background: #b3261e;
+  color: #ffffff;
+}
+
+.tag-amber {
+  background: #e8a317;
+  color: #1d1406;
+}
+
+.tag-gray {
+  background: var(--line);
+  color: var(--text);
+}
+
+.box {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.box-warning,
+.box-block {
+  background: #b3261e;
+  color: #ffffff;
+}
+
+.box-warn,
+.box-watch {
+  background: #fbe7bf;
+  color: #3b2a05;
+  border-left: 4px solid #e8a317;
+}
+
+.box-info {
+  background: #dde9f7;
+  color: #10243f;
+  border-left: 4px solid #1a3a6b;
+}
+
+.box-partner {
+  background: #efe0ef;
+  color: #34063a;
+  border-left: 4px solid #5a005a;
+}
+
+.drag-handle {
+  min-width: var(--touch);
+  min-height: var(--touch);
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dragging {
+  opacity: 0.85;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  position: relative;
+  z-index: 5;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: min(520px, calc(100% - 32px));
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #b3261e;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }

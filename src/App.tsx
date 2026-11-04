@@ -15,6 +15,9 @@ import { Profile } from './screens/Profile';
 import { ToyEdit } from './screens/ToyEdit';
 import { Toys } from './screens/Toys';
 import { OfferingsPage, TopSettingsPage } from './screens/TopSetupPages';
+import { SceneEditor } from './screens/scenes/SceneEditor';
+import { SceneNew } from './screens/scenes/SceneNew';
+import { Scenes } from './screens/scenes/Scenes';
 import { IntakePage } from './screens/intake/IntakePage';
 import { AccountProvider } from './state/account';
 import { SettingsProvider, useSettings, type Settings } from './state/settings';
@@ -48,8 +51,11 @@ function Shell() {
         <Route path="/toys/:id" element={<ToyEdit />} />
         <Route path="/me/offerings" element={<OfferingsPage />} />
         <Route path="/me/top-settings" element={<TopSettingsPage />} />
+        <Route path="/scenes" element={<Scenes />} />
+        <Route path="/scenes/new" element={<SceneNew />} />
+        <Route path="/scenes/:id" element={<SceneEditor />} />
         {tabs
-          .filter((t) => t !== 'home' && t !== 'me' && t !== 'connections' && t !== 'profile' && t !== 'toys')
+          .filter((t) => t !== 'home' && t !== 'me' && t !== 'connections' && t !== 'profile' && t !== 'toys' && t !== 'scenes')
           .map((t) => (
             <Route key={t} path={`/${t}`} element={<Placeholder tab={t} />} />
           ))}

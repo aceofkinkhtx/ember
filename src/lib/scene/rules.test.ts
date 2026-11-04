@@ -1,7 +1,7 @@
 import { emptyTopSetup } from '../../content/topSetup';
 import { emptyDetailed, emptyIntake, type Intake } from '../intake';
 import { newBeat, newStep, type Phase, type Scene } from './model';
-import { automaticFlags, blocks, needsNextMorningCheckIn, tryChange, validate, warnings, type RuleContext } from './rules';
+import { activityOf, automaticFlags, blocks, confirmationsFor, needsNextMorningCheckIn, tryChange, validate, warnings, type RuleContext } from './rules';
 
 // Every block rule has a test here (CLAUDE.md: write the tests first). Each
 // starts from a scene that passes everything, breaks one rule, and checks the
@@ -310,5 +310,28 @@ describe('editing', () => {
     const after = goodScene();
     beat(after, 'build').intensity = 6;
     expect(tryChange(goodScene(), after, context()).ok).toBe(true);
+  });
+});
+
+describe('adding items outside the yes list', () => {
+  const act = (id: string) => activityOf(context(), id)!;
+
+  it('blocks a no item unless the bottom allows overrides, then asks the required question', () => {
+    expect(confirmationsFor(context(), act('biting'))).toEqual({ blocked: expect.stringMatching(/haven't allowed overrides/) });
+    const ctx = context();
+    ctx.intake!.essentials.allowNoOverride = { on: true, changedAt: '2026-11-01' };
+    expect(confirmationsFor(ctx, act('biting'))).toEqual({
+      confirm: [{ kind: 'no', question: 'They marked this as no. Have you talked and agreed to include it?' }]
+    });
+  });
+
+  it('lets maybe items in with no question (they carry an amber flag instead)', () => {
+    expect(confirmationsFor(context(), act('wax'))).toEqual({ confirm: [] });
+  });
+
+  it('needs Studio mode for edge play, and the Top setting for sex acts', () => {
+    expect('blocked' in confirmationsFor(context(), act('knife-play'))).toBe(true);
+    expect(confirmationsFor(context({ studio: true }), act('knife-play'))).toEqual({ confirm: [expect.objectContaining({ kind: 'edge' })] });
+    expect('blocked' in confirmationsFor(context(), act('giving-oral'))).toBe(true);
   });
 });

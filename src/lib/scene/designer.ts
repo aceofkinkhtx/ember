@@ -109,19 +109,22 @@ export function design(shape: ArcShape, req: DesignRequest, ctx: RuleContext): S
     const fresh = pool.filter((x) => !placed.has(x.a.id));
     return [...fresh, ...pool.filter((x) => placed.has(x.a.id))].slice(0, max);
   };
+  // A beat goes as far as its strongest pick asks, but never past a hard
+  // limit: the Top's range for any activity in it, or the agreed marks.
   const capFor = (steps: Step[], wanted: number) => {
-    let cap = wanted;
+    let hard = 10;
+    let asked = 0;
     for (const s of steps) {
       const a = activityOf(ctx, s.activityId);
       if (!a) continue;
       const pick = req.picks.find((p) => p.activityId === a.id);
-      if (pick) cap = Math.min(cap, Math.max(pick.intensity, 3));
+      asked = Math.max(asked, pick ? Math.max(pick.intensity, 3) : 0);
       const range = ctx.top.offerings.categories[a.category];
-      if (range?.on) cap = Math.min(cap, range.max);
-      if (a.impactLevel && req.marks === 'none') cap = Math.min(cap, 6);
-      if (a.impactLevel === 4 && req.marks === 'day') cap = Math.min(cap, 7);
+      if (range?.on) hard = Math.min(hard, range.max);
+      if (a.impactLevel && req.marks === 'none') hard = Math.min(hard, 6);
+      if (a.impactLevel === 4 && req.marks === 'day') hard = Math.min(hard, 7);
     }
-    return Math.max(1, cap);
+    return Math.max(1, Math.min(wanted, hard, asked || wanted));
   };
 
   const plan = plans[shape];
@@ -198,7 +201,7 @@ export function design(shape: ArcShape, req: DesignRequest, ctx: RuleContext): S
 
   const scene: Scene = {
     v: 1,
-    id: newId('scene'),
+    id: crypto.randomUUID(),
     title: req.title,
     connectionId: req.connectionId,
     partnerId: req.partnerId,
