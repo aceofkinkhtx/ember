@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BeatSheet, StepSheet } from '../../components/scene/EditSheets';
 import { MiniCurve, PhaseStrip, sceneFacts, usePhaseColor } from '../../components/scene/SceneCurve';
+import { RequestCard, ReuseSheet } from '../../components/scene/SceneActions';
 import { moved, useReorder } from '../../components/scene/useReorder';
 import { LimitStrip } from '../../components/intake/IntakeSummary';
 import { SettingSwitch } from '../../components/Switch';
@@ -30,7 +31,9 @@ export function SceneEditor() {
   const [toast, setToast] = useState('');
   const [editing, setEditing] = useState<Editing>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const data = useSceneData(scene?.connectionId ?? null, scene?.partnerId ?? null);
+  const [reusing, setReusing] = useState(false);
+  const changes = (useLocation().state as { changes?: string[] } | null)?.changes ?? [];
+  const { data, showTheirGear } = useSceneData(scene?.connectionId ?? null, scene?.partnerId ?? null, scene?.role ?? 'top');
   const timer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -39,6 +42,12 @@ export function SceneEditor() {
       .then((all) => setScene(all.find((s) => s.id === id) ?? null))
       .catch(() => setScene(null));
   }, [keys, id]);
+
+  // Gear from the partner's collection shows by name once their shared gear is loaded.
+  const usesTheirGear = Boolean(scene && data && !data.theirGearShown && scene.phases.some((p) => p.beats.some((b) => b.steps.some((st) => st.gearId && !data.gear.some((g) => g.id === st.gearId)))));
+  useEffect(() => {
+    if (usesTheirGear) void showTheirGear();
+  }, [usesTheirGear, showTheirGear]);
 
   useEffect(() => {
     if (!toast) return;
@@ -148,6 +157,21 @@ export function SceneEditor() {
           {scene.intense ? ', intense' : ''}.
         </p>
       </div>
+      {scene.fromRequest && (
+        <p className="box box-info">
+          {scene.fromRequest.by} designed this for you ({new Date(scene.fromRequest.at).toLocaleDateString()}). It was built from their own answers; your offerings and settings now apply, so check anything flagged.
+        </p>
+      )}
+      {changes.length > 0 && (
+        <div className="box box-info">
+          <strong>Changed for {scene.partnerName}:</strong>
+          <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+            {changes.map((c, i) => (
+              <li key={i}>{c}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <MiniCurve scene={scene} />
       <PhaseStrip scene={scene} />
       {ctx.intake && <LimitStrip intake={ctx.intake} />}
@@ -199,9 +223,25 @@ export function SceneEditor() {
 
       <Record scene={scene} ctx={ctx} />
 
+      {scene.role === 'bottom' && (
+        <RequestCard
+          scene={scene}
+          ctx={ctx}
+          onChange={(next) => {
+            setScene(next);
+            setSaved('saved');
+          }}
+        />
+      )}
+
       <div className="stack" style={{ gap: 8 }}>
-        <button type="button" className="btn btn-secondary btn-block" disabled>
-          Share SceneVibe (arrives in the next update)
+        {scene.role === 'top' && (
+          <button type="button" className="btn btn-secondary btn-block" disabled>
+            Share SceneVibe (arrives in the next update)
+          </button>
+        )}
+        <button type="button" className="btn btn-outline btn-block" onClick={() => setReusing(true)}>
+          Use with someone else
         </button>
         <button
           type="button"
@@ -221,6 +261,7 @@ export function SceneEditor() {
         </button>
       </div>
 
+      {reusing && <ReuseSheet scene={scene} onClose={() => setReusing(false)} />}
       {editing?.kind === 'beat' && editingBeat && (
         <BeatSheet
           beat={editingBeat}

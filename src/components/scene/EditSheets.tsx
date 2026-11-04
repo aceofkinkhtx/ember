@@ -4,6 +4,7 @@ import { impactAreas, impactPositions } from '../../data/activities';
 import type { Beat, Flag, FlagKind, Override, Phase, Step } from '../../lib/scene/model';
 import { activityOf, type RuleContext } from '../../lib/scene/rules';
 import type { Toy } from '../../lib/toys';
+import { useAccount } from '../../state/account';
 import { TextArea, TextInput } from '../intake/Bits';
 import { ActivityList, ActivityTag, useAddActivity } from './ActivityPicker';
 
@@ -206,6 +207,7 @@ export function StepSheet({
     setOverrides((o) => [...o, ...more]);
     setChoosing(false);
   });
+  const { keys } = useAccount();
   const usable = gear.filter((g) => !ctx.optedOutGear.includes(g.id) || g.id === s.gearId);
 
   return (
@@ -239,6 +241,7 @@ export function StepSheet({
             {usable.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
+                {g.ownerId !== keys?.userId ? ' (theirs)' : ''}
               </option>
             ))}
           </select>

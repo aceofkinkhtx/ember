@@ -13,7 +13,7 @@ import type { Pick } from '../../lib/scene/model';
 import { activityOf, blocks, validate, warnings } from '../../lib/scene/rules';
 import { clearSceneDraft, loadSceneDraft, saveScene, saveSceneDraft } from '../../lib/scenes';
 import { useAccount } from '../../state/account';
-import { useSceneData } from '../../state/sceneContext';
+import { useSceneData, type SceneData } from '../../state/sceneContext';
 import { useSettings } from '../../state/settings';
 import { displayName } from '../Connections';
 
@@ -62,7 +62,7 @@ export function SceneNew() {
   const [picksReady, setPicksReady] = useState(req.picks.length > 0);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const data = useSceneData(req.connectionId, req.partnerId);
+  const { data, showTheirGear } = useSceneData(req.connectionId, req.partnerId, req.role);
 
   useEffect(() => saveSceneDraft({ request: req }), [req]);
   useEffect(() => {
@@ -72,7 +72,7 @@ export function SceneNew() {
   useEffect(() => {
     if (!keys) return;
     listConnections(keys, cardFor(settings.identity))
-      .then((all) => setPeople(all.filter((c) => c.status === 'active' && c.myRole !== 'bottom')))
+      .then((all) => setPeople(all.filter((c) => c.status === 'active')))
       .catch(() => setPeople([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keys]);
@@ -81,7 +81,7 @@ export function SceneNew() {
   useEffect(() => {
     if (!people || !req.connectionId || req.partnerId) return;
     const c = people.find((p) => p.id === req.connectionId);
-    if (c) setReq((r) => ({ ...r, partnerId: c.otherId, partnerName: displayName(c), title: r.title || `Scene with ${displayName(c)}` }));
+    if (c) setReq((r) => ({ ...r, partnerId: c.otherId, partnerName: displayName(c), role: c.myRole === 'bottom' ? 'bottom' : r.role, title: r.title || `Scene with ${displayName(c)}` }));
   }, [people, req.connectionId, req.partnerId]);
 
   // Once their intake loads: the marks they agreed to, the version, and suggested picks.
@@ -134,7 +134,24 @@ export function SceneNew() {
         <span style={{ width: `${((['basics', 'picks', 'options'].indexOf(step) + 1) / 3) * 100}%` }} />
       </div>
 
-      {step === 'basics' && <Basics req={req} set={set} people={people} data={data} onNext={() => setStep('picks')} onPerson={(c) => { setPicksReady(false); set({ connectionId: c.id, partnerId: c.otherId, partnerName: displayName(c), title: `Scene with ${displayName(c)}`, picks: [], overrides: [], gearIds: [] }); }} />}
+      {step === 'basics' && (
+        <Basics
+          req={req}
+          set={set}
+          people={people}
+          data={data}
+          showTheirGear={showTheirGear}
+          onNext={() => setStep('picks')}
+          onPerson={(c) => {
+            setPicksReady(false);
+            set({ connectionId: c.id, partnerId: c.otherId, partnerName: displayName(c), role: c.myRole === 'bottom' ? 'bottom' : 'top', title: `Scene with ${displayName(c)}`, picks: [], overrides: [], gearIds: [] });
+          }}
+          onRole={(role) => {
+            setPicksReady(false);
+            set({ role, picks: [], overrides: [] });
+          }}
+        />
+      )}
       {step === 'picks' && data && <Picks req={req} set={set} ctx={data.ctx} onBack={() => setStep('basics')} onNext={() => setStep('options')} />}
       {step === 'options' && data && <Options req={req} data={data} busy={busy} onBack={() => setStep('picks')} onChoose={choose} />}
       {error && (
@@ -151,24 +168,30 @@ function Basics({
   set,
   people,
   data,
+  showTheirGear,
   onPerson,
+  onRole,
   onNext
 }: {
   req: DesignRequest;
   set: (patch: Partial<DesignRequest>) => void;
   people: Connection[] | null;
-  data: ReturnType<typeof useSceneData>;
+  data: SceneData | null | undefined;
+  showTheirGear: () => Promise<number>;
   onPerson: (c: Connection) => void;
+  onRole: (role: 'top' | 'bottom') => void;
   onNext: () => void;
 }) {
   const { settings } = useSettings();
+  const { keys } = useAccount();
+  const [gearNote, setGearNote] = useState('');
   if (people === null) return <p className="note">Loading...</p>;
   if (!people.length) {
     return (
       <>
         <h1>New scene</h1>
         <div className="card stack">
-          <p style={{ margin: 0 }}>You need a connection you Top for (or switch with) to design a scene.</p>
+          <p style={{ margin: 0 }}>You need a connection to design a scene.</p>
           <Link to="/connections" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
             Go to Connections
           </Link>
@@ -204,17 +227,27 @@ function Basics({
             ))}
           </select>
         </label>
-        {req.connectionId && data === undefined && <p className="note">Loading their intake...</p>}
+        {req.connectionId && people.find((c) => c.id === req.connectionId)?.myRole === 'switch' && (
+          <Segments
+            label={`You switch with ${req.partnerName}. In this scene you are:`}
+            options={[
+              { id: 'top', label: 'Top' },
+              { id: 'bottom', label: 'bottom' }
+            ]}
+            value={req.role}
+            onChange={onRole}
+          />
+        )}
+        {req.connectionId && data === undefined && <p className="note">Loading the intake...</p>}
         {req.connectionId && data && (
           <p className="note" style={{ margin: 0 }}>
-            {data.ctx.intake
-              ? `Designing from ${req.partnerName}'s intake (version ${data.intakeVersion}). Ember only suggests what they said yes to.`
-              : `${req.partnerName} hasn't shared an intake with you yet. You can still design, but every activity will be flagged "Discussed together?". Ask them to share from their profile.`}
-          </p>
-        )}
-        {req.connectionId && people.find((c) => c.id === req.connectionId)?.myRole === 'switch' && (
-          <p className="note" style={{ margin: 0 }}>
-            You switch with {req.partnerName}. You're designing this one as the Top.
+            {req.role === 'bottom'
+              ? data.ctx.intake
+                ? `Designing from your own intake (version ${data.intakeVersion}). ${req.partnerName} gets it as a request to accept and edit, with their own offerings and settings applied.`
+                : 'Save your intake first (Profile), so the design knows what you said yes to.'
+              : data.ctx.intake
+                ? `Designing from ${req.partnerName}'s intake (version ${data.intakeVersion}). Ember only suggests what they said yes to.`
+                : `${req.partnerName} hasn't shared an intake with you yet. You can still design, but every activity will be flagged "Discussed together?". Ask them to share from their profile.`}
           </p>
         )}
         <TextInput label="Name for this scene" value={req.title} max={60} onChange={(title) => set({ title })} />
@@ -257,7 +290,7 @@ function Basics({
         {data && (
           <div className="stack" style={{ gap: 6 }}>
             <Segments label="Marks for this scene" options={marks} value={req.marks} onChange={(m) => set({ marks: m })} />
-            <span className="note">You can choose less than {req.partnerName || 'they'} agreed to, never more.</span>
+            <span className="note">{req.role === 'bottom' ? 'Up to what your intake says.' : `You can choose less than ${req.partnerName || 'they'} agreed to, never more.`}</span>
           </div>
         )}
       </section>
@@ -280,11 +313,23 @@ function Basics({
                 onClick={() => set({ gearIds: req.gearIds.includes(g.id) ? req.gearIds.filter((x) => x !== g.id) : [...req.gearIds, g.id] })}
               >
                 {g.name}
+                {g.ownerId !== keys?.userId ? ' (theirs)' : ''}
               </button>
             ))}
           </div>
         )}
-        {(data?.ctx.optedOutGear.length ?? 0) > 0 && <p className="note" style={{ margin: 0 }}>Gear you keep out of scenes with {req.partnerName} isn't shown.</p>}
+        {req.useSpecificGear && data && !data.theirGearShown && (
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ alignSelf: 'flex-start' }}
+            onClick={() => void showTheirGear().then((n) => setGearNote(n ? '' : `${req.partnerName} isn't sharing any gear with you.`))}
+          >
+            Show their gear
+          </button>
+        )}
+        {gearNote && <p className="note" style={{ margin: 0 }}>{gearNote}</p>}
+        {(data?.ctx.optedOutGear.length ?? 0) > 0 && <p className="note" style={{ margin: 0 }}>Gear kept out of scenes with {req.partnerName} isn't shown.</p>}
       </section>
 
       <button type="button" className="btn btn-primary btn-block" disabled={!req.connectionId || !data || !req.title.trim()} onClick={onNext}>
@@ -303,7 +348,7 @@ function Picks({
 }: {
   req: DesignRequest;
   set: (patch: Partial<DesignRequest>) => void;
-  ctx: NonNullable<ReturnType<typeof useSceneData>>['ctx'];
+  ctx: SceneData['ctx'];
   onBack: () => void;
   onNext: () => void;
 }) {
@@ -320,7 +365,7 @@ function Picks({
     <>
       <h1>What you'll do</h1>
       <p className="lede">
-        {req.partnerName ? `Things ${req.partnerName} said yes to and you offer.` : 'Your picks.'} Set how far to take each one, or mark it as a surprise.
+        {req.role === 'bottom' ? 'Things you said yes to.' : `Things ${req.partnerName} said yes to and you offer.`} Set how far to take each one, or mark it as a surprise.
       </p>
       {req.picks.length === 0 && <p className="card">Nothing yet. Add activities below.</p>}
       <div className="stack" style={{ gap: 10 }}>
@@ -403,7 +448,7 @@ function Options({
   onChoose
 }: {
   req: DesignRequest;
-  data: NonNullable<ReturnType<typeof useSceneData>>;
+  data: SceneData;
   busy: boolean;
   onBack: () => void;
   onChoose: (index: number) => void;
@@ -424,7 +469,7 @@ function Options({
                 <div className="card-title">{shapes[scene.shape].label}</div>
                 <div className="note">{sceneFacts(scene)}</div>
               </div>
-              {i === 0 && data.ctx.intake?.quick?.words.flow.length ? <span className="tag tag-gray">Fits their Flow</span> : null}
+              {i === 0 && data.ctx.intake?.quick?.words.flow.length ? <span className="tag tag-gray">{req.role === 'bottom' ? 'Fits your Flow' : 'Fits their Flow'}</span> : null}
             </div>
             <MiniCurve scene={scene} />
             <PhaseStrip scene={scene} />

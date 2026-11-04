@@ -146,14 +146,18 @@ export function ConnectionDetail() {
         </section>
       )}
 
-      {connection.myRole !== 'bottom' && connection.status === 'active' && (
+      {connection.status === 'active' && (
         <section className="card stack" aria-label="Scenes">
           <div className="eyebrow">Scenes</div>
           <p className="setting-desc" style={{ margin: 0 }}>
-            Design a scene from what {name} said yes to and what you offer.
+            {connection.myRole === 'bottom'
+              ? `Design a scene for ${name} from what you said yes to. It arrives as a request they accept and shape.`
+              : connection.myRole === 'switch'
+                ? `Design a scene with ${name}, as the Top or as the bottom.`
+                : `Design a scene from what ${name} said yes to and what you offer.`}
           </p>
           <Link to={`/scenes/new?connection=${connection.id}`} className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
-            New scene
+            {connection.myRole === 'bottom' ? `Design a scene for ${name}` : 'New scene'}
           </Link>
         </section>
       )}

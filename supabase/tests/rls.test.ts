@@ -608,3 +608,59 @@ describe('scenes', () => {
     expect((await admin.from('scenes').select('id').eq('id', sceneId)).data).toEqual([]);
   });
 });
+
+describe('scene requests', () => {
+  let ash: Person; // a bottom who designs for their Top
+  let birch: Person; // ash's Top
+  let cedar: Person; // a stranger to both
+  let connId: string;
+  let requestId: string;
+
+  beforeAll(async () => {
+    [ash, birch, cedar] = await Promise.all([person('alder'), person('birch'), person('cedarwood')]);
+    const inv = await invite(birch, 'account', 'top');
+    const accepted = await ash.db.rpc('accept_invite', { invite_code: inv.code });
+    if (accepted.error) throw accepted.error;
+    connId = accepted.data as string;
+  }, 60_000);
+
+  it('can be sent only to a connection, in your own name', async () => {
+    expect((await ash.db.from('scene_requests').insert({ to_id: cedar.id, sealed_scene: 'locked' })).error).not.toBeNull();
+    expect((await cedar.db.from('scene_requests').insert({ from_id: ash.id, to_id: birch.id, sealed_scene: 'forged' })).error).not.toBeNull();
+    expect((await anon.from('scene_requests').insert({ to_id: birch.id, sealed_scene: 'anon' })).error).not.toBeNull();
+    expect((await ash.db.from('scene_requests').insert({ to_id: birch.id, sealed_scene: 'locked', status: 'accepted' })).error).not.toBeNull();
+    const sent = await ash.db.from('scene_requests').insert({ to_id: birch.id, sealed_scene: 'locked-design' }).select('id, from_id, status').single();
+    expect(sent.error).toBeNull();
+    expect(sent.data).toMatchObject({ from_id: ash.id, status: 'sent' });
+    requestId = sent.data!.id;
+  });
+
+  it('are seen only by the two people', async () => {
+    expect((await birch.db.from('scene_requests').select('sealed_scene')).data).toEqual([{ sealed_scene: 'locked-design' }]);
+    expect((await ash.db.from('scene_requests').select('id')).data).toHaveLength(1);
+    expect((await cedar.db.from('scene_requests').select('id')).data).toEqual([]);
+    expect((await anon.from('scene_requests').select('id')).data ?? []).toEqual([]);
+  });
+
+  it('are answered only by the recipient, who can change nothing else', async () => {
+    await ash.db.from('scene_requests').update({ status: 'accepted' }).eq('id', requestId);
+    await cedar.db.from('scene_requests').update({ status: 'declined' }).eq('id', requestId);
+    expect((await admin.from('scene_requests').select('status').eq('id', requestId).single()).data?.status).toBe('sent');
+    expect((await birch.db.from('scene_requests').update({ sealed_scene: 'swapped' }).eq('id', requestId)).error).not.toBeNull();
+    expect((await birch.db.from('scene_requests').update({ status: 'sent' }).eq('id', requestId)).error).not.toBeNull();
+    expect((await birch.db.from('scene_requests').update({ status: 'accepted', updated_at: new Date().toISOString() }).eq('id', requestId)).error).toBeNull();
+    expect((await ash.db.from('scene_requests').select('status').eq('id', requestId).single()).data?.status).toBe('accepted');
+  });
+
+  it('are removed by either person, never a stranger, and go when the connection ends', async () => {
+    await cedar.db.from('scene_requests').delete().eq('id', requestId);
+    expect((await admin.from('scene_requests').select('id').eq('id', requestId)).data).toHaveLength(1);
+    expect((await birch.db.from('scene_requests').delete().eq('id', requestId)).error).toBeNull();
+    expect((await admin.from('scene_requests').select('id').eq('id', requestId)).data).toEqual([]);
+
+    await ash.db.from('scene_requests').insert({ to_id: birch.id, sealed_scene: 'another' });
+    await birch.db.from('scene_requests').insert({ to_id: ash.id, sealed_scene: 'one back' });
+    expect((await ash.db.from('connections').update({ status: 'ended' }).eq('id', connId)).error).toBeNull();
+    expect((await admin.from('scene_requests').select('id').in('from_id', [ash.id, birch.id])).data).toEqual([]);
+  });
+});

@@ -6,6 +6,8 @@ import type { PhaseType } from '../../content/phases';
 
 export type ArcShape = 'climb' | 'twin' | 'waves';
 
+export type RequestStatus = 'sent' | 'accepted' | 'declined';
+
 /** What kind of beat this is, where the rules care. */
 export type BeatKind = 'regular' | 'warmup' | 'recovery' | 'ritual' | 'landing' | 'named' | 'immediate' | 'settled' | 'closing';
 
@@ -110,6 +112,10 @@ export interface Scene {
   /** A next-morning check-in, required after subspace or cathartic release. */
   nextMorningCheckIn: boolean;
   inLibrary: boolean;
+  /** On a design sent to the partner as a request: which one, and its answer. */
+  request?: { id: string; sentAt: string; status: RequestStatus };
+  /** On a design accepted from a partner's request: who designed it. */
+  fromRequest?: { by: string; at: string };
   createdAt: string;
   updatedAt: string;
 }

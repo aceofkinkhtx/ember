@@ -328,4 +328,45 @@ describe('account flow', () => {
     expect(guest.sealedAnswers).not.toContain('Sol');
     expect((await account.openGuestAnswers(account.loadKeys()!, guest.sealedAnswers!))?.message).toBe('Nervous but excited');
   });
+
+  it("sends a design from bottom to Top as a locked request, accepted into the Top's own scenes", async () => {
+    await account.signOut();
+    const scenes = await import('../../src/lib/scenes');
+    const { design } = await import('../../src/lib/scene/designer');
+    const { openSetup } = await import('../../src/state/sceneContext');
+    const intakeLib = await import('../../src/lib/intake');
+
+    await account.signIn(jadeUser.email, jadeUser.password);
+    const jadeKeys = account.loadKeys()!;
+    const conn = (await account.listConnections(jadeKeys, jade)).find((c) => c.otherId === riverUser.id)!;
+    const intake = intakeLib.emptyIntake();
+    intake.detailed = { ...intakeLib.emptyDetailed(), answers: { 'bare-hand': { choice: 'yes' }, cuddling: { choice: 'yes' } } };
+    const ctx = { intake, top: openSetup(), studio: false, optedOutGear: [], gear: [] };
+    const mine = design('climb', {
+      title: 'Velvet Saturday', connectionId: conn.id, partnerId: riverUser.id, partnerName: 'River', role: 'bottom',
+      date: '', startTime: '', minutes: 45, location: '', isPublic: false, intense: false, intakeVersion: 1, marks: 'none',
+      useSpecificGear: false, gearIds: [], picks: [{ activityId: 'bare-hand', intensity: 5, surprise: false }], overrides: [], notes: ''
+    }, ctx);
+    await scenes.saveScene(jadeKeys, mine);
+    const sent = await scenes.sendSceneRequest(jadeKeys, mine);
+    expect(sent.request?.status).toBe('sent');
+    const { data: raw } = await admin.from('scene_requests').select('sealed_scene').eq('id', sent.request!.id).single();
+    expect(raw!.sealed_scene).not.toMatch(/Velvet|River|bare-hand/);
+    await account.signOut();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    const riverKeys = account.loadKeys()!;
+    const incoming = await scenes.listIncomingRequests(riverKeys);
+    expect(incoming.map((r) => r.scene.title)).toEqual(['Velvet Saturday']);
+    const copy = { ...incoming[0].scene, id: crypto.randomUUID(), role: 'top' as const, partnerId: jadeUser.id };
+    await scenes.acceptSceneRequest(riverKeys, incoming[0], copy);
+    expect((await scenes.listScenes(riverKeys)).map((s) => s.title)).toContain('Velvet Saturday');
+    expect(await scenes.listIncomingRequests(riverKeys)).toEqual([]);
+    for (const s of await scenes.listScenes(riverKeys)) await scenes.deleteScene(s.id);
+    await account.signOut();
+
+    await account.signIn(jadeUser.email, jadeUser.password);
+    expect((await scenes.sentRequestStatuses(account.loadKeys()!))[sent.request!.id]).toBe('accepted');
+    for (const s of await scenes.listScenes(account.loadKeys()!)) await scenes.deleteScene(s.id);
+  });
 });

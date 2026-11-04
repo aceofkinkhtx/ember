@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { SceneRequests } from '../../components/scene/Requests';
 import { MiniCurve, sceneFacts } from '../../components/scene/SceneCurve';
 import { tabLabel } from '../../content/copy';
 import type { Scene } from '../../lib/scene/model';
@@ -60,6 +61,7 @@ export function Scenes() {
           New scene
         </Link>
       </div>
+      <SceneRequests />
       <div className="segmented" role="tablist" aria-label="Which scenes" style={{ alignSelf: 'flex-start' }}>
         {(['upcoming', 'past', 'library'] as Tab[]).map((t) => (
           <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>
@@ -90,6 +92,7 @@ export function Scenes() {
                   <span className="note">{s.date ? new Date(`${s.date}T12:00`).toLocaleDateString() : 'No date'}</span>
                 </div>
                 <MiniCurve scene={s} height={44} />
+                {s.request && <span className="tag tag-gray" style={{ alignSelf: 'flex-start' }}>Sent to {s.partnerName}</span>}
                 <span className="note">
                   {s.partnerName ? `With ${s.partnerName}. ` : ''}
                   {sceneFacts(s)}
