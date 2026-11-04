@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { DonateOptions } from '../components/DonateOptions';
 import { IdentityForm } from '../components/IdentityForm';
 import { PinSetup } from '../components/PinSetup';
 import { SettingSwitch } from '../components/Switch';
 import { roleLabel, type RoleChoice } from '../content/copy';
 import { pronounLabel } from '../content/identity';
+import { cadenceLabels, offeringsSummary } from '../content/topSetup';
 import { signOut } from '../lib/account';
 import { eraseAll } from '../lib/storage';
 import { useAccount } from '../state/account';
@@ -88,6 +90,31 @@ export function Me() {
           </>
         )}
       </section>
+
+      {settings.roles !== 'bottom' && (
+        <section className="card" aria-labelledby="me-top">
+          <div className="eyebrow" id="me-top">
+            As a Top
+          </div>
+          <Link to="/me/offerings" className="setting" style={{ color: 'inherit', textDecoration: 'none' }}>
+            <div>
+              <div className="setting-label">What you offer</div>
+              <div className="setting-desc">{offeringsSummary(settings.top)}</div>
+            </div>
+            <span aria-hidden="true">›</span>
+          </Link>
+          <Link to="/me/top-settings" className="setting" style={{ color: 'inherit', textDecoration: 'none' }}>
+            <div>
+              <div className="setting-label">Your settings</div>
+              <div className="setting-desc">
+                Aftercare {settings.top.settings.aftercarePercent}% ({settings.top.settings.intensePercent}% intense), check-ins:{' '}
+                {cadenceLabels[settings.top.settings.checkIns].toLowerCase()}
+              </div>
+            </div>
+            <span aria-hidden="true">›</span>
+          </Link>
+        </section>
+      )}
 
       <section className="card" aria-label="Privacy">
         <div className="eyebrow">Privacy</div>

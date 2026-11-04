@@ -6,7 +6,6 @@ import { useSettings } from '../state/settings';
 const upcoming: Partial<Record<TabId, string>> = {
   connections: 'Invite partners, send guest links, and keep everything you know about each person in one place.',
   scenes: 'Design, edit and save plans, then run them in the live guide.',
-  toys: 'Photograph and tag your toys in a few taps, and opt any toy out for a specific partner.',
   profile: 'Your desires, limits and aftercare, all owned by you, with control over who sees what.'
 };
 

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { pronounLabel, type Identity } from '../content/identity';
+import type { TopSetup } from '../content/topSetup';
 import {
   defaultPasswordParams,
   deriveFromPassword,
@@ -78,9 +79,15 @@ export interface SavedProfile {
   identity?: Identity;
   /** The keys that lock your intakes (see lib/intake.ts). */
   keyRing?: { gens: { g: number; essentials: string; full: string }[] };
+  /** The keys that lock your toys and their photos (see lib/toys.ts). */
+  toyRing?: { gens: { g: number; key: string }[] };
+  /** A Top's offerings and settings. */
+  top?: TopSetup;
 }
 
 const RING = 'ember.profileKeys';
+const TOY_RING = 'ember.toyKeys';
+const SETTINGS = 'ember.settings';
 
 async function finishSignIn(userId: string, wrapKey: Uint8Array, salt: string): Promise<SignInResult> {
   const { data: profile, error } = await db
@@ -108,6 +115,7 @@ async function finishSignIn(userId: string, wrapKey: Uint8Array, salt: string): 
         saved = JSON.parse(await openSealed(profile.sealed_settings, keys)) as SavedProfile;
         // A new phone gets the intake keys back.
         if (saved.keyRing && !readJson(RING)) writeJson(RING, saved.keyRing);
+        if (saved.toyRing && !readJson(TOY_RING)) writeJson(TOY_RING, saved.toyRing);
       } catch {
         saved = null;
       }
@@ -165,6 +173,7 @@ export async function signOut(): Promise<void> {
   // Intake keys and any unsaved intake belong to this person, not the phone.
   try {
     window.localStorage.removeItem(RING);
+    window.localStorage.removeItem(TOY_RING);
     window.localStorage.removeItem('ember.intakeDraft');
   } catch {
     // Storage unavailable: nothing was saved.
@@ -172,10 +181,31 @@ export async function signOut(): Promise<void> {
   await db.auth.signOut({ scope: 'local' });
 }
 
-/** Saves your setup, locked so only you can open it. */
-export async function saveProfile(keys: StoredKeys, saved: SavedProfile): Promise<void> {
-  // The key ring always rides along, so saving one part never drops another.
-  const merged: SavedProfile = { ...saved, keyRing: saved.keyRing ?? readJson<SavedProfile['keyRing']>(RING) ?? undefined };
+/** A Top setup counts only once someone has actually set something. */
+const topIsSet = (top: TopSetup | undefined): top is TopSetup => Boolean(top?.offerings.setAt || top?.settings.setAt);
+
+/**
+ * Saves your setup, locked so only you can open it. Any part not passed in is
+ * taken from this phone, then from what was saved before, so saving one part
+ * never drops another (and a phone that never set up offerings can't wipe them).
+ */
+export async function saveProfile(keys: StoredKeys, saved: SavedProfile = {}): Promise<void> {
+  const local = readJson<{ identity?: Identity; top?: TopSetup }>(SETTINGS);
+  let before: SavedProfile = {};
+  const { data } = await db.from('profiles').select('sealed_settings').eq('id', keys.userId).maybeSingle();
+  if (data?.sealed_settings) {
+    try {
+      before = JSON.parse(await openSealed(data.sealed_settings, keys)) as SavedProfile;
+    } catch {
+      before = {};
+    }
+  }
+  const merged: SavedProfile = {
+    identity: saved.identity ?? local?.identity ?? before.identity,
+    top: [saved.top, local?.top].find(topIsSet) ?? before.top,
+    keyRing: saved.keyRing ?? readJson<SavedProfile['keyRing']>(RING) ?? before.keyRing,
+    toyRing: saved.toyRing ?? readJson<SavedProfile['toyRing']>(TOY_RING) ?? before.toyRing
+  };
   await db
     .from('profiles')
     .update({ sealed_settings: await sealFor(JSON.stringify(merged), keys.publicKey), updated_at: new Date().toISOString() })

@@ -471,3 +471,105 @@ describe('personal codes and requests', () => {
     expect(error).not.toBeNull();
   });
 });
+
+describe('toys', () => {
+  let kit: Person; // keeps toys
+  let moss: Person; // connected to Kit
+  let fen: Person; // a stranger to Kit
+  let connId: string;
+  let toyId: string;
+
+  beforeAll(async () => {
+    [kit, moss, fen] = await Promise.all([person('toykeeper'), person('moss'), person('wren')]);
+    const inv = await invite(kit, 'account', 'top');
+    const accepted = await moss.db.rpc('accept_invite', { invite_code: inv.code });
+    if (accepted.error) throw accepted.error;
+    connId = accepted.data as string;
+    const toy = await kit.db.from('toys').insert({ sealed_toy: 'locked-flogger' }).select('id, owner_id').single();
+    if (toy.error) throw toy.error;
+    expect(toy.data.owner_id).toBe(kit.id);
+    toyId = toy.data.id;
+  }, 60_000);
+
+  // The file cache keeps a copy per sign-in, so Ember asks with a fresh value
+  // each time; access is then checked on every request.
+  async function photoSize(who: Person | null, path: string): Promise<number | null> {
+    const { data } = await (who ? who.db : anon).storage.from('toy-photos').download(path, { cacheNonce: randomBytes(8).toString('hex') });
+    return data ? data.size : null;
+  }
+
+  const photo = () => new Blob([new Uint8Array([1, 2, 3, 4])], { type: 'application/octet-stream' });
+
+  it('are private to their owner until shared', async () => {
+    expect((await kit.db.from('toys').select('sealed_toy')).data).toEqual([{ sealed_toy: 'locked-flogger' }]);
+    expect((await moss.db.from('toys').select('id').eq('owner_id', kit.id)).data).toEqual([]);
+    expect((await fen.db.from('toys').select('id').eq('owner_id', kit.id)).data).toEqual([]);
+    expect((await anon.from('toys').select('id')).data ?? []).toEqual([]);
+  });
+
+  it("can't be made, changed or deleted for someone else", async () => {
+    expect((await fen.db.from('toys').insert({ owner_id: kit.id, sealed_toy: 'x' })).error).not.toBeNull();
+    expect((await moss.db.from('toys').update({ sealed_toy: 'changed' }).eq('id', toyId).select()).data).toEqual([]);
+    await moss.db.from('toys').delete().eq('id', toyId);
+    expect((await kit.db.from('toys').select('id').eq('id', toyId)).data).toHaveLength(1);
+    const moved = await kit.db.from('toys').update({ owner_id: fen.id }).eq('id', toyId).select();
+    expect(moved.error).not.toBeNull();
+  });
+
+  it('keep photos private, in the owner’s own folder only', async () => {
+    const up = await kit.db.storage.from('toy-photos').upload(`${kit.id}/${toyId}`, photo(), { upsert: true, contentType: 'application/octet-stream', cacheControl: '0' });
+    expect(up.error).toBeNull();
+    const intoKits = await fen.db.storage.from('toy-photos').upload(`${kit.id}/planted`, photo(), { contentType: 'application/octet-stream', cacheControl: '0' });
+    expect(intoKits.error).not.toBeNull();
+    expect(await photoSize(fen, `${kit.id}/${toyId}`)).toBeNull();
+    expect(await photoSize(moss, `${kit.id}/${toyId}`)).toBeNull();
+    expect(await photoSize(null, `${kit.id}/${toyId}`)).toBeNull();
+    expect(await photoSize(kit, `${kit.id}/${toyId}`)).toBe(4);
+  });
+
+  it('can be shared only with a connection, who can then see them and their photos', async () => {
+    expect((await kit.db.from('toy_shares').insert({ owner_id: kit.id, recipient_id: fen.id, wrapped_toy_key: 'x' })).error).not.toBeNull();
+    expect((await fen.db.from('toy_shares').insert({ owner_id: kit.id, recipient_id: fen.id, wrapped_toy_key: 'x' })).error).not.toBeNull();
+    expect((await kit.db.from('toy_shares').insert({ owner_id: kit.id, recipient_id: moss.id, wrapped_toy_key: 'key-for-moss' })).error).toBeNull();
+
+    expect((await moss.db.from('toys').select('sealed_toy').eq('owner_id', kit.id)).data).toEqual([{ sealed_toy: 'locked-flogger' }]);
+    expect((await moss.db.from('toy_shares').select('wrapped_toy_key')).data).toEqual([{ wrapped_toy_key: 'key-for-moss' }]);
+    expect(await photoSize(moss, `${kit.id}/${toyId}`)).toBe(4);
+    expect((await fen.db.from('toys').select('id').eq('owner_id', kit.id)).data).toEqual([]);
+    expect((await fen.db.from('toy_shares').select('owner_id')).data).toEqual([]);
+    // Sharing reads, never writes.
+    const overwrite = await moss.db.storage.from('toy-photos').upload(`${kit.id}/${toyId}`, photo(), { upsert: true, contentType: 'application/octet-stream', cacheControl: '0' });
+    expect(overwrite.error).not.toBeNull();
+    expect((await moss.db.from('toy_shares').delete().eq('owner_id', kit.id).select()).data).toEqual([]);
+  });
+
+  it('opt-outs are set only by the owner and seen only by the two people', async () => {
+    expect((await moss.db.from('toy_opt_outs').insert({ connection_id: connId, toy_id: toyId })).error).not.toBeNull();
+    expect((await fen.db.from('toy_opt_outs').insert({ connection_id: connId, toy_id: toyId })).error).not.toBeNull();
+    expect((await kit.db.from('toy_opt_outs').insert({ connection_id: connId, toy_id: toyId })).error).toBeNull();
+    expect((await moss.db.from('toy_opt_outs').select('toy_id')).data).toEqual([{ toy_id: toyId }]);
+    expect((await fen.db.from('toy_opt_outs').select('toy_id')).data).toEqual([]);
+    await moss.db.from('toy_opt_outs').delete().eq('toy_id', toyId);
+    expect((await kit.db.from('toy_opt_outs').select('toy_id').eq('connection_id', connId)).data).toHaveLength(1);
+  });
+
+  it('stop being shared when the owner revokes or the connection ends', async () => {
+    await kit.db.from('toy_shares').delete().eq('recipient_id', moss.id);
+    expect((await moss.db.from('toys').select('id').eq('owner_id', kit.id)).data).toEqual([]);
+    expect(await photoSize(moss, `${kit.id}/${toyId}`)).toBeNull();
+
+    await kit.db.from('toy_shares').insert({ owner_id: kit.id, recipient_id: moss.id, wrapped_toy_key: 'again' });
+    await moss.db.from('toy_shares').insert({ owner_id: moss.id, recipient_id: kit.id, wrapped_toy_key: 'mine' });
+    expect((await moss.db.from('toys').select('id').eq('owner_id', kit.id)).data).toHaveLength(1);
+    expect((await moss.db.from('connections').update({ status: 'ended' }).eq('id', connId)).error).toBeNull();
+    expect((await moss.db.from('toys').select('id').eq('owner_id', kit.id)).data).toEqual([]);
+    expect((await admin.from('toy_shares').select('owner_id').in('owner_id', [kit.id, moss.id])).data).toEqual([]);
+  });
+
+  it('go away with the toy, photo folder and all', async () => {
+    expect((await kit.db.from('toys').delete().eq('id', toyId)).error).toBeNull();
+    expect((await admin.from('toy_opt_outs').select('toy_id').eq('toy_id', toyId)).data).toEqual([]);
+    expect((await kit.db.storage.from('toy-photos').remove([`${kit.id}/${toyId}`])).error).toBeNull();
+    expect((await kit.db.storage.from('toy-photos').list(kit.id)).data).toEqual([]);
+  });
+});

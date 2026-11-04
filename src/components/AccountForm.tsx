@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { emptyIdentity } from '../content/identity';
+import { defaultTopSetupFrom } from '../content/topSetup';
 import { AccountError, MIN_PASSWORD, signIn, signUp } from '../lib/account';
 import { useAccount } from '../state/account';
 import { useSettings } from '../state/settings';
@@ -47,6 +48,9 @@ export function AccountForm({ intro }: { intro?: string }) {
         // A new phone: bring back "About you" if this phone has none yet.
         const saved = result.saved?.identity;
         if (saved) update((s) => (s.identity.name ? {} : { identity: { ...emptyIdentity, ...saved } }));
+        // The same for a Top's offerings and settings.
+        const top = result.saved?.top;
+        if (top) update((s) => (s.top.offerings.setAt || s.top.settings.setAt ? {} : { top: defaultTopSetupFrom(top) }));
         await refresh();
       }
     } catch (err) {

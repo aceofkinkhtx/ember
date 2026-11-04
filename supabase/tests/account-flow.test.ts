@@ -227,6 +227,85 @@ describe('account flow', () => {
     await account.signOut();
   });
 
+  it('keeps toys and photos locked, shares them with one connection, and new keys after stopping', async () => {
+    const toysLib = await import('../../src/lib/toys');
+    const shown: Blob[] = [];
+    URL.createObjectURL = vi.fn((b: Blob) => {
+      shown.push(b);
+      return `blob:toy-${shown.length}`;
+    });
+    URL.revokeObjectURL = vi.fn();
+    const photo = new Uint8Array([255, 216, 255, 9, 8, 7, 6, 5]);
+
+    await account.signIn(jadeUser.email, jadeUser.password);
+    const jadeKeys = account.loadKeys()!;
+    const flogger = await toysLib.saveToy(
+      jadeKeys,
+      { details: { ...toysLib.emptyToy(), name: 'Suede flogger', feel: ['thuddy'], types: ['impact'], notes: 'Soft falls' } },
+      photo
+    );
+    expect(flogger.photoGen).toBe(1);
+    const { data: raw } = await admin.from('toys').select('sealed_toy').eq('id', flogger.id).single();
+    expect(raw!.sealed_toy).not.toMatch(/Suede|flogger|thuddy|Soft/);
+    const stored = await admin.storage.from('toy-photos').download(`${jadeUser.id}/${flogger.id}`);
+    expect(new Uint8Array(await stored.data!.arrayBuffer())).not.toEqual(photo);
+
+    const conn = (await account.listConnections(jadeKeys, { name: 'Jade', pronouns: 'she/they' })).find((c) => c.otherId === riverUser.id)!;
+    const cuffs = await toysLib.saveToy(jadeKeys, { details: { ...toysLib.emptyToy(), name: 'Leather cuffs', types: ['bondage'] } });
+    await toysLib.setOptOut(conn.id, cuffs.id, true);
+    await toysLib.setToyShare(jadeKeys, riverUser.id, true);
+    expect((await toysLib.listMyToys(jadeKeys)).map((t) => t.name)).toEqual(['Leather cuffs', 'Suede flogger']);
+    await account.signOut();
+    expect(toysLib.loadToyRing()).toBeNull();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    const riverKeys = account.loadKeys()!;
+    expect(await toysLib.theyShareToys(riverKeys, jadeUser.id)).toBe(true);
+    const theirs = await toysLib.readTheirToys(riverKeys, jadeUser.id);
+    expect(theirs!.toys.map((t) => t.name)).toEqual(['Leather cuffs', 'Suede flogger']);
+    expect((await toysLib.listOptOuts()).filter((o) => o.connectionId === conn.id)).toEqual([{ connectionId: conn.id, toyId: cuffs.id }]);
+    const seen = theirs!.toys.find((t) => t.name === 'Suede flogger')!;
+    expect(await toysLib.photoUrl(seen, theirs!.gens)).toMatch(/^blob:toy-/);
+    expect(new Uint8Array(await shown[shown.length - 1].arrayBuffer())).toEqual(photo);
+    await account.signOut();
+
+    // A new phone gets the toy keys back; stopping makes new ones.
+    await account.signIn(jadeUser.email, jadeUser.password);
+    expect(toysLib.loadToyRing()?.gens).toHaveLength(1);
+    await toysLib.setToyShare(account.loadKeys()!, riverUser.id, false);
+    expect(toysLib.loadToyRing()?.gens).toHaveLength(2);
+    const later = await toysLib.saveToy(account.loadKeys()!, { details: { ...toysLib.emptyToy(), name: 'Wartenberg wheel' } });
+    expect((await toysLib.listMyToys(account.loadKeys()!)).map((t) => t.name)).toEqual(['Leather cuffs', 'Suede flogger', 'Wartenberg wheel']);
+    await account.signOut();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    expect(await toysLib.readTheirToys(account.loadKeys()!, jadeUser.id)).toBeNull();
+    await account.signOut();
+
+    await account.signIn(jadeUser.email, jadeUser.password);
+    for (const t of await toysLib.listMyToys(account.loadKeys()!)) await toysLib.deleteToy(account.loadKeys()!, t);
+    expect((await admin.from('toys').select('id').in('id', [flogger.id, cuffs.id, later.id])).data).toEqual([]);
+    expect((await admin.storage.from('toy-photos').list(jadeUser.id)).data).toEqual([]);
+    await account.signOut();
+  });
+
+  it("keeps a Top's offerings and settings with the account", async () => {
+    const { emptyTopSetup } = await import('../../src/content/topSetup');
+    const top = emptyTopSetup();
+    top.offerings.categories = { impact: { on: true, degree: 4 } };
+    top.settings.voice = 'Steady and warm';
+    top.settings.setAt = new Date().toISOString();
+    await account.signIn(riverUser.email, riverUser.password);
+    await account.saveProfile(account.loadKeys()!, { top });
+    // Saving another part later keeps it.
+    await account.saveProfile(account.loadKeys()!, { identity: { name: 'River', pronouns: ['they'], pronounsCustom: '', genders: [], genderCustom: '' } });
+    await account.signOut();
+    const again = await account.signIn(riverUser.email, riverUser.password);
+    expect(again.kind === 'ready' && again.saved?.top?.settings.voice).toBe('Steady and warm');
+    expect(again.kind === 'ready' && again.saved?.top?.offerings.categories.impact).toEqual({ on: true, degree: 4 });
+    await account.signOut();
+  });
+
   it('carries a guest answer to the inviter, locked for them alone', async () => {
     await account.signIn(riverUser.email, riverUser.password);
     const keys = account.loadKeys()!;

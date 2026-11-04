@@ -1,12 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Role, RoleChoice } from '../content/copy';
 import { emptyIdentity, type Identity } from '../content/identity';
+import { defaultTopSetupFrom, emptyTopSetup, type TopSetup } from '../content/topSetup';
 import type { PinRecord } from '../lib/pin';
 import { readJson, writeJson } from '../lib/storage';
 
 // Device settings. Until accounts arrive (M1) these live only on this phone.
 
-export type OnboardingStep = 'welcome' | 'about' | 'privacy' | 'depth' | 'safety' | 'done';
+export type OnboardingStep = 'welcome' | 'about' | 'privacy' | 'depth' | 'offerings' | 'topSettings' | 'safety' | 'done';
 export type Depth = 'simple' | 'studio';
 
 export interface Settings {
@@ -23,6 +24,8 @@ export interface Settings {
   notifications: { dailyTips: boolean; checkIns: boolean };
   /** When the monthly donation note last appeared. */
   donationPromptedAt: string | null;
+  /** A Top's offerings and settings (M3). Kept for switches in the bottom view too. */
+  top: TopSetup;
 }
 
 export const SETTINGS_KEY = 'ember.settings';
@@ -39,7 +42,8 @@ export const defaultSettings: Settings = {
   pin: null,
   safetyFloorAcknowledgedAt: null,
   notifications: { dailyTips: true, checkIns: true },
-  donationPromptedAt: null
+  donationPromptedAt: null,
+  top: emptyTopSetup()
 };
 
 export function loadSettings(): Settings {
@@ -49,7 +53,8 @@ export function loadSettings(): Settings {
     ...defaultSettings,
     ...saved,
     identity: { ...emptyIdentity, ...saved.identity },
-    notifications: { ...defaultSettings.notifications, ...saved.notifications }
+    notifications: { ...defaultSettings.notifications, ...saved.notifications },
+    top: defaultTopSetupFrom(saved.top)
   };
 }
 
@@ -58,9 +63,9 @@ export function roleFor(choice: RoleChoice): Role {
   return choice === 'bottom' ? 'bottom' : 'top';
 }
 
-/** The order of onboarding steps for a role choice. Bottoms skip the depth step. */
+/** The order of onboarding steps for a role choice. Bottoms skip the Top's steps. */
 export function onboardingSteps(roles: RoleChoice | null): OnboardingStep[] {
-  return roles === 'bottom' ? ['welcome', 'about', 'privacy', 'safety'] : ['welcome', 'about', 'privacy', 'depth', 'safety'];
+  return roles === 'bottom' ? ['welcome', 'about', 'privacy', 'safety'] : ['welcome', 'about', 'privacy', 'depth', 'offerings', 'topSettings', 'safety'];
 }
 
 export function nextStep(current: OnboardingStep, roles: RoleChoice | null): OnboardingStep {

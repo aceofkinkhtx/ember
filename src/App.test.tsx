@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from './App';
 import { safetyFloor } from './content/copy';
@@ -45,6 +45,15 @@ describe('onboarding', () => {
     expect(screen.getByRole('heading', { name: 'How much do you want to see?' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
+    expect(screen.getByRole('heading', { name: 'What you offer' })).toBeInTheDocument();
+    await user.click(screen.getByRole('switch', { name: 'Impact' }));
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '4' } });
+    await user.click(screen.getByRole('button', { name: 'Canes' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(screen.getByRole('heading', { name: 'Your settings' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: "Skip for now" }));
+
     const list = screen.getByRole('list');
     expect(within(list).getAllByRole('listitem')).toHaveLength(safetyFloor.length);
     await user.click(screen.getByRole('button', { name: 'I understand' }));
@@ -56,13 +65,19 @@ describe('onboarding', () => {
     expect(saved.identity.genders).toEqual(['Nonbinary']);
     expect(saved.ageConfirmedAt).not.toBeNull();
     expect(saved.safetyFloorAcknowledgedAt).not.toBeNull();
+    expect(saved.top.offerings.categories.impact).toEqual({ on: true, degree: 4 });
+    expect(saved.top.offerings.activities).toEqual({ cane: false });
+    expect(saved.top.settings.setAt).toBeNull();
+    expect(screen.queryByText('Tell Ember what you offer')).not.toBeInTheDocument();
   });
 
-  it('asks everyone about themselves, and skips the depth step for bottoms', () => {
+  it("asks everyone about themselves, and skips the Top's steps for bottoms", () => {
     expect(nextStep('welcome', 'bottom')).toBe('about');
     expect(nextStep('welcome', 'top')).toBe('about');
     expect(nextStep('privacy', 'bottom')).toBe('safety');
     expect(nextStep('privacy', 'top')).toBe('depth');
+    expect(nextStep('depth', 'both')).toBe('offerings');
+    expect(nextStep('topSettings', 'top')).toBe('safety');
   });
 });
 

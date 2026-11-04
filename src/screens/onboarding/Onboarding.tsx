@@ -6,9 +6,13 @@ import { PinSetup } from '../../components/PinSetup';
 import { SettingSwitch } from '../../components/Switch';
 import { safetyFloor, type RoleChoice } from '../../content/copy';
 import { nextStep, onboardingSteps, roleFor, useSettings, type Depth } from '../../state/settings';
+import { OfferingsEditor } from '../../components/top/OfferingsEditor';
+import { TopSettingsEditor } from '../../components/top/TopSettingsEditor';
+import { useTopSetup } from '../TopSetupPages';
 
-// O1 Welcome, About you, O2 Privacy setup, O3 Depth (Tops only), O6 Safety floor.
-// O4, O5 and O7 (offerings, settings, toys) arrive with M3.
+// O1 Welcome, About you, O2 Privacy setup, O3 Depth, O4 Offerings and O5 Top
+// settings (Tops only), O6 Safety floor. O7 (first toys) needs an account, so
+// toys start from the Toys tab after signing in.
 
 function About({ progress, onNext }: { progress: ReactNode; onNext: () => void }) {
   const { settings, update } = useSettings();
@@ -52,6 +56,10 @@ export function Onboarding() {
       return <Privacy progress={progress} onNext={advance} />;
     case 'depth':
       return <DepthStep progress={progress} onNext={advance} />;
+    case 'offerings':
+      return <OfferingsStep progress={progress} onNext={advance} />;
+    case 'topSettings':
+      return <TopSettingsStep progress={progress} onNext={advance} />;
     case 'safety':
       return <SafetyFloor progress={progress} onNext={advance} />;
     default:
@@ -239,6 +247,46 @@ function DepthStep({ progress, onNext }: { progress: ReactNode; onNext: () => vo
           Continue
         </button>
       </footer>
+    </div>
+  );
+}
+
+function SkippableFooter({ onNext, started }: { onNext: () => void; started: boolean }) {
+  return (
+    <footer className="screen-footer">
+      <button type="button" className="btn btn-primary btn-block" onClick={onNext}>
+        {started ? 'Continue' : 'Skip for now'}
+      </button>
+    </footer>
+  );
+}
+
+function OfferingsStep({ progress, onNext }: { progress: ReactNode; onNext: () => void }) {
+  const { setup, studio, changeOfferings } = useTopSetup();
+  return (
+    <div className="app">
+      <main className="screen">
+        {progress}
+        <h1>What you offer</h1>
+        <p className="lede">Choose the kinds of play you do and how far you go. Finish or change it anytime in Me.</p>
+        <OfferingsEditor setup={setup} studio={studio} onChange={changeOfferings} />
+      </main>
+      <SkippableFooter onNext={onNext} started={Boolean(setup.offerings.setAt)} />
+    </div>
+  );
+}
+
+function TopSettingsStep({ progress, onNext }: { progress: ReactNode; onNext: () => void }) {
+  const { setup, changeSettings } = useTopSetup();
+  return (
+    <div className="app">
+      <main className="screen">
+        {progress}
+        <h1>Your settings</h1>
+        <p className="lede">Your personal standards. The safety floor, next, applies whatever you choose.</p>
+        <TopSettingsEditor value={setup.settings} onChange={changeSettings} />
+      </main>
+      <SkippableFooter onNext={onNext} started={Boolean(setup.settings.setAt)} />
     </div>
   );
 }

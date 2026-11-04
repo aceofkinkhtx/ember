@@ -23,6 +23,21 @@ export function Home() {
       {isTop ? (
         <>
           <h1>What needs you today</h1>
+          {!settings.top.offerings.setAt && (
+            <div className="card">
+              <div className="eyebrow">Your setup</div>
+              <div className="card-title">Tell Ember what you offer</div>
+              <p className="setting-desc">Scene designs are built only from what you offer and what your partner says yes to.</p>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <Link to="/me/offerings" className="btn btn-primary">
+                  Your offerings
+                </Link>
+                <Link to="/me/top-settings" className="btn btn-outline">
+                  Your settings
+                </Link>
+              </div>
+            </div>
+          )}
           <div className="card">
             <div className="eyebrow">Check-ins</div>
             <div className="card-title">Nothing due</div>

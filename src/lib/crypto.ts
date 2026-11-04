@@ -134,3 +134,20 @@ export async function openSealed(sealed: string, keys: KeyPair): Promise<string>
   const s = await sodium();
   return s.to_string(s.crypto_box_seal_open(s.from_base64(sealed), s.from_base64(keys.publicKey), s.from_base64(keys.privateKey)));
 }
+
+/** Locks raw bytes (a photo) with a secret key. The nonce goes in front. */
+export async function lockBytes(bytes: Uint8Array, key: Uint8Array | string): Promise<Uint8Array> {
+  const s = await sodium();
+  const nonce = s.randombytes_buf(s.crypto_secretbox_NONCEBYTES);
+  const box = s.crypto_secretbox_easy(bytes, nonce, toKey(s, key));
+  const out = new Uint8Array(nonce.length + box.length);
+  out.set(nonce);
+  out.set(box, nonce.length);
+  return out;
+}
+
+export async function unlockBytes(locked: Uint8Array, key: Uint8Array | string): Promise<Uint8Array> {
+  const s = await sodium();
+  const nonce = locked.slice(0, s.crypto_secretbox_NONCEBYTES);
+  return s.crypto_secretbox_open_easy(locked.slice(s.crypto_secretbox_NONCEBYTES), nonce, toKey(s, key));
+}

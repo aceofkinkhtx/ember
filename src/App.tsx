@@ -12,6 +12,9 @@ import { Me } from './screens/Me';
 import { Onboarding } from './screens/onboarding/Onboarding';
 import { Placeholder } from './screens/Placeholder';
 import { Profile } from './screens/Profile';
+import { ToyEdit } from './screens/ToyEdit';
+import { Toys } from './screens/Toys';
+import { OfferingsPage, TopSettingsPage } from './screens/TopSetupPages';
 import { IntakePage } from './screens/intake/IntakePage';
 import { AccountProvider } from './state/account';
 import { SettingsProvider, useSettings, type Settings } from './state/settings';
@@ -41,8 +44,12 @@ function Shell() {
         <Route path="/join/:code" element={<JoinInvite />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/intake" element={<IntakePage />} />
+        <Route path="/toys" element={<Toys />} />
+        <Route path="/toys/:id" element={<ToyEdit />} />
+        <Route path="/me/offerings" element={<OfferingsPage />} />
+        <Route path="/me/top-settings" element={<TopSettingsPage />} />
         {tabs
-          .filter((t) => t !== 'home' && t !== 'me' && t !== 'connections' && t !== 'profile')
+          .filter((t) => t !== 'home' && t !== 'me' && t !== 'connections' && t !== 'profile' && t !== 'toys')
           .map((t) => (
             <Route key={t} path={`/${t}`} element={<Placeholder tab={t} />} />
           ))}

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { RolePicker } from '../components/RolePicker';
 import { IntakeSummary } from '../components/intake/IntakeSummary';
 import { SharePanel } from '../components/intake/SharePanel';
+import { ConnectionToys } from '../components/toys/ConnectionToys';
 import { readSharedProfile, type SharedProfile } from '../lib/intake';
 import { AccountError, cardFor, listConnections, rolesFit, setConnectionStatus, setMyRole, type Connection, type Role } from '../lib/account';
 import { useAccount } from '../state/account';
@@ -145,6 +146,8 @@ export function ConnectionDetail() {
           <SharePanel only={connection.otherId} />
         </section>
       )}
+
+      <ConnectionToys connection={connection} name={name} />
 
       {comingSections.map((s) => (
         <section key={s.title} className="card">

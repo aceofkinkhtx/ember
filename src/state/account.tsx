@@ -47,8 +47,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     return () => data.subscription.unsubscribe();
   }, [refresh]);
 
-  // Keep the locked copy of "About you" and your card on each connection
-  // current, a moment after the last change.
+  // Keep the locked copy of "About you" (and a Top's setup) and your card on
+  // each connection current, a moment after the last change.
   const first = useRef(true);
   useEffect(() => {
     if (first.current) {
@@ -58,12 +58,12 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (!state.keys) return;
     const keys = state.keys;
     const timer = window.setTimeout(() => {
-      void saveProfile(keys, { identity: settings.identity }).catch(() => undefined);
+      void saveProfile(keys, { identity: settings.identity, top: settings.top }).catch(() => undefined);
       void refreshMyCards(keys, cardFor(settings.identity)).catch(() => undefined);
       void syncMyCode(keys, settings.identity.name, usualRole(settings.roles)).catch(() => undefined);
     }, 2000);
     return () => window.clearTimeout(timer);
-  }, [settings.identity, settings.roles, state.keys]);
+  }, [settings.identity, settings.roles, settings.top, state.keys]);
 
   return <AccountContext.Provider value={{ ...state, refresh }}>{children}</AccountContext.Provider>;
 }
