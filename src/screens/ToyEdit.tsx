@@ -98,7 +98,7 @@ export function ToyEdit() {
       }
       navigate('/toys', { replace: true });
     } catch (err) {
-      setError(err instanceof AccountError ? err.message : "Ember couldn't save that toy. Please try again.");
+      setError(err instanceof AccountError ? err.message : "Ember couldn't save that. Please try again.");
       setBusy(false);
     }
   }
@@ -110,7 +110,7 @@ export function ToyEdit() {
       await deleteToy(keys, toy);
       navigate('/toys', { replace: true });
     } catch (err) {
-      setError(err instanceof AccountError ? err.message : "Ember couldn't delete that toy.");
+      setError(err instanceof AccountError ? err.message : "Ember couldn't delete that.");
       setBusy(false);
       setConfirmDelete(false);
     }
@@ -129,7 +129,7 @@ export function ToyEdit() {
         <Link to="/toys" className="btn btn-quiet" style={{ alignSelf: 'flex-start' }}>
           ‹ Back
         </Link>
-        <p className="card">That toy isn't available.</p>
+        <p className="card">That item isn't available.</p>
       </main>
     );
   }
@@ -141,7 +141,7 @@ export function ToyEdit() {
       <Link to="/toys" className="btn btn-quiet" style={{ alignSelf: 'flex-start' }}>
         ‹ Back
       </Link>
-      <h1>{isNew ? 'Add a toy' : details.name || 'Edit toy'}</h1>
+      <h1>{isNew ? 'Add gear' : details.name || 'Edit gear'}</h1>
 
       <section className="card stack" style={{ gap: 12 }} aria-label="Photo">
         <div style={{ width: 160, alignSelf: 'center' }}>
@@ -221,7 +221,7 @@ export function ToyEdit() {
         <section className="card stack" style={{ gap: 10 }} aria-label="Keep out of scenes with">
           <label className="field">
             <span className="field-label">Keep out of scenes with</span>
-            <span className="field-hint">It won't be suggested or used in scenes with them, and it's hidden from them if you share your toys.</span>
+            <span className="field-hint">It won't be suggested or used in scenes with them, and it's hidden from them if you share your gear.</span>
             <select
               className="input"
               value=""
@@ -246,7 +246,7 @@ export function ToyEdit() {
                 <button
                   type="button"
                   className="btn btn-quiet"
-                  aria-label={`Let ${displayName(c)} see this toy again`}
+                  aria-label={`Let ${displayName(c)} see this again`}
                   onClick={() => setOptedOut((o) => o.filter((x) => x !== c.id))}
                 >
                   Remove
@@ -262,18 +262,18 @@ export function ToyEdit() {
         </p>
       )}
       <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={save}>
-        {busy ? 'Saving...' : 'Save toy'}
+        {busy ? 'Saving...' : 'Save'}
       </button>
       {!isNew && (
         <button type="button" className="btn btn-outline btn-block" disabled={busy} onClick={() => setConfirmDelete(true)}>
-          Delete toy
+          Delete
         </button>
       )}
 
       {confirmDelete && (
         <div className="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="toy-delete-title">
           <div className="sheet">
-            <h2 id="toy-delete-title">Delete {details.name || 'this toy'}?</h2>
+            <h2 id="toy-delete-title">Delete {details.name || 'this item'}?</h2>
             <p>It's removed from your collection and from anyone you share with. This can't be undone.</p>
             <button type="button" className="btn btn-danger btn-block" disabled={busy} onClick={remove}>
               Delete

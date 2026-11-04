@@ -112,7 +112,7 @@ async function openRows(
 
 export async function listMyToys(keys: StoredKeys): Promise<Toy[]> {
   const { data, error } = await db.from('toys').select('id, owner_id, sealed_toy, updated_at').eq('owner_id', keys.userId);
-  if (error) throw new AccountError("Ember couldn't load your toys.");
+  if (error) throw new AccountError("Ember couldn't load your gear.");
   const ring = loadToyRing();
   return ring ? openRows(data ?? [], ring.gens) : [];
 }
@@ -151,13 +151,13 @@ export async function saveToy(keys: StoredKeys, toy: { id?: string; details: Toy
   const { error } = toy.id
     ? await db.from('toys').update({ sealed_toy: sealed, updated_at: now }).eq('id', id)
     : await db.from('toys').insert({ id, owner_id: keys.userId, sealed_toy: sealed });
-  if (error) throw new AccountError("Ember couldn't save that toy. Please try again.");
+  if (error) throw new AccountError("Ember couldn't save that. Please try again.");
   return { ...details, id, ownerId: keys.userId, updatedAt: now };
 }
 
 export async function deleteToy(keys: StoredKeys, toy: Toy): Promise<void> {
   const { error } = await db.from('toys').delete().eq('id', toy.id);
-  if (error) throw new AccountError("Ember couldn't delete that toy.");
+  if (error) throw new AccountError("Ember couldn't delete that.");
   if (toy.photoGen !== null) await db.storage.from(BUCKET).remove([photoPath(keys.userId, toy.id)]);
   forgetPhoto(toy.id);
 }
@@ -196,7 +196,7 @@ export async function photoUrl(toy: Toy, gens: ToyKeyGen[]): Promise<string | nu
 
 export async function listToyShares(keys: StoredKeys): Promise<string[]> {
   const { data, error } = await db.from('toy_shares').select('recipient_id').eq('owner_id', keys.userId);
-  if (error) throw new AccountError("Ember couldn't load your toy sharing.");
+  if (error) throw new AccountError("Ember couldn't load your gear sharing.");
   return (data ?? []).map((r) => r.recipient_id as string);
 }
 
@@ -206,7 +206,7 @@ async function writeToyShare(keys: StoredKeys, ring: ToyRing, recipientId: strin
   const wrapped = await sealFor(JSON.stringify(ring), pk.public_key);
   await db.from('toy_shares').delete().eq('owner_id', keys.userId).eq('recipient_id', recipientId);
   const { error } = await db.from('toy_shares').insert({ owner_id: keys.userId, recipient_id: recipientId, wrapped_toy_key: wrapped });
-  if (error) throw new AccountError("Ember couldn't update toy sharing. Please try again.");
+  if (error) throw new AccountError("Ember couldn't update gear sharing. Please try again.");
 }
 
 /** Shares your toys with one connection, or stops (with new keys for what comes next). */
@@ -237,7 +237,7 @@ export async function readTheirToys(keys: StoredKeys, ownerId: string): Promise<
   if (!share) return null;
   const { gens } = JSON.parse(await openSealed(share.wrapped_toy_key, keys)) as ToyRing;
   const { data, error } = await db.from('toys').select('id, owner_id, sealed_toy, updated_at').eq('owner_id', ownerId);
-  if (error) throw new AccountError("Ember couldn't load their toys.");
+  if (error) throw new AccountError("Ember couldn't load their gear.");
   return { toys: await openRows(data ?? [], gens), gens };
 }
 
@@ -251,7 +251,7 @@ export interface OptOut {
 /** Opt-outs you can see: for your toys, and on your connections. */
 export async function listOptOuts(): Promise<OptOut[]> {
   const { data, error } = await db.from('toy_opt_outs').select('connection_id, toy_id');
-  if (error) throw new AccountError("Ember couldn't load toy opt-outs.");
+  if (error) throw new AccountError("Ember couldn't load gear opt-outs.");
   return (data ?? []).map((r) => ({ connectionId: r.connection_id as string, toyId: r.toy_id as string }));
 }
 

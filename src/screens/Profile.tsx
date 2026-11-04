@@ -134,13 +134,13 @@ export function Profile() {
       )}
 
       {status === 'signed-in' && (
-        <section className="card stack" aria-label="Your toys">
-          <div className="eyebrow">{settings.discreet ? 'My items' : 'My toys'}</div>
+        <section className="card stack" aria-label="Your gear">
+          <div className="eyebrow">{settings.discreet ? 'My items' : 'My gear'}</div>
           <p className="setting-desc" style={{ margin: 0 }}>
             Keep your own collection, with photos, and choose which connections can see it.
           </p>
           <Link to="/toys" className="btn btn-outline" style={{ alignSelf: 'flex-start' }}>
-            Open my toys
+            Open my gear
           </Link>
         </section>
       )}

@@ -9,7 +9,7 @@ const tabLabels: Record<TabId, { plain: string; discreet: string }> = {
   home: { plain: 'Home', discreet: 'Home' },
   connections: { plain: 'Connections', discreet: 'People' },
   scenes: { plain: 'Scenes', discreet: 'Plans' },
-  toys: { plain: 'Toys', discreet: 'Kit' },
+  toys: { plain: 'Gear', discreet: 'Kit' },
   profile: { plain: 'Profile', discreet: 'Profile' },
   me: { plain: 'Me', discreet: 'Me' }
 };

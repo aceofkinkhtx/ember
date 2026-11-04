@@ -208,7 +208,7 @@ function Privacy({ progress, onNext }: { progress: ReactNode; onNext: () => void
 
 const depthOptions: { id: Depth; word: string; desc: string }[] = [
   { id: 'simple', word: 'Simple', desc: 'Guided steps, automatic designs and a smaller set of choices. Great for starting out.' },
-  { id: 'studio', word: 'Studio', desc: 'The full toolset for experienced Tops: more categories, the full toy directory and advanced options.' }
+  { id: 'studio', word: 'Studio', desc: 'The full toolset for experienced Tops: more categories, the full gear directory and advanced options.' }
 ];
 
 function DepthStep({ progress, onNext }: { progress: ReactNode; onNext: () => void }) {

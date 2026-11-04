@@ -11,6 +11,7 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
   - **Intake order:** the essentials, then Safety, then Body and mind. Continue opens the next page at its top.
   - **Maps:** each quadrant is split into four (near the middle, out to either side, and the far corner), each with its own description.
   - **Toy opt-outs:** chosen from a dropdown, with the chosen people listed underneath.
+  - **"Toys" is now "Gear"** everywhere in the app (the tab, My gear, Add gear, Share my gear). It is one fixed word, not editable. Discreet mode still says "Kit" and "My items". Sex-toy activities such as "Toys in mouth" keep their names.
   - **Account deletion** removing toy photos waits for M9 (Michael agreed).
 
 - **M3 Top setup and toys** (built; Claude's choices for Michael to confirm):

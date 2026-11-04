@@ -24,18 +24,18 @@ export function Toys() {
       .then(setToys)
       .catch(() => {
         setToys([]);
-        setError("Ember couldn't load your toys. Check your connection and try again.");
+        setError("Ember couldn't load your gear. Check your connection and try again.");
       });
   }, [keys]);
 
-  const title = settings.activeRole === 'top' ? tabLabel('toys', settings.discreet) : settings.discreet ? 'My items' : 'My toys';
+  const title = settings.activeRole === 'top' ? tabLabel('toys', settings.discreet) : settings.discreet ? 'My items' : 'My gear';
 
   if (status !== 'signed-in') {
     return (
       <main className="screen">
         <h1>{title}</h1>
         <div className="card stack">
-          <p style={{ margin: 0 }}>Sign in to keep your toys. They're locked on your phone before they're saved, photos too.</p>
+          <p style={{ margin: 0 }}>Sign in to keep your gear. They're locked on your phone before they're saved, photos too.</p>
           <Link to="/connections" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
             Sign in
           </Link>
@@ -60,13 +60,13 @@ export function Toys() {
         <p className="note">Loading...</p>
       ) : toys.length === 0 ? (
         <div className="card stack">
-          <div className="card-title">Add your first toy</div>
+          <div className="card-title">Add your first piece of gear</div>
           <p className="setting-desc" style={{ margin: 0 }}>
             A photo and three taps: how it feels, what kind of play, and a name. You choose who sees your collection, connection by
             connection.
           </p>
           <Link to="/toys/new" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
-            Add a toy
+            Add gear
           </Link>
         </div>
       ) : (
@@ -87,10 +87,10 @@ export function Toys() {
           {shown.length ? (
             <ToyGrid toys={shown} gens={gens} onOpen={(t) => navigate(`/toys/${t.id}`)} />
           ) : (
-            <p className="note">No toys match those filters.</p>
+            <p className="note">Nothing matches those filters.</p>
           )}
           <p className="note">
-            Share your collection with a connection from their page in Connections. You can also keep any toy out of scenes with one
+            Share your collection with a connection from their page in Connections. You can also keep any item out of scenes with one
             person.
           </p>
         </>

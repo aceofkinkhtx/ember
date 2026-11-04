@@ -17,7 +17,7 @@ import { ToyGrid } from './ToyCard';
 
 // Toys on a connection's page: share your collection with this person, see
 // which of your toys stay out of scenes with them, and look at theirs when
-// you ask ("Show their toys"), never up front.
+// you ask ("Show their gear"), never up front.
 
 export function ConnectionToys({ connection, name }: { connection: Connection; name: string }) {
   const { keys } = useAccount();
@@ -65,7 +65,7 @@ export function ConnectionToys({ connection, name }: { connection: Connection; n
       setTheirs(got && { ...got, toys: got.toys.filter((t) => !optOuts.includes(t.id)) });
     } catch {
       setTheirs(null);
-      setError("Ember couldn't load their toys. Please try again.");
+      setError("Ember couldn't load their gear. Please try again.");
     }
   }
 
@@ -73,12 +73,12 @@ export function ConnectionToys({ connection, name }: { connection: Connection; n
   const kept = mine.filter((t) => optOuts.includes(t.id));
 
   return (
-    <section className="card stack" aria-label="Toys">
-      <div className="eyebrow">Toys</div>
+    <section className="card stack" aria-label="Gear">
+      <div className="eyebrow">Gear</div>
       {mine.length ? (
         <div aria-busy={busy}>
           <SettingSwitch
-            label={`Share my toys with ${name}`}
+            label={`Share my gear with ${name}`}
             description={
               sharing
                 ? 'They can look through your collection when they design a scene with you.'
@@ -90,35 +90,35 @@ export function ConnectionToys({ connection, name }: { connection: Connection; n
         </div>
       ) : (
         <p className="note" style={{ margin: 0 }}>
-          You haven't added any toys. <Link to="/toys/new">Add one</Link> to share it with {name}.
+          You haven't added any gear. <Link to="/toys/new">Add one</Link> to share it with {name}.
         </p>
       )}
       {kept.length > 0 && (
         <p className="note" style={{ margin: 0 }}>
-          Kept out of scenes with {name}: {kept.map((t) => t.name).join(', ')}. Change this on each toy in <Link to="/toys">your toys</Link>.
+          Kept out of scenes with {name}: {kept.map((t) => t.name).join(', ')}. Change this on each item in <Link to="/toys">your gear</Link>.
         </p>
       )}
 
       {theyShare ? (
         theirs === undefined ? (
           <button type="button" className="btn btn-outline" style={{ alignSelf: 'flex-start' }} onClick={() => void showTheirs()}>
-            Show their toys
+            Show their gear
           </button>
         ) : theirs && theirs.toys.length ? (
           <>
             <div className="field-label" style={{ fontSize: 16 }}>
-              {name}'s toys
+              {name}'s gear
             </div>
             <ToyGrid toys={theirs.toys} gens={theirs.gens} />
           </>
         ) : (
           <p className="note" style={{ margin: 0 }}>
-            {name} hasn't added any toys yet.
+            {name} hasn't added any gear yet.
           </p>
         )
       ) : (
         <p className="note" style={{ margin: 0 }}>
-          {name} hasn't shared their toys with you.
+          {name} hasn't shared their gear with you.
         </p>
       )}
       {error && (

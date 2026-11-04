@@ -94,7 +94,7 @@ describe('navigation', () => {
   it('shows the Top tab bar', () => {
     render(<App initialSettings={done({ roles: 'top', activeRole: 'top' })} />);
     const nav = screen.getByRole('navigation', { name: 'Main' });
-    expect(within(nav).getAllByRole('link').map((l) => l.textContent)).toEqual(['Home', 'Connections', 'Scenes', 'Toys', 'Me']);
+    expect(within(nav).getAllByRole('link').map((l) => l.textContent)).toEqual(['Home', 'Connections', 'Scenes', 'Gear', 'Me']);
     expect(screen.queryByRole('radiogroup', { name: 'View' })).not.toBeInTheDocument();
   });
 
@@ -115,7 +115,7 @@ describe('navigation', () => {
   it('uses neutral wording in discreet mode', () => {
     render(<App initialSettings={done({ roles: 'top', discreet: true })} />);
     const nav = screen.getByRole('navigation', { name: 'Main' });
-    expect(nav).not.toHaveTextContent(/Scenes|Toys/);
+    expect(nav).not.toHaveTextContent(/Scenes|Gear/);
     expect(nav).toHaveTextContent('Plans');
   });
 });

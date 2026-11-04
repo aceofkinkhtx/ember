@@ -50,7 +50,7 @@ export function ToyGrid({ toys, gens, onOpen }: { toys: Toy[]; gens: ToyKeyGen[]
         const body = (
           <>
             <ToyPhoto toy={toy} gens={gens} />
-            <span style={{ fontWeight: 600, display: 'block', marginTop: 6 }}>{toy.name || 'Unnamed toy'}</span>
+            <span style={{ fontWeight: 600, display: 'block', marginTop: 6 }}>{toy.name || 'Unnamed item'}</span>
             <span className="note" style={{ display: 'block' }}>
               {toyTags(toy)}
             </span>
@@ -63,7 +63,7 @@ export function ToyGrid({ toys, gens, onOpen }: { toys: Toy[]; gens: ToyKeyGen[]
                 type="button"
                 onClick={() => onOpen(toy)}
                 style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%' }}
-                aria-label={`${toy.name || 'Unnamed toy'}${toyTags(toy) ? `, ${toyTags(toy)}` : ''}`}
+                aria-label={`${toy.name || 'Unnamed item'}${toyTags(toy) ? `, ${toyTags(toy)}` : ''}`}
               >
                 {body}
               </button>
