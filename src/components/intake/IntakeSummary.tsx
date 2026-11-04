@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { aftercareMap, bodyAreas, decoderAnswers, desireMap, nearCenter, presenceQuestions, quadrantOf, wordGroups, type Dot, type MapSpec } from '../../content/intake';
+import { aftercareMap, bodyAreas, decoderAnswers, desireMap, nearCenter, presenceQuestions, quadrantOf, shadeOf, wordGroups, type Dot, type MapSpec } from '../../content/intake';
 import { activities, categories, experienceLevels, impactAreas, impactPositions, markOptions, speakUpLevels } from '../../data/activities';
 import { limitsOf, type Intake } from '../../lib/intake';
 
@@ -35,7 +35,7 @@ function dotText(map: MapSpec, dot: Dot | null): string | null {
   if (!dot) return null;
   if (nearCenter(dot)) return 'A little of everything';
   const q = quadrantOf(map, dot);
-  return `${q.label}: ${q.desc}`;
+  return `${q.label}: ${shadeOf(map, dot)}`;
 }
 
 const nameOf = (list: { id: string; label: string }[], id: string | null | undefined) => list.find((x) => x.id === id)?.label ?? null;

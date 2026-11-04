@@ -3,9 +3,9 @@ import { defaultPhaseColors, phaseColors, phaseLabels, type PhaseType } from '..
 import { aftercare } from '../../content/topDefaults';
 import {
   AFTERCARE_RANGE,
-  aceSettings,
   cadenceLabels,
   clampSettings,
+  startingSettings,
   type CheckInCadence,
   type TopSettings
 } from '../../content/topSetup';
@@ -13,8 +13,8 @@ import { Segments, TextInput } from '../intake/Bits';
 import { SettingSwitch } from '../Switch';
 import { whiteTextContrast } from '../../content/contrast';
 
-// O5 and Me > Top settings: the Top's personal standards. A.C.E.'s values are
-// one tap away as a starting point. The safety floor still applies whatever is
+// O5 and Me > Top settings: the Top's personal standards. Default settings
+// (A.C.E.'s values) are one tap away as a starting point. The safety floor still applies whatever is
 // chosen here: every scene has aftercare, and an intense scene gets at least
 // 30 minutes of it.
 
@@ -39,11 +39,11 @@ export function TopSettingsEditor({ value, onChange }: { value: TopSettings; onC
       <section className="card stack" style={{ gap: 10 }}>
         <div className="eyebrow">A ready-made start</div>
         <p className="setting-desc" style={{ margin: 0 }}>
-          A.C.E.'s own standards: aftercare at 25% of scene length (33% for intense scenes), check-ins twice a week, sex acts only when
-          negotiated for that scene, and a direct, warm, unhurried voice. Change anything afterward.
+          Aftercare at 25% of scene length (33% for intense scenes), check-ins twice a week, and a direct, warm, unhurried voice. Change
+          anything afterward. Your sex acts choice stays as you set it.
         </p>
-        <button type="button" className="btn btn-outline" style={{ alignSelf: 'flex-start' }} onClick={() => set(aceSettings())}>
-          Use A.C.E.'s settings
+        <button type="button" className="btn btn-outline" style={{ alignSelf: 'flex-start' }} onClick={() => set(startingSettings())}>
+          Default settings
         </button>
       </section>
 

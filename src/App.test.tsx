@@ -47,8 +47,16 @@ describe('onboarding', () => {
 
     expect(screen.getByRole('heading', { name: 'What you offer' })).toBeInTheDocument();
     await user.click(screen.getByRole('switch', { name: 'Impact' }));
-    fireEvent.change(screen.getByRole('slider'), { target: { value: '4' } });
+    fireEvent.change(screen.getByRole('slider', { name: 'How far you go with impact, up to' }), { target: { value: '8' } });
+    fireEvent.change(screen.getByRole('slider', { name: 'How far you go with impact, from' }), { target: { value: '3' } });
+    expect(screen.getByText('3 to 8')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Canes' }));
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'Whips' }));
+    const sheet = screen.getByRole('dialog');
+    await user.clear(within(sheet).getByRole('textbox', { name: 'Name' }));
+    await user.type(within(sheet).getByRole('textbox', { name: 'Name' }), 'Single tails');
+    await user.click(within(sheet).getByRole('button', { name: 'Save name' }));
+    expect(screen.getByRole('button', { name: 'Single tails' })).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(screen.getByRole('heading', { name: 'Your settings' })).toBeInTheDocument();
@@ -65,7 +73,8 @@ describe('onboarding', () => {
     expect(saved.identity.genders).toEqual(['Nonbinary']);
     expect(saved.ageConfirmedAt).not.toBeNull();
     expect(saved.safetyFloorAcknowledgedAt).not.toBeNull();
-    expect(saved.top.offerings.categories.impact).toEqual({ on: true, degree: 4 });
+    expect(saved.top.offerings.categories.impact).toEqual({ on: true, min: 3, max: 8 });
+    expect(saved.top.offerings.renames).toEqual({ whip: 'Single tails' });
     expect(saved.top.offerings.activities).toEqual({ cane: false });
     expect(saved.top.settings.setAt).toBeNull();
     expect(screen.queryByText('Tell Ember what you offer')).not.toBeInTheDocument();

@@ -76,7 +76,16 @@ export interface MapSpec {
   /** Bottom and top ends of the vertical axis. */
   y: [string, string];
   /** Quadrants: top-left, top-right, bottom-left, bottom-right. */
-  quadrants: [Word, Word, Word, Word];
+  quadrants: [Quadrant, Quadrant, Quadrant, Quadrant];
+}
+
+/**
+ * Each quadrant splits into four, and the wording follows where the dot sits:
+ * near the middle, out along the side axis, out along the up and down axis, or
+ * all the way into the corner.
+ */
+export interface Quadrant extends Word {
+  shades: { inner: string; side: string; vertical: string; corner: string };
 }
 
 export const desireMap: MapSpec = {
@@ -85,10 +94,38 @@ export const desireMap: MapSpec = {
   x: ['In my body', 'In my head'],
   y: ['Soothe me', 'Stir me'],
   quadrants: [
-    { id: 'ignite', label: 'Ignite', desc: 'Sensation, intensity, adrenaline.' },
-    { id: 'unravel', label: 'Unravel', desc: 'Psychological edge, catharsis, transformation.' },
-    { id: 'melt', label: 'Melt', desc: 'Comfort, warmth, sensual ease.' },
-    { id: 'drift', label: 'Drift', desc: 'Quiet mind, surrender, letting go.' }
+    { id: 'ignite', label: 'Ignite', desc: 'Sensation, intensity, adrenaline.',
+      shades: {
+        inner: 'A spark of sensation. Warm, awake and easy to build on.',
+        side: 'Sensation first. Lots of touch and texture, at a steady pace.',
+        vertical: 'Big energy and adrenaline, with your head in it too.',
+        corner: 'All the way: strong sensation, real intensity and a rush of adrenaline.'
+      }
+    },
+    { id: 'unravel', label: 'Unravel', desc: 'Psychological edge, catharsis, transformation.',
+      shades: {
+        inner: 'A little head play. Teasing the mind without going deep.',
+        side: 'Deep in your head. Mind games and focus, more absorbing than wild.',
+        vertical: 'A psychological charge with your body in it too. Tension that builds and breaks.',
+        corner: 'All the way: a real psychological edge, catharsis and coming out changed.'
+      }
+    },
+    { id: 'melt', label: 'Melt', desc: 'Comfort, warmth, sensual ease.',
+      shades: {
+        inner: 'Gentle, warm touch. Relaxed, with room for a little more.',
+        side: 'Rich sensual touch. Skin, warmth and slow pleasure.',
+        vertical: 'Deep comfort. Held and calmed, body and mind together.',
+        corner: 'All the way: full sensual ease, melting into warmth and touch.'
+      }
+    },
+    { id: 'drift', label: 'Drift', desc: 'Quiet mind, surrender, letting go.',
+      shades: {
+        inner: 'A calmer mind. Easing off the day without going far.',
+        side: 'Focused surrender. Your mind lets go by following someone else.',
+        vertical: 'Deep calm. Still, safe and slowly letting go.',
+        corner: 'All the way: a quiet mind, full surrender and floating away.'
+      }
+    }
   ]
 };
 
@@ -98,10 +135,38 @@ export const aftercareMap: MapSpec = {
   x: ['Quiet', 'Talk'],
   y: ['Nurture me', 'Ground me'],
   quadrants: [
-    { id: 'anchor', label: 'Anchor', desc: 'Water, space nearby, steady presence.' },
-    { id: 'recap', label: 'Recap', desc: 'Sit up, process, name what happened.' },
-    { id: 'cocoon', label: 'Cocoon', desc: 'Blanket, holding, silence.' },
-    { id: 'pillow-talk', label: 'Pillow Talk', desc: 'Cuddled while we talk it through.' }
+    { id: 'anchor', label: 'Anchor', desc: 'Water, space nearby, steady presence.',
+      shades: {
+        inner: 'A little space and a glass of water, with you close by.',
+        side: 'Silence and space. Stay near, and let me come back on my own.',
+        vertical: 'Practical grounding. Water, a snack, feet on the floor, a few words.',
+        corner: 'All the way: quiet, steady presence and plenty of grounding.'
+      }
+    },
+    { id: 'recap', label: 'Recap', desc: 'Sit up, process, name what happened.',
+      shades: {
+        inner: 'A short check-in. A few words about how it went.',
+        side: 'Talk it all through. What worked, what surprised us, how I feel.',
+        vertical: 'Sit up and get steady first, then a little talk.',
+        corner: 'All the way: sitting up, fully processing and naming everything that happened.'
+      }
+    },
+    { id: 'cocoon', label: 'Cocoon', desc: 'Blanket, holding, silence.',
+      shades: {
+        inner: 'A blanket and a little closeness. Gentle and low-key.',
+        side: 'Silence above all. Close and soft, with no need to talk.',
+        vertical: 'Wrapped up and held tight, with a few soft words at most.',
+        corner: 'All the way: blankets, holding and deep, cozy silence.'
+      }
+    },
+    { id: 'pillow-talk', label: 'Pillow Talk', desc: 'Cuddled while we talk it through.',
+      shades: {
+        inner: 'Close together, with some easy, gentle conversation.',
+        side: 'Lots of talk, side by side. Processing out loud and kept warm.',
+        vertical: 'Held close and cared for, with soft words now and then.',
+        corner: 'All the way: cuddled up tight, talking everything through.'
+      }
+    }
   ]
 };
 
@@ -111,10 +176,20 @@ export interface Dot {
   y: number;
 }
 
-export function quadrantOf(map: MapSpec, dot: Dot): Word {
+export function quadrantOf(map: MapSpec, dot: Dot): Quadrant {
   const [tl, tr, bl, br] = map.quadrants;
   if (dot.y >= 0) return dot.x < 0 ? tl : tr;
   return dot.x < 0 ? bl : br;
+}
+
+/** The wording for exactly where the dot sits inside its quadrant. */
+export function shadeOf(map: MapSpec, dot: Dot): string {
+  const { shades } = quadrantOf(map, dot);
+  const far = (n: number) => Math.abs(n) >= 0.5;
+  if (far(dot.x) && far(dot.y)) return shades.corner;
+  if (far(dot.x)) return shades.side;
+  if (far(dot.y)) return shades.vertical;
+  return shades.inner;
 }
 
 /** Near the center reads as "a little of everything". */

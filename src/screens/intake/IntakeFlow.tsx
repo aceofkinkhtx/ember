@@ -60,7 +60,7 @@ type Step =
   | 'review';
 
 function stepsFor(paths: PathId[]): Step[] {
-  const steps: Step[] = ['signals', 'body', 'safety', 'paths'];
+  const steps: Step[] = ['signals', 'safety', 'body', 'paths'];
   if (paths.includes('quick')) for (const g of wordGroups) steps.push(`group-${g.id}`, `decoder-${g.id}`);
   if (paths.includes('map')) steps.push('desire-map');
   if (paths.includes('detailed')) {
@@ -104,7 +104,10 @@ export function IntakeFlow({
   const [index, setIndex] = useState(Math.min(startAt, steps.length - 1));
   const step = steps[Math.min(index, steps.length - 1)];
 
+  // The screen itself scrolls, not the window, so each new step starts at its top.
+  const screenRef = useRef<HTMLElement>(null);
   useEffect(() => {
+    screenRef.current?.scrollTo?.(0, 0);
     window.scrollTo?.(0, 0);
   }, [index]);
 
@@ -114,7 +117,7 @@ export function IntakeFlow({
   const blocked = blockedReason(step, value);
 
   return (
-    <main className="screen">
+    <main className="screen" ref={screenRef}>
       <div>
         <div className="eyebrow">{title}</div>
         <div className="progress-bar" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={index + 1} aria-label={`Step ${index + 1} of ${steps.length}`}>

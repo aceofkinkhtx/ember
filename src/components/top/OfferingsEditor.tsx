@@ -1,20 +1,27 @@
-import { useState } from 'react';
-import { categories, type Activity, type CategoryId } from '../../data/activities';
+import { useRef, useState } from 'react';
+import { activities as builtIn, categories, type Activity, type CategoryId } from '../../data/activities';
 import {
+  DEGREE_RANGE,
   allTopActivities,
   available,
-  degreeLabels,
+  clampRange,
+  defaultRange,
+  degreeEnds,
   isOffered,
-  type Degree,
+  rangeText,
+  type CategoryOffering,
   type Offerings,
   type TopSetup
 } from '../../content/topSetup';
+import { TextInput } from '../intake/Bits';
+import { RangePair } from '../RangePair';
 import { SettingSwitch } from '../Switch';
 
-// O4 and Me > Offerings: what this Top does, and to what degree. Each category
-// is a switch with a degree slider; inside it, every activity is a chip that is
-// on unless the Top turns it off. Edge play shows only in Studio mode, and
-// penile or oral sex only when the Top allows it in their settings.
+// O4 and Me > Offerings: what this Top does, and how far they go. Each category
+// is a switch with a range slider; inside it, every activity is a chip that is
+// on unless the Top turns it off. Press and hold a chip to rename it. Edge play
+// shows only in Studio mode, and penile or oral sex only when the Top allows it
+// in their settings.
 
 const intro: Record<CategoryId, string> = {
   bondage: 'Restraint, from blindfolds and cuffs to rope and furniture.',
@@ -24,20 +31,18 @@ const intro: Record<CategoryId, string> = {
   penetration: 'Fingers, toys, and penis or strap-on.'
 };
 
-export function OfferingsEditor({
-  setup,
-  studio,
-  onChange
-}: {
-  setup: TopSetup;
-  studio: boolean;
-  onChange: (change: (o: Offerings) => Offerings) => void;
-}) {
+const HOLD_MS = 550;
+
+type Change = (change: (o: Offerings) => Offerings) => void;
+
+export function OfferingsEditor({ setup, studio, onChange }: { setup: TopSetup; studio: boolean; onChange: Change }) {
+  const [renaming, setRenaming] = useState<Activity | null>(null);
   return (
     <div className="stack" style={{ gap: 14 }}>
       {categories.map((c) => (
-        <CategoryCard key={c.id} id={c.id} label={c.label} setup={setup} studio={studio} onChange={onChange} />
+        <CategoryCard key={c.id} id={c.id} label={c.label} setup={setup} studio={studio} onChange={onChange} onRename={setRenaming} />
       ))}
+      {renaming && <RenameSheet activity={renaming} onChange={onChange} onClose={() => setRenaming(null)} />}
     </div>
   );
 }
@@ -47,22 +52,25 @@ function CategoryCard({
   label,
   setup,
   studio,
-  onChange
+  onChange,
+  onRename
 }: {
   id: CategoryId;
   label: string;
   setup: TopSetup;
   studio: boolean;
-  onChange: (change: (o: Offerings) => Offerings) => void;
+  onChange: Change;
+  onRename: (a: Activity) => void;
 }) {
   const [adding, setAdding] = useState('');
+  const [renameMode, setRenameMode] = useState(false);
   const cat = setup.offerings.categories[id];
   const on = Boolean(cat?.on);
-  const degree = cat?.degree ?? 3;
+  const range = cat ? { min: cat.min, max: cat.max } : defaultRange();
   const items = allTopActivities(setup.offerings).filter((a) => a.category === id && available(a, setup.settings, studio));
 
-  const setCategory = (patch: Partial<{ on: boolean; degree: Degree }>) =>
-    onChange((o) => ({ ...o, categories: { ...o.categories, [id]: { on, degree, ...o.categories[id], ...patch } } }));
+  const setCategory = (patch: Partial<CategoryOffering>) =>
+    onChange((o) => ({ ...o, categories: { ...o.categories, [id]: { on, ...range, ...o.categories[id], ...patch } } }));
 
   const toggleActivity = (a: Activity) =>
     onChange((o) => ({ ...o, activities: { ...o.activities, [a.id]: !isOffered({ ...setup, offerings: o }, a, studio) } }));
@@ -86,44 +94,49 @@ function CategoryCard({
       <SettingSwitch label={label} description={intro[id]} checked={on} onChange={(next) => setCategory({ on: next })} />
       {on && (
         <>
-          <label className="field">
+          <div className="field">
             <span className="field-label" style={{ fontSize: 16 }}>
-              How far you go: <strong>{degreeLabels[degree]}</strong>
+              How far you go: <strong>{rangeText(range)}</strong>
             </span>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              step={1}
-              value={degree}
-              aria-valuetext={degreeLabels[degree]}
-              onChange={(e) => setCategory({ degree: Number(e.target.value) as Degree })}
+            <RangePair
+              label={`How far you go with ${label.toLowerCase()}`}
+              min={DEGREE_RANGE.min}
+              max={DEGREE_RANGE.max}
+              low={range.min}
+              high={range.max}
+              ends={[degreeEnds.low, degreeEnds.high]}
+              onChange={(min, max) => setCategory(clampRange({ min, max }))}
             />
-            <span className="note" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>{degreeLabels[1]}</span>
-              <span>{degreeLabels[5]}</span>
-            </span>
-          </label>
+          </div>
           <fieldset className="field">
             <legend className="field-label" style={{ fontSize: 16 }}>
               What you offer
             </legend>
-            <span className="field-hint">Tap to turn any off. Designs only use what's on here and a yes from your partner.</span>
+            <span className="field-hint">
+              {renameMode
+                ? 'Tap an activity to rename it.'
+                : "Tap to turn any off. Press and hold to rename one. Designs only use what's on here and a yes from your partner."}
+            </span>
             <div className="chips">
               {items.map((a) => (
-                <button
+                <ActivityChip
                   key={a.id}
-                  type="button"
-                  className="chip"
-                  aria-pressed={isOffered(setup, a, studio)}
-                  onClick={() => toggleActivity(a)}
-                >
-                  {a.label}
-                  {a.edge ? ' (edge)' : ''}
-                  {a.negotiatedOnly ? ' (negotiated)' : ''}
-                </button>
+                  activity={a}
+                  pressed={isOffered(setup, a, studio)}
+                  onTap={() => (renameMode ? onRename(a) : toggleActivity(a))}
+                  onHold={() => onRename(a)}
+                />
               ))}
             </div>
+            <button
+              type="button"
+              className="btn btn-quiet"
+              style={{ alignSelf: 'flex-start' }}
+              aria-pressed={renameMode}
+              onClick={() => setRenameMode((m) => !m)}
+            >
+              {renameMode ? 'Done renaming' : 'Rename activities'}
+            </button>
           </fieldset>
           {items.some((a) => a.edge) && (
             <p className="note" style={{ margin: 0 }}>
@@ -174,5 +187,96 @@ function CategoryCard({
         </>
       )}
     </section>
+  );
+}
+
+/** A chip that toggles on tap and asks to rename on press and hold. */
+function ActivityChip({ activity: a, pressed, onTap, onHold }: { activity: Activity; pressed: boolean; onTap: () => void; onHold: () => void }) {
+  const timer = useRef<number | undefined>(undefined);
+  const held = useRef(false);
+  const start = useRef({ x: 0, y: 0 });
+
+  const cancel = () => window.clearTimeout(timer.current);
+
+  return (
+    <button
+      type="button"
+      className="chip"
+      aria-pressed={pressed}
+      style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
+      onPointerDown={(e) => {
+        held.current = false;
+        start.current = { x: e.clientX, y: e.clientY };
+        cancel();
+        timer.current = window.setTimeout(() => {
+          held.current = true;
+          onHold();
+        }, HOLD_MS);
+      }}
+      onPointerMove={(e) => {
+        if (Math.hypot(e.clientX - start.current.x, e.clientY - start.current.y) > 10) cancel();
+      }}
+      onPointerUp={cancel}
+      onPointerLeave={cancel}
+      onPointerCancel={cancel}
+      onContextMenu={(e) => {
+        // A long press on a phone, or a right click: rename instead of a menu.
+        e.preventDefault();
+        cancel();
+        if (!held.current) {
+          held.current = true;
+          onHold();
+        }
+      }}
+      onClick={() => {
+        if (held.current) {
+          held.current = false;
+          return;
+        }
+        onTap();
+      }}
+    >
+      {a.label}
+      {a.edge ? ' (edge)' : ''}
+      {a.negotiatedOnly ? ' (negotiated)' : ''}
+    </button>
+  );
+}
+
+function RenameSheet({ activity, onChange, onClose }: { activity: Activity; onChange: Change; onClose: () => void }) {
+  const [name, setName] = useState(activity.label);
+  const original = builtIn.find((b) => b.id === activity.id)?.label;
+  const renamed = original !== undefined && original !== activity.label;
+
+  function save(next: string) {
+    const label = next.trim();
+    if (!label) return;
+    onChange((o) => {
+      if (activity.custom) return { ...o, custom: o.custom.map((c) => (c.id === activity.id ? { ...c, label } : c)) };
+      const { [activity.id]: _old, ...rest } = o.renames;
+      return { ...o, renames: label === original ? rest : { ...rest, [activity.id]: label } };
+    });
+    onClose();
+  }
+
+  return (
+    <div className="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="rename-title">
+      <div className="sheet">
+        <h2 id="rename-title">Rename {activity.label}</h2>
+        <p style={{ margin: 0 }}>Use the words that fit you and your partners. Ember uses your name for it from now on.</p>
+        <TextInput label="Name" value={name} max={60} onChange={setName} />
+        <button type="button" className="btn btn-primary btn-block" disabled={!name.trim()} onClick={() => save(name)}>
+          Save name
+        </button>
+        {renamed && (
+          <button type="button" className="btn btn-outline btn-block" onClick={() => save(original)}>
+            Back to "{original}"
+          </button>
+        )}
+        <button type="button" className="btn btn-secondary btn-block" onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+    </div>
   );
 }

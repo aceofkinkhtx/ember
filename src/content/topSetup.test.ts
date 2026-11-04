@@ -2,7 +2,7 @@ import { activities } from '../data/activities';
 import { whiteTextContrast } from './contrast';
 import { defaultPhaseColors, secondPeakColor } from './phases';
 import {
-  aceSettings,
+  clampRange,
   clampSettings,
   defaultTopSettings,
   defaultTopSetupFrom,
@@ -10,6 +10,7 @@ import {
   isOffered,
   offeredActivities,
   offeringsSummary,
+  startingSettings,
   type TopSetup
 } from './topSetup';
 
@@ -17,7 +18,7 @@ const byId = (id: string) => activities.find((a) => a.id === id)!;
 
 function withImpactAndTouch(): TopSetup {
   const setup = emptyTopSetup();
-  setup.offerings.categories = { impact: { on: true, degree: 3 }, touch: { on: true, degree: 2 } };
+  setup.offerings.categories = { impact: { on: true, min: 2, max: 6 }, touch: { on: true, min: 1, max: 4 } };
   return setup;
 }
 
@@ -27,12 +28,12 @@ describe('offerings', () => {
     expect(offeringsSummary(emptyTopSetup())).toBe('Nothing chosen yet');
   });
 
-  it('offer every regular activity in a category that is on, with its degree', () => {
+  it('offer every regular activity in a category that is on, with its range', () => {
     const offered = offeredActivities(withImpactAndTouch(), false);
-    expect(offered.find((o) => o.activity.id === 'flogger')?.degree).toBe(3);
-    expect(offered.find((o) => o.activity.id === 'cuddling')?.degree).toBe(2);
+    expect(offered.find((o) => o.activity.id === 'flogger')?.range).toEqual({ min: 2, max: 6 });
+    expect(offered.find((o) => o.activity.id === 'cuddling')?.range).toEqual({ min: 1, max: 4 });
     expect(offered.some((o) => o.activity.category === 'bondage')).toBe(false);
-    expect(offeringsSummary(withImpactAndTouch())).toBe('Impact (medium), Touch and intimacy (light)');
+    expect(offeringsSummary(withImpactAndTouch())).toBe('Impact (2 to 6), Touch and intimacy (1 to 4)');
   });
 
   it('let the Top turn single activities off', () => {
@@ -44,7 +45,7 @@ describe('offerings', () => {
 
   it('never include edge play outside Studio mode, and never by default', () => {
     const setup = emptyTopSetup();
-    setup.offerings.categories = { sensation: { on: true, degree: 5 } };
+    setup.offerings.categories = { sensation: { on: true, min: 1, max: 10 } };
     expect(isOffered(setup, byId('knife-play'), true)).toBe(false);
     setup.offerings.activities = { 'knife-play': true };
     expect(isOffered(setup, byId('knife-play'), true)).toBe(true);
@@ -61,6 +62,25 @@ describe('offerings', () => {
     expect(isOffered(setup, byId('receiving-oral'), true)).toBe(false);
   });
 
+  it("use the Top's own names for built-in activities", () => {
+    const setup = withImpactAndTouch();
+    setup.offerings.renames = { cane: 'Rattan' };
+    const offered = offeredActivities(setup, false);
+    expect(offered.find((o) => o.activity.id === 'cane')?.activity.label).toBe('Rattan');
+    expect(offered.find((o) => o.activity.id === 'whip')?.activity.label).toBe(byId('whip').label);
+  });
+
+  it('keep a range on the 1 to 10 scale, low end first', () => {
+    expect(clampRange({ min: 0, max: 14 })).toEqual({ min: 1, max: 10 });
+    expect(clampRange({ min: 7, max: 3 })).toEqual({ min: 7, max: 7 });
+  });
+
+  it('turn an older single degree into a range', () => {
+    const setup = defaultTopSetupFrom({ offerings: { categories: { impact: { on: true, degree: 4 } } } } as never);
+    expect(setup.offerings.categories.impact).toEqual({ on: true, min: 1, max: 8 });
+    expect(setup.offerings.renames).toEqual({});
+  });
+
   it("include the Top's own activities like built-in ones", () => {
     const setup = withImpactAndTouch();
     setup.offerings.custom = [{ id: 'custom-1', label: 'Wooden spoon', category: 'impact', custom: true }];
@@ -75,7 +95,8 @@ describe('Top settings', () => {
     const s = defaultTopSettings();
     expect([s.aftercarePercent, s.intensePercent]).toEqual([25, 33]);
     expect(s.allowNegotiatedSex).toBe(false);
-    expect(aceSettings().checkIns).toBe('twice-weekly');
+    expect(startingSettings().checkIns).toBe('twice-weekly');
+    expect('allowNegotiatedSex' in startingSettings()).toBe(false);
   });
 
   it('keep aftercare within range', () => {

@@ -97,10 +97,10 @@ describe('guest link', () => {
     // The full intake: essentials first, and the safety details can't be skipped.
     expect(await screen.findByRole('heading', { name: 'The essentials' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
     await userEvent.click(screen.getByRole('radio', { name: 'Call 911' }));
     await userEvent.click(screen.getByLabelText(/no play when either of us is noticeably intoxicated/));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     // River suggested the detailed path; Sol picks the map instead.

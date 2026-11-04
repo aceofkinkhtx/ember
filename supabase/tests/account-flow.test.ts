@@ -292,7 +292,7 @@ describe('account flow', () => {
   it("keeps a Top's offerings and settings with the account", async () => {
     const { emptyTopSetup } = await import('../../src/content/topSetup');
     const top = emptyTopSetup();
-    top.offerings.categories = { impact: { on: true, degree: 4 } };
+    top.offerings.categories = { impact: { on: true, min: 2, max: 7 } };
     top.settings.voice = 'Steady and warm';
     top.settings.setAt = new Date().toISOString();
     await account.signIn(riverUser.email, riverUser.password);
@@ -302,7 +302,7 @@ describe('account flow', () => {
     await account.signOut();
     const again = await account.signIn(riverUser.email, riverUser.password);
     expect(again.kind === 'ready' && again.saved?.top?.settings.voice).toBe('Steady and warm');
-    expect(again.kind === 'ready' && again.saved?.top?.offerings.categories.impact).toEqual({ on: true, degree: 4 });
+    expect(again.kind === 'ready' && again.saved?.top?.offerings.categories.impact).toEqual({ on: true, min: 2, max: 7 });
     await account.signOut();
   });
 

@@ -1,7 +1,8 @@
 import { useRef, type KeyboardEvent, type PointerEvent } from 'react';
-import { nearCenter, quadrantOf, type Dot, type MapSpec } from '../../content/intake';
+import { nearCenter, quadrantOf, shadeOf, type Dot, type MapSpec } from '../../content/intake';
 
-// Drag one dot onto a two-axis map. Arrow keys move it too.
+// Drag one dot onto a two-axis map. Arrow keys move it too. The wording
+// changes with how far into its quadrant the dot sits.
 
 const clamp = (n: number) => Math.max(-1, Math.min(1, n));
 
@@ -51,7 +52,7 @@ export function MapPicker({ map, value, onChange, label }: { map: MapSpec; value
           role="slider"
           tabIndex={0}
           aria-label={`${map.title}: drag the dot. Left is ${map.x[0]}, right is ${map.x[1]}, down is ${map.y[0]}, up is ${map.y[1]}.`}
-          aria-valuetext={q ? q.label : 'No dot placed yet'}
+          aria-valuetext={q ? (nearCenter(value!) ? 'A little of everything' : `${q.label}: ${shadeOf(map, value!)}`) : 'No dot placed yet'}
           onKeyDown={keys}
           onPointerDown={(e) => {
             dragging.current = true;
@@ -67,7 +68,7 @@ export function MapPicker({ map, value, onChange, label }: { map: MapSpec; value
             borderRadius: 16,
             border: '2px solid var(--line)',
             background:
-              'linear-gradient(var(--line), var(--line)) center / 2px 100% no-repeat, linear-gradient(var(--line), var(--line)) center / 100% 2px no-repeat, var(--surface)',
+              'linear-gradient(var(--line), var(--line)) center / 2px 100% no-repeat, linear-gradient(var(--line), var(--line)) center / 100% 2px no-repeat, linear-gradient(90deg, transparent calc(25% - 0.5px), var(--surface-sunk) calc(25% - 0.5px) calc(25% + 0.5px), transparent calc(25% + 0.5px) calc(75% - 0.5px), var(--surface-sunk) calc(75% - 0.5px) calc(75% + 0.5px), transparent calc(75% + 0.5px)), linear-gradient(transparent calc(25% - 0.5px), var(--surface-sunk) calc(25% - 0.5px) calc(25% + 0.5px), transparent calc(25% + 0.5px) calc(75% - 0.5px), var(--surface-sunk) calc(75% - 0.5px) calc(75% + 0.5px), transparent calc(75% + 0.5px)), var(--surface)',
             touchAction: 'none',
             cursor: 'crosshair',
             display: 'grid',
@@ -113,7 +114,7 @@ export function MapPicker({ map, value, onChange, label }: { map: MapSpec; value
         {q ? (
           <span>
             <strong>{nearCenter(value!) ? 'A little of everything' : q.label}</strong>
-            {nearCenter(value!) ? '. Near the middle, every corner gets a share.' : `. ${q.desc}`}
+            {nearCenter(value!) ? '. Near the middle, every corner gets a share.' : `. ${shadeOf(map, value!)}`}
           </span>
         ) : (
           <span>Tap or drag to place your dot.</span>

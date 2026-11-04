@@ -4,9 +4,18 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 4, 2026
 
+- **M3 changes after Michael's review:**
+  - **How far you go** is a range on a 1 to 10 scale (1 Gentle, 10 Intense), with two handles and a tick for each step. Older one-number saves become a range from 1 up to the same point.
+  - **Renaming built-in activities:** press and hold an activity (or use "Rename activities") to give it your own name, for example for gendered language. "Back to" restores Ember's name.
+  - **"Default settings"** replaces "Use A.C.E.'s settings". It fills in A.C.E.'s aftercare, check-ins and voice, and never turns on the sex acts switch (Claude's choice).
+  - **Intake order:** the essentials, then Safety, then Body and mind. Continue opens the next page at its top.
+  - **Maps:** each quadrant is split into four (near the middle, out to either side, and the far corner), each with its own description.
+  - **Toy opt-outs:** chosen from a dropdown, with the chosen people listed underneath.
+  - **Account deletion** removing toy photos waits for M9 (Michael agreed).
+
 - **M3 Top setup and toys** (built; Claude's choices for Michael to confirm):
-  - **Offerings:** each play category is a switch with a degree from 1 to 5 (Gentle, Light, Medium, Strong, Intense). Inside a category every regular activity is on until the Top turns it off, and Tops can add their own. Edge play shows only in Studio mode and is never on by default. Penile and oral sex appear only if the Top turns on "can appear in my scenes" in their settings (off by default), and even then each item is chosen separately and only used when negotiated for that scene. Renaming built-in activities is not built yet; turning one off and adding your own covers it for now.
-  - **Top settings:** aftercare 10% to 60% of scene length for regular and intense scenes (intense scenes never under 30 minutes), check-in cadence (none, weekly, twice a week, daily), a one-line voice, phase colors, and "Use A.C.E.'s settings" as a one-tap starting point. A phase color too light for white text (under 4.5:1) is refused.
+  - **Offerings:** each play category is a switch with a degree (now a 1 to 10 range, see above). Inside a category every regular activity is on until the Top turns it off, and Tops can add their own. Edge play shows only in Studio mode and is never on by default. Penile and oral sex appear only if the Top turns on "can appear in my scenes" in their settings (off by default), and even then each item is chosen separately and only used when negotiated for that scene.
+  - **Top settings:** aftercare 10% to 60% of scene length for regular and intense scenes (intense scenes never under 30 minutes), check-in cadence (none, weekly, twice a week, daily), a one-line voice, phase colors, and a one-tap starting point (now "Default settings"). A phase color too light for white text (under 4.5:1) is refused.
   - **Onboarding:** Tops now get the offerings and settings steps (both skippable). First toys (O7) need an account, so they start from the Toys tab after signing in.
   - **Toys:** anyone can keep a collection (Tops in the Toys tab, bottoms from My profile). Each toy is a photo plus three taps (feel, kind of play, name) and notes. Toy details and photos are locked on the phone; photos are made smaller (1000 px) and cleared of location and camera details first. Photos are stored in Supabase Storage (same provider, free tier includes 1 GB).
   - **Sharing toys** is per connection and off by default. Turning it off works right away and makes new keys, as with intake sharing. Ending a connection stops it both ways.

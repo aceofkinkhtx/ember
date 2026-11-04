@@ -16,9 +16,12 @@ const bottom: Settings = {
 
 async function throughEssentials() {
   await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  // Safety comes right after the essentials.
+  expect(screen.getByRole('heading', { name: 'Safety' })).toBeInTheDocument();
   await userEvent.click(screen.getByRole('radio', { name: 'Call 911' }));
   await userEvent.click(screen.getByLabelText(/no play when either of us is noticeably intoxicated/));
+  await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  expect(screen.getByRole('heading', { name: 'Body and mind' })).toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
 }
 
@@ -53,7 +56,6 @@ describe('intake', () => {
   it('keeps a no as a hard block unless the bottom turns on overrides', async () => {
     window.history.pushState({}, '', '/intake');
     render(<App initialSettings={bottom} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     const toggle = screen.getByLabelText(/My Top may override a no after we talk/);
     expect(toggle).not.toBeChecked();

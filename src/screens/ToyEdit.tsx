@@ -218,14 +218,41 @@ export function ToyEdit() {
       </section>
 
       {people.length > 0 && (
-        <section className="card stack" style={{ gap: 10 }}>
-          <Chips
-            legend="Keep out of scenes with"
-            hint="It won't be suggested or used in scenes with them, and it's hidden from them if you share your toys."
-            options={people.map((c) => ({ id: c.id, label: displayName(c) }))}
-            value={optedOut}
-            onChange={setOptedOut}
-          />
+        <section className="card stack" style={{ gap: 10 }} aria-label="Keep out of scenes with">
+          <label className="field">
+            <span className="field-label">Keep out of scenes with</span>
+            <span className="field-hint">It won't be suggested or used in scenes with them, and it's hidden from them if you share your toys.</span>
+            <select
+              className="input"
+              value=""
+              disabled={people.every((c) => optedOut.includes(c.id))}
+              onChange={(e) => e.target.value && setOptedOut((o) => [...o, e.target.value])}
+            >
+              <option value="">{people.every((c) => optedOut.includes(c.id)) ? 'Everyone is chosen' : 'Choose someone'}</option>
+              {people
+                .filter((c) => !optedOut.includes(c.id))
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {displayName(c)}
+                  </option>
+                ))}
+            </select>
+          </label>
+          {people
+            .filter((c) => optedOut.includes(c.id))
+            .map((c) => (
+              <div key={c.id} className="person">
+                <span>{displayName(c)}</span>
+                <button
+                  type="button"
+                  className="btn btn-quiet"
+                  aria-label={`Let ${displayName(c)} see this toy again`}
+                  onClick={() => setOptedOut((o) => o.filter((x) => x !== c.id))}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
         </section>
       )}
 
