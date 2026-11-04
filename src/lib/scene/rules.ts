@@ -28,6 +28,12 @@ export interface RuleContext {
   /** Gear kept out of scenes with this person. */
   optedOutGear: string[];
   gear: GearInfo[];
+  /**
+   * Whose intake this is: the partner's (the usual case), the designer's own
+   * (a bottom designing for their Top), or none (a design with no one in mind
+   * yet). Maybe and unanswered flags are only for a partner's answers.
+   */
+  intakeOf?: 'partner' | 'self' | 'none';
 }
 
 export type RuleId =
@@ -260,7 +266,11 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
       if (!a) continue;
       const where = { beatId: beat.id, activityId: a.id };
       const choice = choiceOf(ctx, a.id);
-      if (choice === 'no') {
+      const forPartner = (ctx.intakeOf ?? 'partner') === 'partner';
+      if (choice === 'no' && !forPartner) add('limits', 'block', `You marked ${a.label} as no. Change your intake first if that has changed.`, where);
+      else if (!forPartner) {
+        // Your own maybes and unanswered items are yours to choose.
+      } else if (choice === 'no') {
         if (!allowNo) add('limits', 'block', `They marked ${a.label} as no, and haven't allowed overrides.`, where);
         else if (!confirmed(a.id, 'no')) add('limits', 'block', `They marked ${a.label} as no. Confirm you talked and agreed first.`, where);
       } else if (choice === 'maybe') add('maybe', 'warn', `${a.label} is a maybe for them. Discussed together?`, where);
@@ -322,6 +332,7 @@ export interface Confirmation {
 export function confirmationsFor(ctx: RuleContext, a: Activity): { blocked: string } | { confirm: Confirmation[] } {
   const confirm: Confirmation[] = [];
   if (choiceOf(ctx, a.id) === 'no') {
+    if ((ctx.intakeOf ?? 'partner') !== 'partner') return { blocked: `You marked ${a.label} as no. Change your intake first if that has changed.` };
     if (!ctx.intake?.essentials.allowNoOverride.on) return { blocked: `They marked ${a.label} as no, and haven't allowed overrides.` };
     confirm.push({ kind: 'no', question: 'They marked this as no. Have you talked and agreed to include it?' });
   }

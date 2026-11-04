@@ -57,6 +57,15 @@ export interface DesignRequest {
   /** Overrides confirmed while choosing picks. */
   overrides: Override[];
   notes: string;
+  /** Designed with no one in mind yet, for the library. */
+  solo?: boolean;
+  /** Impact gear in the order to use it, each as one of the impact picks. */
+  impactPlan?: GearStep[];
+}
+
+export interface GearStep {
+  gearId: string;
+  activityId: string;
 }
 
 /** How each shape splits play time, in order. */
@@ -82,9 +91,12 @@ const minutesOf = (total: number, share: number) => Math.max(2, Math.round(total
 
 export function design(shape: ArcShape, req: DesignRequest, ctx: RuleContext): Scene {
   const now = new Date().toISOString();
+  const gearPlan = (req.impactPlan ?? []).filter((g) => activityOf(ctx, g.activityId) && !ctx.optedOutGear.includes(g.gearId));
   const picked = req.picks
     .map((p) => ({ pick: p, a: activityOf(ctx, p.activityId) }))
-    .filter((x): x is { pick: Pick; a: Activity } => Boolean(x.a));
+    .filter((x): x is { pick: Pick; a: Activity } => Boolean(x.a))
+    // A planned gear order takes over the impact picks.
+    .filter((x) => !(gearPlan.length && x.a.category === 'impact'));
   const byStage = (stage: Stage) => picked.filter((x) => stageOf(x.a) === stage);
   const strongest = Math.max(5, ...picked.map((x) => x.pick.intensity));
 
@@ -172,6 +184,34 @@ export function design(shape: ArcShape, req: DesignRequest, ctx: RuleContext): S
     }
     return { id: newId('p'), type, beats };
   });
+
+  // The planned gear order runs from the warm-up through the builds to the
+  // peaks: about a quarter warms up, a third builds, the rest peaks.
+  if (gearPlan.length) {
+    const builds = phases.filter((p) => p.type === 'build');
+    const warm = builds[0]?.beats[0];
+    const climbs = builds.flatMap((p, i) => (i === 0 ? p.beats.slice(1) : p.beats));
+    const peakBeats = phases.filter((p) => p.type === 'peak').map((p) => p.beats[0]);
+    const nameOf = (id: string) => ctx.gear.find((g) => g.id === id)?.name ?? 'the next piece';
+    const put = (beat: Beat | undefined, g: (typeof gearPlan)[number], stage: Stage) => {
+      if (!beat) return;
+      // Replace a placeholder step the first time real gear arrives.
+      if (beat.steps.length === 1 && !beat.steps[0].activityId && !beat.steps[0].gearId) beat.steps = [];
+      beat.steps.push(newStep({ activityId: g.activityId, gearId: g.gearId, do: doText('impact', nameOf(g.gearId), stage, false), say: beat.steps.length ? '' : sayFor[stage] }));
+    };
+    const nWarm = Math.max(1, Math.round(gearPlan.length * 0.25));
+    const nBuild = Math.round(gearPlan.length * 0.35);
+    gearPlan.slice(0, nWarm).forEach((g) => put(warm, g, 'warmup'));
+    gearPlan.slice(nWarm, nWarm + nBuild).forEach((g, i) => put(climbs[i % Math.max(1, climbs.length)], g, 'build'));
+    const forPeaks = gearPlan.slice(nWarm + nBuild);
+    peakBeats.forEach((beat, k) => {
+      const from = Math.floor((k * forPeaks.length) / peakBeats.length);
+      const to = Math.floor(((k + 1) * forPeaks.length) / peakBeats.length);
+      const mine = forPeaks.slice(from, to);
+      // A peak with nothing new of its own repeats the next piece in line.
+      (mine.length ? mine : [forPeaks[from] ?? gearPlan[gearPlan.length - 1]]).forEach((g) => put(beat, g, 'peak'));
+    });
+  }
 
   // Anything not placed yet goes to the least busy beat of its stage (early
   // touch can join the arrival), so every pick is used.

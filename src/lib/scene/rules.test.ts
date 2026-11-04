@@ -326,3 +326,23 @@ describe('adding items outside the yes list', () => {
     expect('blocked' in confirmationsFor(context(), act('giving-oral'))).toBe(true);
   });
 });
+
+describe('whose answers', () => {
+  it("don't flag maybes or unanswered items in your own intake, or with no one in mind", () => {
+    const s = goodScene();
+    s.phases[1].beats[1].steps.push(newStep({ activityId: 'wax' }), newStep({ activityId: 'electricity' }));
+    const flagged = (ctx: RuleContext) => warnings(validate(s, ctx)).map((i) => i.rule).filter((r) => r === 'maybe' || r === 'unanswered');
+    expect(flagged(context())).toEqual(['maybe', 'unanswered']);
+    expect(flagged(context({ intakeOf: 'self' }))).toEqual([]);
+    expect(flagged(context({ intake: null, intakeOf: 'none' }))).toEqual([]);
+  });
+
+  it('still blocks your own no items, with no override', () => {
+    const ctx = context({ intakeOf: 'self' });
+    ctx.intake!.essentials.allowNoOverride = { on: true, changedAt: '2026-11-01' };
+    const s = goodScene();
+    s.phases[1].beats[1].steps.push(newStep({ activityId: 'biting' }));
+    expect(blocks(validate(s, ctx)).map((i) => i.message).join(' ')).toMatch(/You marked Biting as no/);
+    expect(confirmationsFor(ctx, activityOf(ctx, 'biting')!)).toEqual({ blocked: expect.stringMatching(/You marked/) });
+  });
+});

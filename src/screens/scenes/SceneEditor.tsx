@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { BeatSheet, StepSheet } from '../../components/scene/EditSheets';
+import { BeatSheet, MinutesSheet, StepSheet } from '../../components/scene/EditSheets';
+import { moveStep, playMinutes, setPhaseMinutes, setPlayMinutes } from '../../lib/scene/timing';
 import { MiniCurve, PhaseStrip, sceneFacts, usePhaseColor } from '../../components/scene/SceneCurve';
 import { RequestCard, ReuseSheet } from '../../components/scene/SceneActions';
 import { moved, useReorder } from '../../components/scene/useReorder';
@@ -20,7 +21,12 @@ import { useSceneData } from '../../state/sceneContext';
 // edit goes through the rules: a change that breaks a block rule is refused
 // with a one-line reason, and warnings show inline in amber.
 
-type Editing = { kind: 'beat'; phaseId: string; beatId: string } | { kind: 'step'; beatId: string; stepId: string } | null;
+type Editing =
+  | { kind: 'beat'; phaseId: string; beatId: string }
+  | { kind: 'step'; beatId: string; stepId: string }
+  | { kind: 'phase-time'; phaseId: string }
+  | { kind: 'play-time' }
+  | null;
 
 export function SceneEditor() {
   const { id = '' } = useParams();
@@ -114,9 +120,10 @@ export function SceneEditor() {
     );
   }
 
-  function saveStep(beatId: string, step: Step, overrides: Override[]): string | null {
+  function saveStep(beatId: string, step: Step, overrides: Override[], toBeatId: string): string | null {
     const next = mapPhases((p) => ({ ...p, beats: p.beats.map((b) => (b.id === beatId ? { ...b, steps: b.steps.map((s) => (s.id === step.id ? step : s)) } : b)) }));
-    return apply({ ...next, overrides: [...current.overrides, ...overrides] });
+    const placed = toBeatId === beatId ? next : moveStep(next, step, toBeatId);
+    return apply({ ...placed, overrides: [...current.overrides, ...overrides] });
   }
 
   function addPhase(type: PhaseType) {
@@ -137,6 +144,7 @@ export function SceneEditor() {
   const issues = validate(scene, ctx);
   const auto = automaticFlags(scene, ctx);
   const editingBeat = editing?.kind === 'beat' ? beatById(editing.beatId) : undefined;
+  const editingPhase = editing?.kind === 'phase-time' ? scene.phases.find((p) => p.id === editing.phaseId) : undefined;
   const editingStep = editing?.kind === 'step' ? beatById(editing.beatId)?.steps.find((s) => s.id === editing.stepId) : undefined;
 
   return (
@@ -174,6 +182,14 @@ export function SceneEditor() {
       )}
       <MiniCurve scene={scene} />
       <PhaseStrip scene={scene} />
+      <div className="person">
+        <span className="note">
+          Play time {playMinutes(scene)} min, then aftercare {scene.phases.filter((p) => p.type === 'aftercare').reduce((n, p) => n + phaseMinutes(p), 0)} min
+        </span>
+        <button type="button" className="btn btn-quiet" onClick={() => setEditing({ kind: 'play-time' })}>
+          Change length
+        </button>
+      </div>
       {ctx.intake && <LimitStrip intake={ctx.intake} />}
 
       <IssueList scene={scene} issues={issues} onKeep={(key, reason) => apply({ ...scene, kept: { ...scene.kept, [key]: { reason, at: new Date().toISOString() } } })} />
@@ -186,6 +202,7 @@ export function SceneEditor() {
         onApply={apply}
         onEditBeat={(phaseId, beatId) => setEditing({ kind: 'beat', phaseId, beatId })}
         onEditStep={(beatId, stepId) => setEditing({ kind: 'step', beatId, stepId })}
+        onEditPhaseTime={(phaseId) => setEditing({ kind: 'phase-time', phaseId })}
       />
 
       <section className="card stack" style={{ gap: 10 }} aria-label="Add a phase">
@@ -223,7 +240,7 @@ export function SceneEditor() {
 
       <Record scene={scene} ctx={ctx} />
 
-      {scene.role === 'bottom' && (
+      {scene.role === 'bottom' && scene.partnerId && (
         <RequestCard
           scene={scene}
           ctx={ctx}
@@ -262,6 +279,28 @@ export function SceneEditor() {
       </div>
 
       {reusing && <ReuseSheet scene={scene} onClose={() => setReusing(false)} />}
+      {editing?.kind === 'play-time' && (
+        <MinutesSheet
+          title="Scene length"
+          hint="Every section keeps its share of the time. Aftercare comes after this, and grows if the new length needs more."
+          value={playMinutes(scene)}
+          min={20}
+          max={480}
+          onSave={(m) => apply(setPlayMinutes(scene, m, ctx.top.settings))}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {editing?.kind === 'phase-time' && editingPhase && (
+        <MinutesSheet
+          title={`${phaseLabels[editingPhase.type]} length`}
+          hint="Its beats keep their share of the time."
+          value={phaseMinutes(editingPhase)}
+          min={Math.max(1, editingPhase.beats.length)}
+          max={480}
+          onSave={(m) => apply(setPhaseMinutes(scene, editingPhase.id, m))}
+          onClose={() => setEditing(null)}
+        />
+      )}
       {editing?.kind === 'beat' && editingBeat && (
         <BeatSheet
           beat={editingBeat}
@@ -276,9 +315,11 @@ export function SceneEditor() {
       {editing?.kind === 'step' && editingStep && (
         <StepSheet
           step={editingStep}
+          beatId={editing.beatId}
+          phases={scene.phases}
           ctx={ctx}
           gear={data.gear}
-          onSave={(s, o) => saveStep(editing.beatId, s, o)}
+          onSave={(s, o, to) => saveStep(editing.beatId, s, o, to)}
           onDelete={() => apply(mapPhases((p) => ({ ...p, beats: p.beats.map((b) => (b.id === editing.beatId ? { ...b, steps: b.steps.filter((s) => s.id !== editingStep.id) } : b)) })))}
           onClose={() => setEditing(null)}
         />
@@ -373,7 +414,8 @@ function Phases({
   auto,
   onApply,
   onEditBeat,
-  onEditStep
+  onEditStep,
+  onEditPhaseTime
 }: {
   scene: Scene;
   ctx: RuleContext;
@@ -382,6 +424,7 @@ function Phases({
   onApply: (next: Scene) => string | null;
   onEditBeat: (phaseId: string, beatId: string) => void;
   onEditStep: (beatId: string, stepId: string) => void;
+  onEditPhaseTime: (phaseId: string) => void;
 }) {
   const colorOf = usePhaseColor();
   const reorder = useReorder(scene.phases.length, (from, to) => onApply({ ...scene, phases: moved(scene.phases, from, to) }));
@@ -397,7 +440,18 @@ function Phases({
                 ⠿
               </button>
               <strong style={{ flex: 1 }}>{phaseLabels[phase.type]}</strong>
-              <span>{phaseMinutes(phase)} min</span>
+              <button
+                type="button"
+                aria-label={`${phaseLabels[phase.type]}: ${phaseMinutes(phase)} minutes. Change length`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEditPhaseTime(phase.id);
+                }}
+                style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none', borderRadius: 999, padding: '4px 10px', minHeight: 36, fontWeight: 600, cursor: 'pointer' }}
+              >
+                {phaseMinutes(phase)} min ✎
+              </button>
             </summary>
             <Beats scene={scene} phase={phase} ctx={ctx} issues={issues} auto={auto} onApply={onApply} onEditBeat={onEditBeat} onEditStep={onEditStep} />
           </details>

@@ -64,7 +64,7 @@ async function load(keys: StoredKeys, connectionId: string | null, partnerId: st
   };
 }
 
-function toData(loaded: Loaded, settings: Settings, role: 'top' | 'bottom'): SceneData {
+function toData(loaded: Loaded, settings: Settings, role: 'top' | 'bottom', partnerId: string | null): SceneData {
   const gear = [...loaded.gear, ...(loaded.theirs ?? [])];
   return {
     intakeVersion: loaded.intakeVersion,
@@ -75,14 +75,15 @@ function toData(loaded: Loaded, settings: Settings, role: 'top' | 'bottom'): Sce
       top: role === 'bottom' ? openSetup() : settings.top,
       studio: settings.depth === 'studio',
       optedOutGear: loaded.optedOut,
-      gear: gear.map((g) => ({ id: g.id, name: g.name, feel: g.feel, types: g.types }))
+      gear: gear.map((g) => ({ id: g.id, name: g.name, feel: g.feel, types: g.types })),
+      intakeOf: role === 'bottom' ? 'self' : partnerId ? 'partner' : 'none'
     }
   };
 }
 
 /** Loads the rule context for designing with someone, outside a screen (for reuse). */
 export async function loadSceneData(keys: StoredKeys, settings: Settings, connectionId: string, partnerId: string, role: 'top' | 'bottom'): Promise<SceneData> {
-  return toData(await load(keys, connectionId, partnerId, role), settings, role);
+  return toData(await load(keys, connectionId, partnerId, role), settings, role, partnerId);
 }
 
 export function useSceneData(
@@ -117,6 +118,6 @@ export function useSceneData(
 
   // The same object until something it depends on changes, so screens can
   // react to it without redrawing forever.
-  const data = useMemo(() => (loaded ? toData(loaded, settings, role) : loaded), [loaded, settings, role]);
+  const data = useMemo(() => (loaded ? toData(loaded, settings, role, partnerId) : loaded), [loaded, settings, role, partnerId]);
   return { data, showTheirGear };
 }

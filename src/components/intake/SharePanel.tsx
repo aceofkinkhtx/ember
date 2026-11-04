@@ -9,6 +9,18 @@ import { Segments } from './Bits';
 
 type Level = 'none' | Scope;
 
+/** What the Top sees at each level, in plain words. */
+export function levelText(level: Level, name: string): string {
+  switch (level) {
+    case 'none':
+      return `${name} sees only your scene name and pronouns. None of your answers, so Ember can't suggest anything to them, and anything they plan with you is flagged "Discussed together?".`;
+    case 'essentials':
+      return `${name} sees what keeps you safe: your signals and hand sign, every limit (your no and maybe answers and the limits you wrote), experience and how easily you speak up, injuries, health notes and allergies, triggers and what helps if you're overwhelmed, your emergency contact, honorifics, and the substance agreement. Not your desires or yes answers, so Ember can't suggest activities from them.`;
+    case 'full':
+      return `${name} sees everything in Essentials, plus your desires: Heat, Hold and Flow words and decoder answers, your desire map, every yes, maybe and no with how far you'd go, impact preferences and marks, words you like and don't, and your aftercare map and needs. Ember designs their scene options from your yes answers.`;
+  }
+}
+
 const levels: { id: Level; label: string }[] = [
   { id: 'none', label: 'Not shared' },
   { id: 'essentials', label: 'Essentials' },
@@ -63,11 +75,13 @@ export function SharePanel({ only }: { only?: string }) {
             value={shares[p.otherId] ?? 'none'}
             onChange={(level) => void change(p.otherId, level)}
           />
+          <p className="setting-desc" style={{ margin: '6px 0 0' }}>
+            {levelText(shares[p.otherId] ?? 'none', p.them?.name || 'They')}
+          </p>
         </div>
       ))}
       <p className="note">
-        Essentials are your signals, limits, health and safety details, and emergency contact. Taking access away works right away, and anything you save
-        afterward stays out of their reach.
+        Taking access away works right away, and anything you save afterward stays out of their reach.
       </p>
       {error && <p className="note error" role="alert">{error}</p>}
     </div>

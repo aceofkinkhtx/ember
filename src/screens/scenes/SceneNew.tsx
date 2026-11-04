@@ -6,7 +6,9 @@ import { Segments, TextArea, TextInput } from '../../components/intake/Bits';
 import { SettingSwitch } from '../../components/Switch';
 import { shapes } from '../../content/sceneText';
 import { phaseLabels } from '../../content/phases';
-import { markOptions } from '../../data/activities';
+import { categories, markOptions } from '../../data/activities';
+import type { Toy } from '../../lib/toys';
+import { moved } from '../../components/scene/useReorder';
 import { AccountError, cardFor, listConnections, type Connection } from '../../lib/account';
 import { designOptions, suggestedPicks, type DesignRequest } from '../../lib/scene/designer';
 import type { Pick } from '../../lib/scene/model';
@@ -88,7 +90,7 @@ export function SceneNew() {
   useEffect(() => {
     if (!data) return;
     setReq((r) => {
-      const agreed = data.ctx.intake?.detailed?.impact.marks ?? 'none';
+      const agreed = data.ctx.intakeOf === 'none' ? 'open' : (data.ctx.intake?.detailed?.impact.marks ?? 'none');
       const marks = MARK_ORDER.indexOf(r.marks) <= MARK_ORDER.indexOf(agreed) && r.intakeVersion === data.intakeVersion ? r.marks : agreed;
       return { ...r, intakeVersion: data.intakeVersion, marks };
     });
@@ -117,7 +119,7 @@ export function SceneNew() {
     setError('');
     try {
       const options = designOptions(req, data.ctx);
-      const saved = await saveScene(keys, options[index]);
+      const saved = await saveScene(keys, req.solo ? { ...options[index], inLibrary: true } : options[index]);
       clearSceneDraft();
       navigate(`/scenes/${saved.id}`, { replace: true });
     } catch (err) {
@@ -145,7 +147,11 @@ export function SceneNew() {
           onNext={() => setStep('picks')}
           onPerson={(c) => {
             setPicksReady(false);
-            set({ connectionId: c.id, partnerId: c.otherId, partnerName: displayName(c), role: c.myRole === 'bottom' ? 'bottom' : 'top', title: `Scene with ${displayName(c)}`, picks: [], overrides: [], gearIds: [] });
+            set({ solo: false, connectionId: c.id, partnerId: c.otherId, partnerName: displayName(c), role: c.myRole === 'bottom' ? 'bottom' : 'top', title: `Scene with ${displayName(c)}`, picks: [], overrides: [], gearIds: [] });
+          }}
+          onSolo={(role) => {
+            setPicksReady(false);
+            set({ solo: true, connectionId: null, partnerId: null, partnerName: '', role, title: req.title.startsWith('Scene with') || !req.title ? 'New scene' : req.title, picks: [], overrides: [], gearIds: [] });
           }}
           onRole={(role) => {
             setPicksReady(false);
@@ -153,7 +159,7 @@ export function SceneNew() {
           }}
         />
       )}
-      {step === 'picks' && data && <Picks req={req} set={set} ctx={data.ctx} onBack={() => setStep('basics')} onNext={() => setStep('options')} />}
+      {step === 'picks' && data && <Picks req={req} set={set} ctx={data.ctx} gear={data.gear.filter((g) => !data.ctx.optedOutGear.includes(g.id))} onBack={() => setStep('basics')} onNext={() => setStep('options')} />}
       {step === 'options' && data && <Options req={req} data={data} busy={busy} onBack={() => setStep('picks')} onChoose={choose} />}
       {error && (
         <p className="note error" role="alert">
@@ -171,6 +177,7 @@ function Basics({
   data,
   showTheirGear,
   onPerson,
+  onSolo,
   onRole,
   onNext
 }: {
@@ -180,6 +187,7 @@ function Basics({
   data: SceneData | null | undefined;
   showTheirGear: () => Promise<number>;
   onPerson: (c: Connection) => void;
+  onSolo: (role: 'top' | 'bottom') => void;
   onRole: (role: 'top' | 'bottom') => void;
   onNext: () => void;
 }) {
@@ -187,20 +195,7 @@ function Basics({
   const { keys } = useAccount();
   const [gearNote, setGearNote] = useState('');
   if (people === null) return <p className="note">Loading...</p>;
-  if (!people.length) {
-    return (
-      <>
-        <h1>New scene</h1>
-        <div className="card stack">
-          <p style={{ margin: 0 }}>You need a connection to design a scene.</p>
-          <Link to="/connections" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
-            Go to Connections
-          </Link>
-        </div>
-      </>
-    );
-  }
-  const agreed = data?.ctx.intake?.detailed?.impact.marks ?? 'none';
+  const agreed = data?.ctx.intakeOf === 'none' ? 'open' : (data?.ctx.intake?.detailed?.impact.marks ?? 'none');
   const marks = markOptions.filter((m) => MARK_ORDER.indexOf(m.id) <= MARK_ORDER.indexOf(agreed));
   const pct = req.intense ? settings.top.settings.intensePercent : settings.top.settings.aftercarePercent;
   const gear = (data?.gear ?? []).filter((g) => !data?.ctx.optedOutGear.includes(g.id));
@@ -214,13 +209,15 @@ function Basics({
           <span className="field-label">Who is this scene with?</span>
           <select
             className="input"
-            value={req.connectionId ?? ''}
+            value={req.solo ? 'solo' : (req.connectionId ?? '')}
             onChange={(e) => {
+              if (e.target.value === 'solo') return onSolo(settings.roles === 'bottom' ? 'bottom' : settings.roles === 'top' ? 'top' : settings.activeRole);
               const c = people.find((p) => p.id === e.target.value);
               if (c) onPerson(c);
             }}
           >
             <option value="">Choose someone</option>
+            <option value="solo">No one yet (save it to my library)</option>
             {people.map((c) => (
               <option key={c.id} value={c.id}>
                 {displayName(c)}
@@ -228,6 +225,25 @@ function Basics({
             ))}
           </select>
         </label>
+        {req.solo && settings.roles === 'both' && (
+          <Segments
+            label="In this scene you are:"
+            options={[
+              { id: 'top', label: 'Top' },
+              { id: 'bottom', label: 'bottom' }
+            ]}
+            value={req.role}
+            onChange={onSolo}
+          />
+        )}
+        {req.solo && data && (
+          <p className="note" style={{ margin: 0 }}>
+            {req.role === 'bottom'
+              ? `Designing from your own intake${data.ctx.intake ? ` (version ${data.intakeVersion})` : ''}. It goes to your library; send it to a Top later with "Use with someone else".`
+              : 'Designing from your offerings, with no one in mind yet. It goes to your library; use it with someone later and Ember checks it against their limits.'}
+          </p>
+        )}
+        {!people.length && !req.solo && <p className="note" style={{ margin: 0 }}>No connections yet, so this design will be for your library.</p>}
         {req.connectionId && people.find((c) => c.id === req.connectionId)?.myRole === 'switch' && (
           <Segments
             label={`You switch with ${req.partnerName}. In this scene you are:`}
@@ -270,7 +286,7 @@ function Basics({
             Play time: <strong>{hours}</strong>
           </span>
           <span className="field-hint">Aftercare comes after this: {pct}% of it{req.intense ? ', never under 30 minutes' : ''}.</span>
-          <input type="range" min={20} max={240} step={5} value={req.minutes} aria-valuetext={hours} onChange={(e) => set({ minutes: Number(e.target.value) })} />
+          <input type="range" min={20} max={480} step={5} value={req.minutes} aria-valuetext={hours} onChange={(e) => set({ minutes: Number(e.target.value) })} />
         </label>
         <TextInput label="Where (optional)" value={req.location} max={80} onChange={(location) => set({ location })} />
         <Segments
@@ -319,7 +335,7 @@ function Basics({
             ))}
           </div>
         )}
-        {req.useSpecificGear && data && !data.theirGearShown && (
+        {req.useSpecificGear && data && !data.theirGearShown && req.partnerId && (
           <button
             type="button"
             className="btn btn-outline"
@@ -333,7 +349,7 @@ function Basics({
         {(data?.ctx.optedOutGear.length ?? 0) > 0 && <p className="note" style={{ margin: 0 }}>Gear kept out of scenes with {req.partnerName} isn't shown.</p>}
       </section>
 
-      <button type="button" className="btn btn-primary btn-block" disabled={!req.connectionId || !data || !req.title.trim()} onClick={onNext}>
+      <button type="button" className="btn btn-primary btn-block" disabled={(!req.connectionId && !req.solo) || !data || !req.title.trim()} onClick={onNext}>
         Continue
       </button>
     </>
@@ -344,12 +360,14 @@ function Picks({
   req,
   set,
   ctx,
+  gear,
   onBack,
   onNext
 }: {
   req: DesignRequest;
   set: (patch: Partial<DesignRequest>) => void;
   ctx: SceneData['ctx'];
+  gear: Toy[];
   onBack: () => void;
   onNext: () => void;
 }) {
@@ -360,17 +378,36 @@ function Picks({
     setAdding(false);
   });
   const update = (id: string, patch: Partial<Pick>) => set({ picks: req.picks.map((p) => (p.activityId === id ? { ...p, ...patch } : p)) });
-  const remove = (id: string) => set({ picks: req.picks.filter((p) => p.activityId !== id), overrides: req.overrides.filter((o) => o.activityId !== id) });
+  const remove = (id: string) =>
+    set({
+      picks: req.picks.filter((p) => p.activityId !== id),
+      overrides: req.overrides.filter((o) => o.activityId !== id),
+      impactPlan: (req.impactPlan ?? []).filter((g) => g.activityId !== id)
+    });
+  const [open, setOpen] = useState<string | null>(null);
+  const grouped = categories
+    .map((c) => ({ c, picks: req.picks.filter((p) => activityOf(ctx, p.activityId)?.category === c.id) }))
+    .filter((g) => g.picks.length > 0);
 
   return (
     <>
       <h1>What you'll do</h1>
       <p className="lede">
-        {req.role === 'bottom' ? 'Things you said yes to.' : `Things ${req.partnerName} said yes to and you offer.`} Set how far to take each one, or mark it as a surprise.
+        {req.solo && req.role === 'top' ? 'Choose what this scene includes.' : req.role === 'bottom' ? 'Things you said yes to.' : `Things ${req.partnerName} said yes to and you offer.`} Set how far to take each one, or mark it as a surprise.
       </p>
       {req.picks.length === 0 && <p className="card">Nothing yet. Add activities below.</p>}
-      <div className="stack" style={{ gap: 10 }}>
-        {req.picks.map((p) => {
+      <div className="stack" style={{ gap: 8 }}>
+        {grouped.map(({ c, picks }) => (
+          <div key={c.id} className="stack" style={{ gap: 8 }}>
+            <button type="button" className="choice" aria-expanded={open === c.id} onClick={() => setOpen(open === c.id ? null : c.id)} style={{ justifyContent: 'space-between' }}>
+              <span className="choice-word">{c.label}</span>
+              <span className="note">
+                {picks.length} chosen {open === c.id ? '▴' : '▾'}
+              </span>
+            </button>
+            {open === c.id && c.id === 'impact' && <GearPlan req={req} set={set} ctx={ctx} gear={gear} />}
+            {open === c.id &&
+              picks.map((p) => {
           const a = activityOf(ctx, p.activityId);
           if (!a) return null;
           return (
@@ -396,6 +433,8 @@ function Picks({
             </section>
           );
         })}
+          </div>
+        ))}
       </div>
 
       {adding ? (
@@ -506,5 +545,102 @@ function Options({
         Back
       </button>
     </>
+  );
+}
+
+/** Guesses which impact pick a piece of gear is, from its name. */
+function guessActivity(name: string, impactIds: string[]): string {
+  const n = name.toLowerCase();
+  const hints: [RegExp, string][] = [
+    [/glove/, 'gloved-hand'],
+    [/hand/, 'bare-hand'],
+    [/paddle|strap|spoon|brush/, 'paddle'],
+    [/flog/, 'flogger'],
+    [/cane|rattan|switch/, 'cane'],
+    [/whip|single tail|crop/, 'whip']
+  ];
+  return hints.find(([re, id]) => re.test(n) && impactIds.includes(id))?.[1] ?? impactIds[0];
+}
+
+/**
+ * The impact gear plan: pieces in the order you want to use them, each as one
+ * of your impact picks. Ember builds the impact progression from this order,
+ * warm-up through the peaks.
+ */
+function GearPlan({ req, set, ctx, gear }: { req: DesignRequest; set: (patch: Partial<DesignRequest>) => void; ctx: SceneData['ctx']; gear: Toy[] }) {
+  const { keys } = useAccount();
+  const impactPicks = req.picks.map((p) => activityOf(ctx, p.activityId)).filter((a) => a?.category === 'impact') as NonNullable<ReturnType<typeof activityOf>>[];
+  const plan = req.impactPlan ?? [];
+  const impactGear = gear.filter((g) => g.types.includes('impact'));
+  const setPlan = (impactPlan: typeof plan) => set({ impactPlan });
+  const nameOf = (id: string) => {
+    const g = gear.find((x) => x.id === id);
+    return g ? `${g.name}${g.ownerId !== keys?.userId ? ' (theirs)' : ''}` : 'Gear';
+  };
+
+  return (
+    <section className="card stack" style={{ gap: 10 }} aria-label="Gear, in order">
+      <div className="card-title">Gear, in order</div>
+      <p className="setting-desc" style={{ margin: 0 }}>
+        Plan the progression: list your impact gear in the order you want to use it. Ember spreads it from the warm-up to the peaks.
+      </p>
+      {!impactPicks.length ? (
+        <p className="note" style={{ margin: 0 }}>Add an impact activity first, so each piece has something to be.</p>
+      ) : !impactGear.length ? (
+        <p className="note" style={{ margin: 0 }}>
+          Add impact gear in the Gear tab{req.partnerId ? ', or tap "Show their gear" in the basics' : ''} to plan it here.
+        </p>
+      ) : (
+        <>
+          <ol className="stack" style={{ gap: 8, margin: 0, paddingLeft: 20 }}>
+            {plan.map((step, i) => (
+              <li key={`${step.gearId}-${i}`}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <strong style={{ flex: '1 1 120px' }}>{nameOf(step.gearId)}</strong>
+                  <select
+                    className="input"
+                    aria-label={`${nameOf(step.gearId)} is used as`}
+                    value={step.activityId}
+                    onChange={(e) => setPlan(plan.map((x, k) => (k === i ? { ...x, activityId: e.target.value } : x)))}
+                    style={{ flex: '1 1 140px', minHeight: 40, padding: '6px 10px' }}
+                  >
+                    {impactPicks.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="button" className="btn btn-quiet" aria-label={`Move ${nameOf(step.gearId)} earlier`} disabled={i === 0} onClick={() => setPlan(moved(plan, i, i - 1))}>
+                    ↑
+                  </button>
+                  <button type="button" className="btn btn-quiet" aria-label={`Move ${nameOf(step.gearId)} later`} disabled={i === plan.length - 1} onClick={() => setPlan(moved(plan, i, i + 1))}>
+                    ↓
+                  </button>
+                  <button type="button" className="btn btn-quiet" aria-label={`Remove ${nameOf(step.gearId)}`} onClick={() => setPlan(plan.filter((_, k) => k !== i))}>
+                    ✕
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <select
+            className="input"
+            aria-label="Add gear to the plan"
+            value=""
+            onChange={(e) => {
+              const g = impactGear.find((x) => x.id === e.target.value);
+              if (g) setPlan([...plan, { gearId: g.id, activityId: guessActivity(g.name, impactPicks.map((a) => a.id)) }]);
+            }}
+          >
+            <option value="">{plan.length ? 'Add the next piece' : 'Add the first piece'}</option>
+            {impactGear.map((g) => (
+              <option key={g.id} value={g.id}>
+                {nameOf(g.id)}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+    </section>
   );
 }

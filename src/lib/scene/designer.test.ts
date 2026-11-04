@@ -147,3 +147,37 @@ describe('design options', () => {
     expect(scene.nextMorningCheckIn).toBe(true);
   });
 });
+
+describe('planned impact gear', () => {
+  const gear = [
+    { id: 'hand', name: 'Leather glove', feel: ['thuddy' as const], types: ['impact'] },
+    { id: 'suede', name: 'Suede flogger', feel: ['thuddy' as const], types: ['impact'] },
+    { id: 'paddle', name: 'Wood paddle', feel: ['thuddy' as const], types: ['impact'] },
+    { id: 'rattan', name: 'Rattan cane', feel: ['stingy' as const], types: ['impact'] }
+  ];
+  const impactPlan = [
+    { gearId: 'hand', activityId: 'bare-hand' },
+    { gearId: 'suede', activityId: 'flogger' },
+    { gearId: 'paddle', activityId: 'paddle' },
+    { gearId: 'rattan', activityId: 'cane' }
+  ];
+
+  it('uses the gear in the planned order, from the warm-up to the peak', () => {
+    const ctx = context(lots, { gear });
+    for (const scene of designOptions(request(ctx, { impactPlan }), ctx)) {
+      const order = scene.phases.flatMap((p) => p.beats.flatMap((b) => b.steps.map((s) => s.gearId))).filter(Boolean);
+      const firstSeen = [...new Set(order)];
+      expect(firstSeen).toEqual(['hand', 'suede', 'paddle', 'rattan']);
+      const warm = scene.phases.find((p) => p.type === 'build')!.beats[0];
+      expect(warm.steps.some((s) => s.gearId === 'hand')).toBe(true);
+      expect(blocks(validate(scene, ctx))).toEqual([]);
+    }
+  });
+
+  it('leaves out planned gear kept out of scenes with this person', () => {
+    const ctx = context(lots, { gear, optedOutGear: ['rattan'] });
+    const [scene] = designOptions(request(ctx, { impactPlan }), ctx);
+    const used = scene.phases.flatMap((p) => p.beats.flatMap((b) => b.steps.map((s) => s.gearId)));
+    expect(used).not.toContain('rattan');
+  });
+});

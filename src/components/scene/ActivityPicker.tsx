@@ -10,10 +10,12 @@ import { choiceOf, confirmationsFor, type Confirmation, type RuleContext } from 
 
 export function ActivityTag({ ctx, activity }: { ctx: RuleContext; activity: Activity }) {
   const choice = choiceOf(ctx, activity.id);
+  // Maybe and unanswered only matter for a partner's answers.
+  const partner = (ctx.intakeOf ?? 'partner') === 'partner';
   return (
     <>
-      {choice === 'maybe' && <span className="tag tag-amber">Maybe</span>}
-      {choice === null && <span className="tag tag-gray">Not answered</span>}
+      {partner && choice === 'maybe' && <span className="tag tag-amber">Maybe</span>}
+      {partner && choice === null && <span className="tag tag-gray">Not answered</span>}
       {choice === 'no' && <span className="tag tag-red">No</span>}
       {activity.edge && <span className="tag tag-red">Edge</span>}
       {activity.negotiatedOnly && <span className="tag tag-amber">Negotiated</span>}
@@ -86,7 +88,7 @@ export function useAddActivity(ctx: RuleContext, onAdd: (a: Activity, overrides:
   return { start, sheet, refused, clearRefused: () => setRefused('') };
 }
 
-/** A grouped list of activities to add, each with its flags. */
+/** Activities to add: the categories first, then the one you open. */
 export function ActivityList({
   ctx,
   exclude,
@@ -96,17 +98,28 @@ export function ActivityList({
   exclude: string[];
   onChoose: (a: Activity) => void;
 }) {
+  const [open, setOpen] = useState<string | null>(null);
   const list = choosable(ctx).filter((a) => !exclude.includes(a.id));
   return (
-    <div className="stack" style={{ gap: 14 }}>
+    <div className="stack" style={{ gap: 8 }}>
       {categories.map((c) => {
         const items = list.filter((a) => a.category === c.id);
         if (!items.length) return null;
         return (
-          <div key={c.id} className="stack" style={{ gap: 6 }}>
-            <span className="field-label" style={{ fontSize: 15 }}>
-              {c.label}
-            </span>
+          <div key={c.id} className="stack" style={{ gap: 8 }}>
+            <button
+              type="button"
+              className="choice"
+              aria-expanded={open === c.id}
+              onClick={() => setOpen(open === c.id ? null : c.id)}
+              style={{ justifyContent: 'space-between' }}
+            >
+              <span className="choice-word">{c.label}</span>
+              <span className="note">
+                {items.length} {open === c.id ? '▴' : '▾'}
+              </span>
+            </button>
+            {open === c.id && (
             <div className="chips">
               {items.map((a) => (
                 <button key={a.id} type="button" className="chip" onClick={() => onChoose(a)} style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
@@ -114,6 +127,7 @@ export function ActivityList({
                 </button>
               ))}
             </div>
+            )}
           </div>
         );
       })}

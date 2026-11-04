@@ -68,7 +68,7 @@ export function BeatSheet({
       <div style={{ display: 'flex', gap: 10 }}>
         <label className="field" style={{ flex: 1 }}>
           <span className="field-label">Minutes</span>
-          <input className="input" type="number" inputMode="numeric" min={1} max={180} value={b.minutes} onChange={(e) => set({ minutes: Math.max(1, Math.min(180, Number(e.target.value) || 1)) })} />
+          <input className="input" type="number" inputMode="numeric" min={1} max={480} value={b.minutes} onChange={(e) => set({ minutes: Math.max(1, Math.min(480, Number(e.target.value) || 1)) })} />
         </label>
         <label className="field" style={{ flex: 1 }}>
           <span className="field-label">Phase</span>
@@ -183,6 +183,8 @@ export function BeatSheet({
 
 export function StepSheet({
   step,
+  beatId,
+  phases,
   ctx,
   gear,
   onSave,
@@ -190,13 +192,16 @@ export function StepSheet({
   onClose
 }: {
   step: Step;
+  beatId: string;
+  phases: Phase[];
   ctx: RuleContext;
   gear: Toy[];
-  onSave: (step: Step, overrides: Override[]) => string | null;
+  onSave: (step: Step, overrides: Override[], toBeatId: string) => string | null;
   onDelete: () => string | null;
   onClose: () => void;
 }) {
   const [s, setS] = useState<Step>(step);
+  const [toBeat, setToBeat] = useState(beatId);
   const [overrides, setOverrides] = useState<Override[]>([]);
   const [choosing, setChoosing] = useState(false);
   const [refused, setRefused] = useState('');
@@ -247,6 +252,19 @@ export function StepSheet({
           </select>
         </label>
       )}
+      <label className="field">
+        <span className="field-label">In which beat</span>
+        <span className="field-hint">Move this step anywhere in the scene.</span>
+        <select className="input" value={toBeat} onChange={(e) => setToBeat(e.target.value)}>
+          {phases.map((p) =>
+            p.beats.map((b) => (
+              <option key={b.id} value={b.id}>
+                {phaseLabels[p.type]}: {b.title || 'Untitled beat'}
+              </option>
+            ))
+          )}
+        </select>
+      </label>
       <TextArea label="DO" hint="What you do." value={s.do} rows={3} max={600} onChange={(v) => set({ do: v })} />
       <TextArea label="SAY" hint="Words to say, in your voice." value={s.say} rows={2} max={400} onChange={(v) => set({ say: v })} />
       <TextArea label="WATCH" hint="Signals to look for, beyond the core watch list." value={s.watch} rows={2} max={400} onChange={(v) => set({ watch: v })} />
@@ -265,7 +283,7 @@ export function StepSheet({
         type="button"
         className="btn btn-primary btn-block"
         onClick={() => {
-          const reason = onSave(s, overrides);
+          const reason = onSave(s, overrides, toBeat);
           if (reason) setRefused(reason);
           else onClose();
         }}
@@ -282,6 +300,70 @@ export function StepSheet({
         }}
       >
         Delete step
+      </button>
+    </Sheet>
+  );
+}
+
+/** Set a length in minutes: a whole section, or the scene's play time. */
+export function MinutesSheet({
+  title,
+  hint,
+  value,
+  min,
+  max,
+  onSave,
+  onClose
+}: {
+  title: string;
+  hint: string;
+  value: number;
+  min: number;
+  max: number;
+  onSave: (minutes: number) => string | null;
+  onClose: () => void;
+}) {
+  const [minutes, setMinutes] = useState(value);
+  const [refused, setRefused] = useState('');
+  const label = `${Math.floor(minutes / 60) ? `${Math.floor(minutes / 60)} h ` : ''}${minutes % 60 ? `${minutes % 60} min` : ''}`.trim() || '0 min';
+  return (
+    <Sheet title={title} onClose={onClose}>
+      <p className="note" style={{ margin: 0 }}>
+        {hint}
+      </p>
+      <label className="field">
+        <span className="field-label">
+          Length: <strong>{label}</strong>
+        </span>
+        <input type="range" min={min} max={max} step={1} value={minutes} aria-valuetext={label} onChange={(e) => setMinutes(Number(e.target.value))} />
+      </label>
+      <label className="field">
+        <span className="field-label">Or type minutes</span>
+        <input
+          className="input"
+          type="number"
+          inputMode="numeric"
+          min={min}
+          max={max}
+          value={minutes}
+          onChange={(e) => setMinutes(Math.max(min, Math.min(max, Number(e.target.value) || min)))}
+        />
+      </label>
+      {refused && (
+        <p className="box box-block" role="alert">
+          {refused}
+        </p>
+      )}
+      <button
+        type="button"
+        className="btn btn-primary btn-block"
+        onClick={() => {
+          const reason = onSave(minutes);
+          if (reason) setRefused(reason);
+          else onClose();
+        }}
+      >
+        Save
       </button>
     </Sheet>
   );
