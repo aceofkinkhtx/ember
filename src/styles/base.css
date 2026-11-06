@@ -901,3 +901,33 @@ input {
   font-weight: 600;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
+
+/* The scene map stays in view while the design scrolls under it. */
+.scene-map {
+  /* It pins at the top of the screen (the screen pads itself by 20px plus the status bar). */
+  position: sticky;
+  top: -20px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 8px var(--gutter);
+  background: var(--ground);
+  box-shadow: 0 6px 10px -8px rgba(0, 0, 0, 0.25);
+}
+
+/* Where a dragged step or beat will land. */
+.drop-line {
+  position: fixed;
+  z-index: 50;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 2px;
+  background: var(--accent-strong);
+  pointer-events: none;
+}
+
+.toast.toast-info {
+  background: #1e1418;
+}

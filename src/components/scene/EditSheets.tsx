@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { phaseLabels } from '../../content/phases';
 import { impactAreas, impactPositions } from '../../data/activities';
-import type { Beat, Flag, FlagKind, Override, Phase, Step } from '../../lib/scene/model';
+import type { Beat, Flag, FlagKind, Override, Phase, Scene, Step } from '../../lib/scene/model';
+import { MiniCurve, PhaseStrip } from './SceneCurve';
 import { activityOf, type RuleContext } from '../../lib/scene/rules';
 import type { Toy } from '../../lib/toys';
 import { useAccount } from '../../state/account';
@@ -20,6 +21,16 @@ const flagKinds: { id: FlagKind; label: string }[] = [
 ];
 
 const riskTag = { low: 'Low risk', moderate: 'Moderate risk', high: 'High risk' };
+
+/** The scene map as it would look after this edit, updated as you change it. */
+function LiveMap({ scene }: { scene: Scene }) {
+  return (
+    <div className="stack" style={{ gap: 4 }} aria-hidden="true">
+      <MiniCurve scene={scene} height={48} />
+      <PhaseStrip scene={scene} />
+    </div>
+  );
+}
 
 function Sheet({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
@@ -43,6 +54,7 @@ export function BeatSheet({
   phases,
   automatic,
   onSave,
+  preview,
   onDelete,
   onClose
 }: {
@@ -52,6 +64,7 @@ export function BeatSheet({
   automatic: Flag[];
   /** Returns a reason when the rules refuse the change. */
   onSave: (beat: Beat, toPhase: string) => string | null;
+  preview?: (beat: Beat, toPhase: string) => Scene;
   onDelete: () => string | null;
   onClose: () => void;
 }) {
@@ -64,6 +77,7 @@ export function BeatSheet({
 
   return (
     <Sheet title={beat.title || 'Beat'} onClose={onClose}>
+      {preview && <LiveMap scene={preview(b, toPhase)} />}
       <TextInput label="Goal, in one line" value={b.title} max={80} onChange={(title) => set({ title })} />
       <div style={{ display: 'flex', gap: 10 }}>
         <label className="field" style={{ flex: 1 }}>
@@ -313,6 +327,7 @@ export function MinutesSheet({
   min,
   max,
   onSave,
+  preview,
   onClose
 }: {
   title: string;
@@ -321,6 +336,7 @@ export function MinutesSheet({
   min: number;
   max: number;
   onSave: (minutes: number) => string | null;
+  preview?: (minutes: number) => Scene;
   onClose: () => void;
 }) {
   const [minutes, setMinutes] = useState(value);
@@ -328,6 +344,7 @@ export function MinutesSheet({
   const label = `${Math.floor(minutes / 60) ? `${Math.floor(minutes / 60)} h ` : ''}${minutes % 60 ? `${minutes % 60} min` : ''}`.trim() || '0 min';
   return (
     <Sheet title={title} onClose={onClose}>
+      {preview && <LiveMap scene={preview(minutes)} />}
       <p className="note" style={{ margin: 0 }}>
         {hint}
       </p>

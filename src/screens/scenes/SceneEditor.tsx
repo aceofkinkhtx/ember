@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BeatSheet, MinutesSheet, StepSheet } from '../../components/scene/EditSheets';
-import { fitAftercare, moveStep, playMinutes, setPhaseMinutes, setPlayMinutes } from '../../lib/scene/timing';
+import { moveStep, placeBeat, placeStep, playMinutes, setPhaseMinutes, setPlayMinutes, withAftercareFit } from '../../lib/scene/timing';
 import { MiniCurve, PhaseStrip, sceneFacts, usePhaseColor } from '../../components/scene/SceneCurve';
 import { RequestCard, ReuseSheet } from '../../components/scene/SceneActions';
 import { moved, useReorder } from '../../components/scene/useReorder';
+import { useMoveDrag, type DropAt } from '../../components/scene/useMoveDrag';
 import { LimitStrip } from '../../components/intake/IntakeSummary';
 import { SettingSwitch } from '../../components/Switch';
 import { phaseLabels, type PhaseType } from '../../content/phases';
@@ -21,7 +22,9 @@ import { useSceneData } from '../../state/sceneContext';
 // S5: the scene editor. Phases are collapsible color bands, beats are cards
 // inside them, steps sit inside beats; every level has a drag handle. Every
 // edit goes through the rules: a change that breaks a block rule is refused
-// with a one-line reason, and warnings show inline in amber.
+// with a one-line reason, and warnings show inline in amber. Steps drag into
+// any beat and beats into any section. When an edit makes play longer,
+// aftercare grows to match and a note says by how much.
 
 type Editing =
   | { kind: 'beat'; phaseId: string; beatId: string }
@@ -37,13 +40,17 @@ export function SceneEditor() {
   const { settings } = useSettings();
   const [scene, setScene] = useState<Scene | null | undefined>(undefined);
   const [saved, setSaved] = useState<'saved' | 'saving' | 'error'>('saved');
-  const [toast, setToast] = useState('');
+  const [toast, setToast] = useState<{ text: string; info?: boolean } | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [reusing, setReusing] = useState(false);
   const changes = (useLocation().state as { changes?: string[] } | null)?.changes ?? [];
   const { data, showTheirGear } = useSceneData(scene?.connectionId ?? null, scene?.partnerId ?? null, scene?.role ?? 'top');
   const timer = useRef<number | undefined>(undefined);
+  // Drops land through the latest scene, set once it has loaded.
+  const drop = useRef<{ beat: (id: string, to: DropAt) => void; step: (id: string, to: DropAt) => void }>({ beat: () => {}, step: () => {} });
+  const beatDrag = useMoveDrag('beat', (id, to) => drop.current.beat(id, to));
+  const stepDrag = useMoveDrag('step', (id, to) => drop.current.step(id, to));
 
   useEffect(() => {
     if (!keys) return;
@@ -60,7 +67,7 @@ export function SceneEditor() {
 
   useEffect(() => {
     if (!toast) return;
-    const t = window.setTimeout(() => setToast(''), 4000);
+    const t = window.setTimeout(() => setToast(null), 4000);
     return () => window.clearTimeout(t);
   }, [toast]);
 
@@ -98,32 +105,40 @@ export function SceneEditor() {
   }
 
   /** Applies an edit if the rules allow it; returns the reason if not. */
-  function apply(next: Scene): string | null {
+  function apply(edit: Scene): string | null {
+    const { scene: next, grewBy } = withAftercareFit(current, edit, ctx.top.settings);
     const result = tryChange(current, next, ctx);
     if (!result.ok) {
-      setToast(result.reason);
+      setToast({ text: result.reason });
       return result.reason;
     }
     // The next-morning check-in turns on by itself when the scene needs it.
     const fixedUp = needsNextMorningCheckIn(next, ctx) ? { ...next, nextMorningCheckIn: true } : next;
     setScene(fixedUp);
     persist(fixedUp);
+    if (grewBy > 0) setToast({ text: `Aftercare extended by ${grewBy} min to match the longer scene.`, info: true });
     return null;
   }
+
+  drop.current = {
+    beat: (beatId, to) => apply(placeBeat(current, beatId, to.container, to.index)),
+    step: (stepId, to) => apply(placeStep(current, stepId, to.container, to.index))
+  };
 
   const mapPhases = (fn: (p: Phase) => Phase) => ({ ...current, phases: current.phases.map(fn) });
   const beatById = (beatId: string) => current.phases.flatMap((p) => p.beats).find((b) => b.id === beatId);
 
-  function saveBeat(phaseId: string, beat: Beat, toPhase: string): string | null {
-    if (toPhase === phaseId) return apply(mapPhases((p) => (p.id === phaseId ? { ...p, beats: p.beats.map((b) => (b.id === beat.id ? beat : b)) } : p)));
-    return apply(
-      mapPhases((p) => {
-        if (p.id === phaseId) return { ...p, beats: p.beats.filter((b) => b.id !== beat.id) };
-        if (p.id === toPhase) return { ...p, beats: [...p.beats, beat] };
-        return p;
-      })
-    );
+  function withBeat(phaseId: string, beat: Beat, toPhase: string): Scene {
+    if (toPhase === phaseId) return mapPhases((p) => (p.id === phaseId ? { ...p, beats: p.beats.map((b) => (b.id === beat.id ? beat : b)) } : p));
+    return mapPhases((p) => {
+      if (p.id === phaseId) return { ...p, beats: p.beats.filter((b) => b.id !== beat.id) };
+      if (p.id === toPhase) return { ...p, beats: [...p.beats, beat] };
+      return p;
+    });
   }
+
+  /** What an edit would look like, aftercare included, for the live map. */
+  const preview = (edit: Scene) => withAftercareFit(current, edit, ctx.top.settings).scene;
 
   function saveStep(beatId: string, step: Step, overrides: Override[], toBeatId: string): string | null {
     const next = mapPhases((p) => ({ ...p, beats: p.beats.map((b) => (b.id === beatId ? { ...b, steps: b.steps.map((s) => (s.id === step.id ? step : s)) } : b)) }));
@@ -146,6 +161,8 @@ export function SceneEditor() {
     apply({ ...current, phases });
   }
 
+  // While a beat is dragged, the map shows where it would land.
+  const shown = beatDrag.dragging ? preview(placeBeat(scene, beatDrag.dragging.id, beatDrag.dragging.to.container, beatDrag.dragging.to.index)) : scene;
   const issues = validate(scene, ctx);
   const auto = automaticFlags(scene, ctx);
   const editingBeat = editing?.kind === 'beat' ? beatById(editing.beatId) : undefined;
@@ -185,8 +202,10 @@ export function SceneEditor() {
           </ul>
         </div>
       )}
-      <MiniCurve scene={scene} />
-      <PhaseStrip scene={scene} />
+      <div className="scene-map">
+        <MiniCurve scene={shown} />
+        <PhaseStrip scene={shown} />
+      </div>
       <div className="person">
         <span className="note">
           Play time {playMinutes(scene)} min, then aftercare {scene.phases.filter((p) => p.type === 'aftercare').reduce((n, p) => n + phaseMinutes(p), 0)} min
@@ -205,6 +224,8 @@ export function SceneEditor() {
         issues={issues}
         auto={auto}
         onApply={apply}
+        beatDrag={beatDrag}
+        stepDrag={stepDrag}
         onEditBeat={(phaseId, beatId) => setEditing({ kind: 'beat', phaseId, beatId })}
         onEditStep={(beatId, stepId) => setEditing({ kind: 'step', beatId, stepId })}
         onEditPhaseTime={(phaseId) => setEditing({ kind: 'phase-time', phaseId })}
@@ -273,7 +294,7 @@ export function SceneEditor() {
             const copy = copyScene(scene);
             saveScene(keys, copy)
               .then((s) => navigate(`/scenes/${s.id}`))
-              .catch(() => setToast("Ember couldn't copy this scene."));
+              .catch(() => setToast({ text: "Ember couldn't copy this scene." }));
           }}
         >
           Duplicate
@@ -292,6 +313,7 @@ export function SceneEditor() {
           min={20}
           max={480}
           onSave={(m) => apply(setPlayMinutes(scene, m, ctx.top.settings))}
+          preview={(m) => preview(setPlayMinutes(scene, m, ctx.top.settings))}
           onClose={() => setEditing(null)}
         />
       )}
@@ -303,10 +325,10 @@ export function SceneEditor() {
           min={Math.max(1, editingPhase.beats.length)}
           max={480}
           onSave={(m) => {
-            // Aftercare grows to fit a longer section; changing aftercare itself is checked as is.
-            const next = setPhaseMinutes(scene, editingPhase.id, m);
-            return apply(editingPhase.type === 'aftercare' ? next : fitAftercare(next, ctx.top.settings));
+            // Aftercare grows to fit a longer section; shortening aftercare itself is checked as is.
+            return apply(setPhaseMinutes(scene, editingPhase.id, m));
           }}
+          preview={(m) => preview(setPhaseMinutes(scene, editingPhase.id, m))}
           onClose={() => setEditing(null)}
         />
       )}
@@ -316,7 +338,8 @@ export function SceneEditor() {
           phaseId={editing.phaseId}
           phases={scene.phases}
           automatic={auto.get(editingBeat.id) ?? []}
-          onSave={(b, to) => saveBeat(editing.phaseId, b, to)}
+          onSave={(b, to) => apply(withBeat(editing.phaseId, b, to))}
+          preview={(b, to) => preview(withBeat(editing.phaseId, b, to))}
           onDelete={() => apply(mapPhases((p) => ({ ...p, beats: p.beats.filter((b) => b.id !== editingBeat.id) })))}
           onClose={() => setEditing(null)}
         />
@@ -344,7 +367,7 @@ export function SceneEditor() {
               onClick={() =>
                 deleteScene(scene.id)
                   .then(() => navigate('/scenes', { replace: true }))
-                  .catch((err) => setToast(err instanceof AccountError ? err.message : "Ember couldn't delete this scene."))
+                  .catch((err) => setToast({ text: err instanceof AccountError ? err.message : "Ember couldn't delete this scene." }))
               }
             >
               Delete
@@ -355,14 +378,18 @@ export function SceneEditor() {
           </div>
         </div>
       )}
+      {beatDrag.overlay}
+      {stepDrag.overlay}
       {toast && (
-        <div className="toast" role="alert">
-          {toast}
+        <div className={toast.info ? 'toast toast-info' : 'toast'} role={toast.info ? 'status' : 'alert'}>
+          {toast.text}
         </div>
       )}
     </main>
   );
 }
+
+type Drag = ReturnType<typeof useMoveDrag>;
 
 function IssueList({ scene, issues, onKeep }: { scene: Scene; issues: Issue[]; onKeep: (key: string, reason: string) => void }) {
   const [keeping, setKeeping] = useState<string | null>(null);
@@ -422,6 +449,8 @@ function Phases({
   issues,
   auto,
   onApply,
+  beatDrag,
+  stepDrag,
   onEditBeat,
   onEditStep,
   onEditPhaseTime
@@ -431,6 +460,8 @@ function Phases({
   issues: Issue[];
   auto: Map<string, { kind: string; text: string }[]>;
   onApply: (next: Scene) => string | null;
+  beatDrag: Drag;
+  stepDrag: Drag;
   onEditBeat: (phaseId: string, beatId: string) => void;
   onEditStep: (beatId: string, stepId: string) => void;
   onEditPhaseTime: (phaseId: string) => void;
@@ -462,7 +493,7 @@ function Phases({
                 {phaseMinutes(phase)} min ✎
               </button>
             </summary>
-            <Beats scene={scene} phase={phase} ctx={ctx} issues={issues} auto={auto} onApply={onApply} onEditBeat={onEditBeat} onEditStep={onEditStep} />
+            <Beats scene={scene} phase={phase} ctx={ctx} issues={issues} auto={auto} onApply={onApply} beatDrag={beatDrag} stepDrag={stepDrag} onEditBeat={onEditBeat} onEditStep={onEditStep} />
           </details>
         );
       })}
@@ -477,6 +508,8 @@ function Beats({
   issues,
   auto,
   onApply,
+  beatDrag,
+  stepDrag,
   onEditBeat,
   onEditStep
 }: {
@@ -486,26 +519,28 @@ function Beats({
   issues: Issue[];
   auto: Map<string, { kind: string; text: string }[]>;
   onApply: (next: Scene) => string | null;
+  beatDrag: Drag;
+  stepDrag: Drag;
   onEditBeat: (phaseId: string, beatId: string) => void;
   onEditStep: (beatId: string, stepId: string) => void;
 }) {
   const withBeats = (beats: Beat[]) => ({ ...scene, phases: scene.phases.map((p) => (p.id === phase.id ? { ...p, beats } : p)) });
-  const reorder = useReorder(phase.beats.length, (from, to) => onApply(withBeats(moved(phase.beats, from, to))));
   return (
     <div className="stack" style={{ gap: 10, padding: 10 }}>
-      {phase.beats.map((beat, i) => {
-        const item = reorder.item(i);
+      <div className="stack" style={{ gap: 10, minHeight: 24 }} {...beatDrag.container(phase.id)}>
+      {phase.beats.map((beat) => {
+        const item = beatDrag.item(beat.id);
         const mine = issues.filter((x) => x.beatId === beat.id && !(x.level === 'warn' && x.kept));
         return (
           <article
             key={beat.id}
-            ref={item.ref}
+            {...item}
             className={['card', 'stack', item.className].filter(Boolean).join(' ')}
             style={{ ...item.style, gap: 8, padding: 12 }}
             aria-label={beat.title || 'Beat'}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button type="button" className="drag-handle" {...reorder.handle(i, beat.title || 'beat')}>
+              <button type="button" className="drag-handle" {...beatDrag.handle(beat.id, beat.title || 'beat')}>
                 ⠿
               </button>
               <button type="button" onClick={() => onEditBeat(phase.id, beat.id)} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', padding: 0, minHeight: 'var(--touch)', cursor: 'pointer' }}>
@@ -531,10 +566,11 @@ function Beats({
                 {f.text}
               </p>
             ))}
-            <Steps scene={scene} beat={beat} ctx={ctx} onApply={onApply} onEditStep={onEditStep} />
+            <Steps scene={scene} beat={beat} ctx={ctx} onApply={onApply} stepDrag={stepDrag} onEditStep={onEditStep} />
           </article>
         );
       })}
+      </div>
       <button
         type="button"
         className="btn btn-quiet"
@@ -552,28 +588,29 @@ function Steps({
   beat,
   ctx,
   onApply,
+  stepDrag,
   onEditStep
 }: {
   scene: Scene;
   beat: Beat;
   ctx: RuleContext;
   onApply: (next: Scene) => string | null;
+  stepDrag: Drag;
   onEditStep: (beatId: string, stepId: string) => void;
 }) {
   const withSteps = (steps: Step[]) => ({ ...scene, phases: scene.phases.map((p) => ({ ...p, beats: p.beats.map((b) => (b.id === beat.id ? { ...b, steps } : b)) })) });
-  const reorder = useReorder(beat.steps.length, (from, to) => onApply(withSteps(moved(beat.steps, from, to))));
   const label = (s: Step) => {
     const gear = s.gearId ? ctx.gear.find((g) => g.id === s.gearId)?.name : undefined;
     const what = activityOf(ctx, s.activityId)?.label ?? (s.do.split('.')[0] || 'Step');
     return gear ? `${what} (${gear})` : what;
   };
   return (
-    <ol className="stack" style={{ gap: 4, margin: 0, padding: 0, listStyle: 'none' }}>
-      {beat.steps.map((s, i) => {
-        const item = reorder.item(i);
+    <ol className="stack" style={{ gap: 4, margin: 0, padding: 0, listStyle: 'none' }} {...stepDrag.container(beat.id)}>
+      {beat.steps.map((s) => {
+        const item = stepDrag.item(s.id);
         return (
-          <li key={s.id} ref={item.ref} className={item.className} style={{ ...item.style, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--ground)', borderRadius: 10 }}>
-            <button type="button" className="drag-handle" {...reorder.handle(i, label(s))}>
+          <li key={s.id} {...item} style={{ ...item.style, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--ground)', borderRadius: 10 }}>
+            <button type="button" className="drag-handle" {...stepDrag.handle(s.id, label(s))}>
               ⠿
             </button>
             <button type="button" onClick={() => onEditStep(beat.id, s.id)} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', padding: '6px 0', minHeight: 'var(--touch)', cursor: 'pointer' }}>

@@ -4,6 +4,11 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 6, 2026
 
+- **Editor changes after M5** (Michael):
+  - **Drag anywhere:** a step drags into any beat, in any section, and a beat drags into any section. The arrow keys move them too, crossing into the next beat or section at either end. Every drop still goes through the rules, so a move that breaks a block rule is refused with its reason.
+  - **Aftercare follows the scene:** when an edit makes play longer (a new beat or section, a longer beat or section), the scene's total grows and aftercare grows to match your setting, with a note saying by how much. Aftercare never shrinks by itself. Shortening aftercare yourself below your setting is still refused (safety floor).
+  - **Live scene map:** the map stays pinned at the top of the editor while you scroll, shows where a dragged beat would land, and appears in the beat and length sheets, updating as you move the sliders.
+
 - **M5 SceneVibe choices** (Claude, for Michael to confirm):
   - **What the SceneVibe shows:** the intensity curve in the Top's phase colors, one marker per kind of play per beat, the date, time, length, place, a "to bring or prepare" note, and the aftercare steps by name. It never shows activity names, gear, DO or SAY words, notes or flags.
   - **Shapes and colors:** impact is an ember triangle, sensation a gold star, restraint a teal square outline, touch a rose circle, fingers (digital) a violet diamond, penetration a garnet hexagon, and a surprise is a question mark in a dashed saffron circle. Surprise markers never show their kind, and each surprise is counted once even if it comes back in a later beat.

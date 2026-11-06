@@ -67,3 +67,44 @@ export function moveStep(scene: Scene, step: Step, toBeatId: string): Scene {
   }));
   return { ...scene, phases };
 }
+
+/** Moves a step to a place in any beat; the index counts the beat's other steps. */
+export function placeStep(scene: Scene, stepId: string, toBeatId: string, index: number): Scene {
+  const step = scene.phases.flatMap((p) => p.beats.flatMap((b) => b.steps)).find((s) => s.id === stepId);
+  if (!step) return scene;
+  const phases: Phase[] = scene.phases.map((p) => ({
+    ...p,
+    beats: p.beats.map((b) => {
+      const kept = b.steps.filter((s) => s.id !== stepId);
+      if (b.id === toBeatId) kept.splice(Math.max(0, Math.min(index, kept.length)), 0, step);
+      return { ...b, steps: kept };
+    })
+  }));
+  return { ...scene, phases };
+}
+
+/** Moves a beat to a place in any section; the index counts the section's other beats. */
+export function placeBeat(scene: Scene, beatId: string, toPhaseId: string, index: number): Scene {
+  const beat = scene.phases.flatMap((p) => p.beats).find((b) => b.id === beatId);
+  if (!beat) return scene;
+  const phases: Phase[] = scene.phases.map((p) => {
+    const kept = p.beats.filter((b) => b.id !== beatId);
+    if (p.id === toPhaseId) kept.splice(Math.max(0, Math.min(index, kept.length)), 0, beat);
+    return { ...p, beats: kept };
+  });
+  return { ...scene, phases };
+}
+
+export const aftercareTotal = (scene: Scene) =>
+  scene.phases.filter((p) => p.type === 'aftercare').reduce((n, p) => n + p.beats.reduce((m, b) => m + b.minutes, 0), 0);
+
+/**
+ * An edit that makes play longer: aftercare grows to match, and the result says
+ * by how much. An edit that shortens aftercare itself is left as it is, so the
+ * rules can say no.
+ */
+export function withAftercareFit(before: Scene, next: Scene, settings: TopSettings): { scene: Scene; grewBy: number } {
+  const raw = aftercareTotal(next);
+  const fitted = raw < aftercareTotal(before) ? next : fitAftercare(next, settings);
+  return { scene: { ...fitted, minutes: playMinutes(fitted) }, grewBy: aftercareTotal(fitted) - raw };
+}
