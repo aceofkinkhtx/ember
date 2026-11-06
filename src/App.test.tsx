@@ -104,7 +104,7 @@ describe('navigation', () => {
     expect(within(nav).getAllByRole('link').map((l) => l.textContent)).toEqual(['Home', 'Connections', 'Scenes', 'Profile', 'Me']);
   });
 
-  it('lets switches toggle between views', async () => {
+  it('lets S/switches toggle between views', async () => {
     const user = userEvent.setup();
     render(<App initialSettings={done({ roles: 'both', activeRole: 'top' })} />);
     await user.click(screen.getByRole('radio', { name: 'bottom' }));

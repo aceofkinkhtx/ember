@@ -158,7 +158,7 @@ describe('personal code', () => {
 
     await userEvent.click(screen.getByRole('radio', { name: 'Top' }));
     expect(screen.getByText(/Those roles don't fit together/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('radio', { name: 'Switch' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'S/switch' }));
     expect(screen.queryByText(/Those roles don't fit together/)).not.toBeInTheDocument();
   });
 });

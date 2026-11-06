@@ -132,8 +132,8 @@ export function JoinInvite() {
             <RolePicker label={`Your role with ${who}`} value={myRole} onChange={setMyRole} discreet={settings.discreet} />
             <p className="note">
               {fits
-                ? 'Switch means either way: whoever designs a scene picks the role they design it as. You can change your role later.'
-                : "Those roles don't fit together. One of you needs to Top or switch, and the other to bottom or switch."}
+                ? 'S/switch means either way: whoever designs a scene picks the role they design it as. You can change your role later.'
+                : "Those roles don't fit together. One of you needs to Top or S/switch, and the other to bottom or S/switch."}
             </p>
           </section>
 

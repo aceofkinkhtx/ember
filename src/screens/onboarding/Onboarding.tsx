@@ -109,7 +109,7 @@ function Welcome({ onNext }: { onNext: () => void }) {
               </span>
             </button>
           ))}
-          <p className="note">You can change this anytime in Me. Roles also belong to each connection, so a switch can Top for one partner and bottom for another.</p>
+          <p className="note">You can change this anytime in Me. Roles also belong to each connection, so a S/switch can Top for one partner and bottom for another.</p>
         </div>
       </main>
       <footer className="screen-footer">

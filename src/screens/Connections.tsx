@@ -697,7 +697,7 @@ function IncomingCard({ request, onDone }: { request: IncomingRequest; onDone: (
         </div>
       </div>
       <RolePicker label={`Your role with ${name}`} value={myRole} onChange={setMyRole} discreet={settings.discreet} />
-      {!fits && <p className="note">Those roles don't fit together. One of you needs to Top or switch, and the other to bottom or switch.</p>}
+      {!fits && <p className="note">Those roles don't fit together. One of you needs to Top or S/switch, and the other to bottom or S/switch.</p>}
       {error && <p className="note error" role="alert">{error}</p>}
       <button type="button" className="btn btn-primary btn-block" disabled={busy || !fits} onClick={() => answer({ accept: true })}>
         Accept

@@ -50,7 +50,7 @@ export function ConnectionDetail() {
     if (!connection) return;
     setError('');
     if (!rolesFit(connection.theirRole, role)) {
-      setError("Those roles don't fit together. One of you needs to Top or switch, and the other to bottom or switch.");
+      setError("Those roles don't fit together. One of you needs to Top or S/switch, and the other to bottom or S/switch.");
       return;
     }
     const before = connection;
@@ -118,7 +118,7 @@ export function ConnectionDetail() {
       <section className="card stack" aria-label="Roles">
         <RolePicker label={`Your role with ${name}`} value={connection.myRole} onChange={changeRole} discreet={settings.discreet} />
         <p className="note">
-          Each of you chooses your own role. With a switch, whoever designs a scene picks the role they design it as.
+          Each of you chooses your own role. With a S/switch, whoever designs a scene picks the role they design it as.
         </p>
       </section>
 

@@ -246,7 +246,7 @@ function Basics({
         {!people.length && !req.solo && <p className="note" style={{ margin: 0 }}>No connections yet, so this design will be for your library.</p>}
         {req.connectionId && people.find((c) => c.id === req.connectionId)?.myRole === 'switch' && (
           <Segments
-            label={`You switch with ${req.partnerName}. In this scene you are:`}
+            label={`You and ${req.partnerName} are S/switches. In this scene you are:`}
             options={[
               { id: 'top', label: 'Top' },
               { id: 'bottom', label: 'bottom' }

@@ -59,7 +59,7 @@ function friendly(message: string): string {
   if (/sending (confirmation|recovery|magic link)? ?email|smtp/i.test(message))
     return "Ember couldn't send the email, so the account wasn't made. Please try again later.";
   if (/connections_roles_fit|fit together/i.test(message))
-    return "Those roles don't fit together. One of you needs to Top or switch, and the other to bottom or switch.";
+    return "Those roles don't fit together. One of you needs to Top or S/switch, and the other to bottom or S/switch.";
   if (/personal_codes_code_key|code is taken/i.test(message)) return 'That code is taken. Try another.';
   if (/personal_codes_code_check/i.test(message)) return 'Use 4 to 20 letters and numbers, with no spaces.';
   if (/rate limit|too many/i.test(message)) return 'Too many tries. Wait a few minutes and try again.';

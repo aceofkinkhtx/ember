@@ -2,6 +2,10 @@
 
 Decisions Michael made outside the spec tabs, newest first. The spec still wins where it is more specific.
 
+## Nov 6, 2026
+
+- **"S/switch"** (Michael): wherever "switch" names the role, Ember writes "S/switch" (plural "S/switches"): the role picker, connections, onboarding, scene basics and all copy. Where it's a verb ("switch views") or an on/off control, it stays as is.
+
 ## Nov 4, 2026
 
 - **After M4, from Michael's review:**

@@ -18,7 +18,7 @@ Read these before writing code. If this brief and the spec disagree, the spec wi
 
 ## What Ember is, in one paragraph
 
-One app for Tops, bottoms and switches, with a role toggle. A bottom shares desires and limits (detailed form, Heat / Hold / Flow word groups, or a desire map). The Top's rules engine proposes two or three scene designs built only from the bottom's yes items and the Top's offerings. The Top edits the design (phases, beats, steps), runs it in a dark Live Scene Mode guide, then both debrief. The bottom sees only a SceneVibe preview of the scene unless they request the plan and the Top chooses to send it. Profiles learn over time.
+One app for Tops, bottoms and S/switches, with a role toggle. A bottom shares desires and limits (detailed form, Heat / Hold / Flow word groups, or a desire map). The Top's rules engine proposes two or three scene designs built only from the bottom's yes items and the Top's offerings. The Top edits the design (phases, beats, steps), runs it in a dark Live Scene Mode guide, then both debrief. The bottom sees only a SceneVibe preview of the scene unless they request the plan and the Top chooses to send it. Profiles learn over time.
 
 ## Non-negotiable safety floor
 
@@ -46,6 +46,7 @@ These can never be removed or skipped by any user setting:
 - **Discreet mode:** neutral app name and icon option, vague notification text ("Your daily note is ready"), PIN or biometric lock.
 - **Feel options** for impact and toys: thuddy, stingy, sharp, other.
 - **Copy rule:** never use an em dash anywhere in the interface or content. Use commas, colons, periods or parentheses instead.
+- **"S/switch":** wherever "switch" names the role, write "S/switch" (plural "S/switches"). Where it's a verb ("switch views") or an on/off control, leave it as is.
 
 ## Technical approach (free to run)
 
