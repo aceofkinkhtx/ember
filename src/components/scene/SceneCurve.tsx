@@ -1,9 +1,11 @@
 import { phaseColors, phaseLabels, secondPeakColor } from '../../content/phases';
 import { beatsInOrder, peakCount, sceneMinutes, type Phase, type Scene } from '../../lib/scene/model';
+import { useId } from 'react';
 import { useSettings } from '../../state/settings';
+import { waveArea, wavePath } from './wave';
 
-// The mini intensity curve and phase strip used on design options and in the
-// library. Colors come from the Top's own phase colors.
+// The scene map: a smooth intensity wave tinted by phase, and the phase strip
+// under it. Colors come from the Top's own phase colors.
 
 function usePhaseColor() {
   const { settings } = useSettings();
@@ -20,6 +22,7 @@ export function MiniCurve({ scene, height = 64 }: { scene: Scene; height?: numbe
   const total = Math.max(1, sceneMinutes(scene));
   const width = 300;
   let t = 0;
+  const clip = useId();
   const segments = beatsInOrder(scene).map(({ phase, beat }) => {
     const x0 = (t / total) * width;
     t += beat.minutes;
@@ -27,13 +30,20 @@ export function MiniCurve({ scene, height = 64 }: { scene: Scene; height?: numbe
     const y = height - 4 - ((beat.intensity - 1) / 9) * (height - 8);
     return { x0, x1, y, color: colorOf(scene, phase) };
   });
-  const points = segments.flatMap((s) => [`${s.x0},${s.y}`, `${s.x1},${s.y}`]).join(' ');
+  const points = segments.map((s) => ({ x: (s.x0 + s.x1) / 2, y: s.y }));
   return (
     <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} preserveAspectRatio="none" aria-hidden="true" style={{ display: 'block' }}>
-      {segments.map((s, i) => (
-        <rect key={i} x={s.x0} y={s.y} width={Math.max(0, s.x1 - s.x0)} height={height - s.y} fill={s.color} opacity={0.22} />
-      ))}
-      <polyline points={points} fill="none" stroke="var(--text)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+      <defs>
+        <clipPath id={clip}>
+          <path d={waveArea(points, width, height)} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clip})`}>
+        {segments.map((s, i) => (
+          <rect key={i} x={s.x0} y={0} width={Math.max(0, s.x1 - s.x0)} height={height} fill={s.color} opacity={0.22} />
+        ))}
+      </g>
+      <path d={wavePath(points, width)} fill="none" stroke="var(--text)" strokeWidth={2} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }

@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
+import { waveArea, wavePath, waveY } from './wave';
 import { phaseColors, phaseLabels, secondPeakColor } from '../../content/phases';
 import type { SceneVibe, VibeKind } from '../../lib/scene/vibe';
 
 // SceneVibe (BS2): the shape of a planned scene. The curve is drawn in the
-// Top's phase colors; above it, one shape and color per kind of play, and a
+// Top's phase colors; on it, one shape and color per kind of play, and a
 // question mark for each surprise.
 
 export const kindLabels: Record<VibeKind, string> = {
@@ -78,36 +79,47 @@ export function VibeCurve({ vibe, height = 120, markers = true }: { vibe: SceneV
   const x = (m: number) => (m / total) * width;
   // The calmest beats keep a little height, so every phase color shows.
   const y = (i: number) => 4 + (height - 8) - ((Math.max(i, 1.6) - 1) / 9) * (height - 8);
-  const points = vibe.segments.flatMap((s) => [`${x(s.from)},${y(s.intensity)}`, `${x(s.from + s.minutes)},${y(s.intensity)}`]).join(' ');
-  // Markers that would overlap move to the next row (up to three rows).
-  const rows: number[][] = [[], [], []];
-  const placed = [...vibe.markers]
-    .sort((a, b) => a.at - b.at)
-    .map((m) => {
-      const pct = (m.at / total) * 100;
-      const row = Math.max(0, rows.findIndex((r) => !r.some((p) => Math.abs(p - pct) < 7)));
-      rows[row].push(pct);
-      return { m, pct, row };
-    });
-  const rowCount = Math.max(1, rows.filter((r) => r.length).length);
+  const clip = useId();
+  const points = vibe.segments.map((s) => ({ x: x(s.from + s.minutes / 2), y: y(s.intensity) }));
+  // Markers sit on the line itself, each on a small light disc so it reads
+  // over any phase color. Ones that would touch slide apart along the line.
+  const r = height >= 100 ? 6 : 4.5;
+  const disc = r + 2.5;
+  const gap = ((disc * 2 + 1) / 320) * 100;
+  const xs = [...vibe.markers].sort((a, b) => a.at - b.at).map((m) => ({ m, pct: (m.at / total) * 100 }));
+  for (let i = 1; i < xs.length; i++) xs[i].pct = Math.max(xs[i].pct, xs[i - 1].pct + gap);
+  for (let i = xs.length - 1; i >= 0; i--) xs[i].pct = Math.min(xs[i].pct, (i === xs.length - 1 ? 100 - gap / 2 : xs[i + 1].pct - gap));
+  const pad = markers && xs.length ? Math.ceil(disc) : 0;
   return (
-    <div role="img" aria-label={vibeSummary(vibe)}>
-      {markers && (
-        // Markers sit in their own rows, so their shapes never stretch with the curve.
-        <div aria-hidden="true" style={{ position: 'relative', height: 4 + rowCount * 20, margin: '0 9px' }}>
-          {placed.map(({ m, pct, row }, i) => (
-            <svg key={i} width={18} height={18} viewBox="-9 -9 18 18" style={{ position: 'absolute', top: 2 + row * 20, left: `calc(${pct}% - 9px)` }}>
-              <KindShape kind={m.kind} r={8} />
-            </svg>
-          ))}
-        </div>
-      )}
+    <div role="img" aria-label={vibeSummary(vibe)} style={{ position: 'relative', paddingTop: pad }}>
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} preserveAspectRatio="none" aria-hidden="true" style={{ display: 'block' }}>
-        {vibe.segments.map((s, i) => (
-          <rect key={i} x={x(s.from)} y={y(s.intensity)} width={Math.max(0, x(s.minutes))} height={height - y(s.intensity)} fill={colorFor(vibe, s)} opacity={0.85} />
-        ))}
-        <polyline points={points} fill="none" stroke="var(--text)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+        <defs>
+          <clipPath id={clip}>
+            <path d={waveArea(points, width, height)} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${clip})`}>
+          {vibe.segments.map((s, i) => (
+            <rect key={i} x={x(s.from)} y={0} width={Math.max(0, x(s.minutes))} height={height} fill={colorFor(vibe, s)} opacity={0.85} />
+          ))}
+        </g>
+        <path d={wavePath(points, width)} fill="none" stroke="var(--text)" strokeWidth={2} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       </svg>
+      {markers &&
+        xs.map(({ m, pct }, i) => (
+          // Drawn outside the stretched curve so the shapes keep their proportions.
+          <svg
+            key={i}
+            aria-hidden="true"
+            width={disc * 2}
+            height={disc * 2}
+            viewBox={`${-disc} ${-disc} ${disc * 2} ${disc * 2}`}
+            style={{ position: 'absolute', left: `calc(${pct}% - ${disc}px)`, top: pad + waveY(points, width, (pct / 100) * width) - disc }}
+          >
+            <circle r={disc} fill="var(--surface)" stroke="var(--text)" strokeWidth={0.75} />
+            <KindShape kind={m.kind} r={r} />
+          </svg>
+        ))}
     </div>
   );
 }
