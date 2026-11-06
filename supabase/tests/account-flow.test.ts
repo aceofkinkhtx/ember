@@ -367,6 +367,62 @@ describe('account flow', () => {
     expect(avatar.loadAvatarKey()).toBeNull();
   });
 
+  it('shares a SceneVibe locked for the bottom, and sends the plan only when the Top chooses', async () => {
+    await account.signOut();
+    const scenes = await import('../../src/lib/scenes');
+    const vibes = await import('../../src/lib/vibes');
+    const { design } = await import('../../src/lib/scene/designer');
+    const { emptyTopSetup } = await import('../../src/content/topSetup');
+    const intakeLib = await import('../../src/lib/intake');
+
+    await account.signIn(riverUser.email, riverUser.password);
+    const riverKeys = account.loadKeys()!;
+    const conn = (await account.listConnections(riverKeys, river)).find((c) => c.otherId === jadeUser.id)!;
+    const intake = intakeLib.emptyIntake();
+    intake.detailed = { ...intakeLib.emptyDetailed(), answers: { flogger: { choice: 'yes' }, wax: { choice: 'yes' } } };
+    const top = emptyTopSetup();
+    for (const c of ['impact', 'sensation'] as const) top.offerings.categories[c] = { on: true, min: 1, max: 8 };
+    const ctx = { intake, top, studio: false, optedOutGear: [], gear: [] };
+    const scene = design('climb', {
+      title: 'Ember night', connectionId: conn.id, partnerId: jadeUser.id, partnerName: 'Jade', role: 'top',
+      date: '2026-12-01', startTime: '20:00', minutes: 60, location: '', isPublic: false, intense: false, intakeVersion: 1, marks: 'day',
+      useSpecificGear: false, gearIds: [], overrides: [], notes: '',
+      picks: [{ activityId: 'flogger', intensity: 6, surprise: false }, { activityId: 'wax', intensity: 5, surprise: true }]
+    }, ctx);
+    const shared = await vibes.shareVibe(riverKeys, await scenes.saveScene(riverKeys, scene), {});
+    const { data: raw } = await admin.from('scene_vibes').select('sealed_vibe').eq('id', shared.share!.id).single();
+    expect(raw!.sealed_vibe).not.toMatch(/Ember night|flogger|impact/);
+    await account.signOut();
+
+    await account.signIn(jadeUser.email, jadeUser.password);
+    let mine = await vibes.listSharedVibes(account.loadKeys()!);
+    expect(mine.map((v) => v.vibe.title)).toEqual(['Ember night']);
+    expect(mine[0].vibe.surprises).toBe(1);
+    expect(JSON.stringify(mine[0].vibe)).not.toMatch(/flogger|Floggers|wax/i);
+    expect(mine[0].plan).toBeNull();
+    await vibes.requestPlan(mine[0].id);
+    await account.signOut();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    const state = await vibes.vibePlanState(shared);
+    expect(vibes.planStatus(state!)).toBe('requested');
+    await vibes.sendPlan(shared, false);
+    await account.signOut();
+
+    await account.signIn(jadeUser.email, jadeUser.password);
+    mine = await vibes.listSharedVibes(account.loadKeys()!);
+    expect(vibes.planStatus(mine[0])).toBe('sent');
+    const plan = JSON.stringify(mine[0].plan);
+    expect(plan).toContain('flogger');
+    // The surprise stays a surprise.
+    expect(plan).not.toContain('wax');
+    await account.signOut();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    await scenes.deleteScene(shared.id);
+    expect((await admin.from('scene_vibes').select('id').eq('id', shared.share!.id)).data).toEqual([]);
+  });
+
   it("sends a design from bottom to Top as a locked request, accepted into the Top's own scenes", async () => {
     await account.signOut();
     const scenes = await import('../../src/lib/scenes');

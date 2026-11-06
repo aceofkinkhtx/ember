@@ -709,3 +709,58 @@ describe('profile pictures', () => {
     expect((await pip.db.storage.from('avatars').list(pip.id)).data).toEqual([]);
   });
 });
+
+describe('scene vibes', () => {
+  let top: Person; // shares a SceneVibe
+  let sub: Person; // the bottom it's shared with
+  let other: Person; // a stranger
+  let connId: string;
+  let vibeId: string;
+  const sceneRef = '11111111-2222-4333-8444-555555555555';
+
+  beforeAll(async () => {
+    [top, sub, other] = await Promise.all([person('vibetop'), person('vibesub'), person('vibestranger')]);
+    const inv = await invite(top, 'account', 'top');
+    const accepted = await sub.db.rpc('accept_invite', { invite_code: inv.code });
+    if (accepted.error) throw accepted.error;
+    connId = accepted.data as string;
+  }, 60_000);
+
+  it('are shared only with a connection, by the Top themselves, without a plan', async () => {
+    expect((await top.db.from('scene_vibes').insert({ recipient_id: other.id, scene_ref: sceneRef, sealed_vibe: 'v' })).error).not.toBeNull();
+    expect((await other.db.from('scene_vibes').insert({ owner_id: top.id, recipient_id: sub.id, scene_ref: sceneRef, sealed_vibe: 'v' })).error).not.toBeNull();
+    expect((await top.db.from('scene_vibes').insert({ recipient_id: sub.id, scene_ref: sceneRef, sealed_vibe: 'v', sealed_plan: 'early' })).error).not.toBeNull();
+    const made = await top.db.from('scene_vibes').insert({ recipient_id: sub.id, scene_ref: sceneRef, sealed_vibe: 'locked-vibe' }).select('id').single();
+    expect(made.error).toBeNull();
+    vibeId = made.data!.id;
+  });
+
+  it('are seen only by the two people', async () => {
+    expect((await sub.db.from('scene_vibes').select('sealed_vibe')).data).toEqual([{ sealed_vibe: 'locked-vibe' }]);
+    expect((await other.db.from('scene_vibes').select('id')).data).toEqual([]);
+    expect((await anon.from('scene_vibes').select('id')).data ?? []).toEqual([]);
+  });
+
+  it('let the bottom only ask for the plan, and the Top only answer', async () => {
+    expect((await sub.db.from('scene_vibes').update({ sealed_vibe: 'changed' }).eq('id', vibeId)).error).not.toBeNull();
+    expect((await sub.db.from('scene_vibes').update({ sealed_plan: 'fake' }).eq('id', vibeId)).error).not.toBeNull();
+    expect((await top.db.from('scene_vibes').update({ plan_requested_at: new Date().toISOString() }).eq('id', vibeId)).error).not.toBeNull();
+    expect((await other.db.from('scene_vibes').update({ plan_requested_at: new Date().toISOString() }).eq('id', vibeId)).error).toBeNull();
+    expect((await admin.from('scene_vibes').select('plan_requested_at').eq('id', vibeId).single()).data?.plan_requested_at).toBeNull();
+
+    expect((await sub.db.from('scene_vibes').update({ plan_requested_at: '2000-01-01T00:00:00Z' }).eq('id', vibeId)).error).toBeNull();
+    const asked = (await admin.from('scene_vibes').select('plan_requested_at').eq('id', vibeId).single()).data!.plan_requested_at as string;
+    // The server stamps the time, whatever the phone sent.
+    expect(new Date(asked).getFullYear()).toBeGreaterThan(2020);
+
+    expect((await top.db.from('scene_vibes').update({ sealed_plan: 'locked-plan' }).eq('id', vibeId)).error).toBeNull();
+    expect((await sub.db.from('scene_vibes').select('sealed_plan').eq('id', vibeId).single()).data?.sealed_plan).toBe('locked-plan');
+  });
+
+  it('go away when either person removes them or the connection ends', async () => {
+    expect((await other.db.from('scene_vibes').delete().eq('id', vibeId)).error).toBeNull();
+    expect((await admin.from('scene_vibes').select('id').eq('id', vibeId)).data).toHaveLength(1);
+    expect((await sub.db.from('connections').update({ status: 'ended' }).eq('id', connId)).error).toBeNull();
+    expect((await admin.from('scene_vibes').select('id').eq('id', vibeId)).data).toEqual([]);
+  });
+});

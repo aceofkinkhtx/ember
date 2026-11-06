@@ -4,6 +4,14 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 6, 2026
 
+- **M5 SceneVibe choices** (Claude, for Michael to confirm):
+  - **What the SceneVibe shows:** the intensity curve in the Top's phase colors, one marker per kind of play per beat, the date, time, length, place, a "to bring or prepare" note, and the aftercare steps by name. It never shows activity names, gear, DO or SAY words, notes or flags.
+  - **Shapes and colors:** impact is an ember triangle, sensation a gold star, restraint a teal square outline, touch a rose circle, fingers (digital) a violet diamond, penetration a garnet hexagon, and a surprise is a question mark in a dashed saffron circle. Surprise markers never show their kind, and each surprise is counted once even if it comes back in a later beat.
+  - **Sharing:** the Top shares from "Ready to share", which shows the SceneVibe exactly as the bottom will see it. It's sealed so only the bottom can open it, updates by itself whenever the design changes, and "Stop sharing" withdraws it. Deleting the scene or ending the connection removes it.
+  - **The full plan:** the bottom can ask; the Top sends it or answers "Not this time", and the bottom then sees a kind note that the Top would like to keep it a surprise (and can ask again later). The Top can also send it unasked. Surprises stay hidden in a sent plan unless the Top unticks "Keep surprises hidden", and the Top's private step notes, overrides and kept warnings are never sent.
+  - **Home** shows the next dated scene with a countdown: a Top's own design, or the next SceneVibe a Top shared with a bottom.
+  - **Not yet:** SceneVibes for guests (they have no account to lock it for), animation, and Draw Your Wave (Phase 2, as the spec says).
+
 - **"S/switch"** (Michael): wherever "switch" names the role, Ember writes "S/switch" (plural "S/switches"): the role picker, connections, onboarding, scene basics and all copy. Where it's a verb ("switch views") or an on/off control, it stays as is.
 
 ## Nov 4, 2026

@@ -13,6 +13,8 @@ import { AccountError } from '../../lib/account';
 import { newBeat, newId, newStep, phaseMinutes, type Beat, type Override, type Phase, type Scene, type Step } from '../../lib/scene/model';
 import { activityOf, automaticFlags, blocks, needsNextMorningCheckIn, tryChange, validate, warnings, type Issue, type RuleContext } from '../../lib/scene/rules';
 import { copyScene, deleteScene, listScenes, saveScene } from '../../lib/scenes';
+import { shareVibe } from '../../lib/vibes';
+import { useSettings } from '../../state/settings';
 import { useAccount } from '../../state/account';
 import { useSceneData } from '../../state/sceneContext';
 
@@ -32,6 +34,7 @@ export function SceneEditor() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const { keys } = useAccount();
+  const { settings } = useSettings();
   const [scene, setScene] = useState<Scene | null | undefined>(undefined);
   const [saved, setSaved] = useState<'saved' | 'saving' | 'error'>('saved');
   const [toast, setToast] = useState('');
@@ -87,6 +90,8 @@ export function SceneEditor() {
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       saveScene(keys, next)
+        // A shared SceneVibe follows the design.
+        .then((s) => (s.share ? shareVibe(keys, s, settings.top.settings.phaseColors) : s))
         .then(() => setSaved('saved'))
         .catch(() => setSaved('error'));
     }, 600);
@@ -253,9 +258,9 @@ export function SceneEditor() {
 
       <div className="stack" style={{ gap: 8 }}>
         {scene.role === 'top' && (
-          <button type="button" className="btn btn-secondary btn-block" disabled>
-            Share SceneVibe (arrives in the next update)
-          </button>
+          <Link to={`/scenes/${scene.id}/vibe`} className="btn btn-primary btn-block">
+            {scene.share ? 'SceneVibe and plan' : scene.partnerId ? 'Share SceneVibe' : 'Preview SceneVibe'}
+          </Link>
         )}
         <button type="button" className="btn btn-outline btn-block" onClick={() => setReusing(true)}>
           Use with someone else

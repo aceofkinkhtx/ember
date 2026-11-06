@@ -33,6 +33,8 @@ export async function saveScene(keys: StoredKeys, scene: Scene): Promise<Scene> 
 }
 
 export async function deleteScene(id: string): Promise<void> {
+  // A SceneVibe shared from this scene goes with it.
+  await db.from('scene_vibes').delete().eq('scene_ref', id);
   const { error } = await db.from('scenes').delete().eq('id', id);
   if (error) throw new AccountError("Ember couldn't delete this scene.");
 }

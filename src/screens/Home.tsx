@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { EmberMark } from '../components/EmberMark';
 import { DonationPrompt } from '../components/DonationPrompt';
 import { RoleToggle } from '../components/RoleToggle';
+import { NextScene } from '../components/scene/NextScene';
 import { useSettings } from '../state/settings';
 
 // H1 (Top) and BH1 (bottom). Real content arrives with later milestones;
@@ -43,11 +44,7 @@ export function Home() {
             <div className="card-title">Nothing due</div>
             <p className="setting-desc">Check-ins after a {scene} show up here first, about 18 hours later.</p>
           </div>
-          <div className="card">
-            <div className="eyebrow">Next {scene}</div>
-            <div className="card-title">Nothing planned yet</div>
-            <p className="setting-desc">Once you connect with someone, you can design your first {scene} together.</p>
-          </div>
+          <NextScene role="top" word={scene} empty={`Give a design a date and it shows up here, with a countdown.`} />
           <TipCard />
           <div style={{ display: 'flex', gap: 10 }}>
             <Link to="/scenes" className="btn btn-primary" style={{ flex: 1 }}>
@@ -70,11 +67,7 @@ export function Home() {
               Start
             </Link>
           </div>
-          <div className="card">
-            <div className="eyebrow">Coming up</div>
-            <div className="card-title">Nothing planned yet</div>
-            <p className="setting-desc">When your Top plans a {scene}, its preview appears here.</p>
-          </div>
+          <NextScene role="bottom" word={scene} empty={`When your Top shares a ${scene}, its SceneVibe appears here.`} />
           <TipCard />
         </>
       )}

@@ -18,6 +18,8 @@ import { OfferingsPage, TopSettingsPage } from './screens/TopSetupPages';
 import { SceneEditor } from './screens/scenes/SceneEditor';
 import { SceneNew } from './screens/scenes/SceneNew';
 import { Scenes } from './screens/scenes/Scenes';
+import { PlanPage, VibePage } from './screens/scenes/VibePage';
+import { VibeShare } from './screens/scenes/VibeShare';
 import { IntakePage } from './screens/intake/IntakePage';
 import { AccountProvider } from './state/account';
 import { SettingsProvider, useSettings, type Settings } from './state/settings';
@@ -54,6 +56,9 @@ function Shell() {
         <Route path="/scenes" element={<Scenes />} />
         <Route path="/scenes/new" element={<SceneNew />} />
         <Route path="/scenes/:id" element={<SceneEditor />} />
+        <Route path="/scenes/:id/vibe" element={<VibeShare />} />
+        <Route path="/vibes/:id" element={<VibePage />} />
+        <Route path="/vibes/:id/plan" element={<PlanPage />} />
         {tabs
           .filter((t) => t !== 'home' && t !== 'me' && t !== 'connections' && t !== 'profile' && t !== 'toys' && t !== 'scenes')
           .map((t) => (

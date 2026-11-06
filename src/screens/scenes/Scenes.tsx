@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SceneRequests } from '../../components/scene/Requests';
+import { SharedVibes } from './VibePage';
 import { MiniCurve, sceneFacts } from '../../components/scene/SceneCurve';
 import { tabLabel } from '../../content/copy';
 import type { Scene } from '../../lib/scene/model';
@@ -62,6 +63,7 @@ export function Scenes() {
         </Link>
       </div>
       <SceneRequests />
+      <SharedVibes />
       <div className="segmented" role="tablist" aria-label="Which scenes" style={{ alignSelf: 'flex-start' }}>
         {(['upcoming', 'past', 'library'] as Tab[]).map((t) => (
           <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>

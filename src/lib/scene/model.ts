@@ -116,6 +116,10 @@ export interface Scene {
   request?: { id: string; sentAt: string; status: RequestStatus };
   /** On a design accepted from a partner's request: who designed it. */
   fromRequest?: { by: string; at: string };
+  /** What to bring or prepare, shown in the SceneVibe. */
+  prepare?: string;
+  /** When the SceneVibe was shared with the partner, and its share id. */
+  share?: { id: string; sharedAt: string };
   createdAt: string;
   updatedAt: string;
 }
