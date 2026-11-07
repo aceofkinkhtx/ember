@@ -41,7 +41,9 @@ export function ToyEdit() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const file = useRef<HTMLInputElement>(null);
+  // Two pickers: the camera, and the photo gallery (no capture hint).
+  const camera = useRef<HTMLInputElement>(null);
+  const gallery = useRef<HTMLInputElement>(null);
   const gens = useMemo(() => loadToyRing()?.gens ?? [], [toy]);
 
   useEffect(() => {
@@ -158,22 +160,28 @@ export function ToyEdit() {
             </div>
           )}
         </div>
-        <input
-          ref={file}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="sr-only"
-          aria-label="Photo"
-          tabIndex={-1}
-          onChange={(e) => {
-            void pickPhoto(e.target.files?.[0]);
-            e.target.value = '';
-          }}
-        />
+        {[camera, gallery].map((ref, i) => (
+          <input
+            key={i}
+            ref={ref}
+            type="file"
+            accept="image/*"
+            capture={i === 0 ? 'environment' : undefined}
+            className="sr-only"
+            aria-label={i === 0 ? 'Take a photo' : 'Choose from your photos'}
+            tabIndex={-1}
+            onChange={(e) => {
+              void pickPhoto(e.target.files?.[0]);
+              e.target.value = '';
+            }}
+          />
+        ))}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-secondary" onClick={() => file.current?.click()}>
-            {hasPhoto ? 'New photo' : 'Take or choose a photo'}
+          <button type="button" className="btn btn-secondary" onClick={() => camera.current?.click()}>
+            Take a photo
+          </button>
+          <button type="button" className="btn btn-outline" onClick={() => gallery.current?.click()}>
+            Choose from your photos
           </button>
           {hasPhoto && (
             <button

@@ -47,9 +47,16 @@ p {
 }
 
 button,
-input {
+input,
+textarea,
+select {
   font: inherit;
   color: inherit;
+}
+
+/* In the dark live screens, typed text matches the grey of the 1 to 5 numbers. */
+[data-theme='live'] .input {
+  color: var(--text-muted);
 }
 
 :focus-visible {

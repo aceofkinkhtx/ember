@@ -89,6 +89,14 @@ export function Me() {
                 </button>
               ))}
             </div>
+            <div className="stack" style={{ gap: 6 }}>
+              <p className="setting-desc" style={{ margin: 0 }}>
+                <strong>Simple:</strong> designs built for you from what they said yes to, the full editor, gear, Live Scene Mode and every safety rule. Edge play stays out.
+              </p>
+              <p className="setting-desc" style={{ margin: 0 }}>
+                <strong>Studio:</strong> everything in Simple, plus edge play (choking, knife play, sharps and plastic wrap mummification). Each one is added only after you confirm it was negotiated for that scene, and the same safety rules apply.
+              </p>
+            </div>
           </>
         )}
       </section>
