@@ -931,3 +931,156 @@ input {
 .toast.toast-info {
   background: #1e1418;
 }
+
+/* Live Scene Mode (M6): near-black, large targets, one hand in the dark. */
+.live-root {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+  color: var(--text);
+}
+
+.live-root .screen {
+  flex: 1;
+}
+
+.live-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top)) var(--gutter) 10px;
+  background: var(--surface);
+}
+
+.live-body {
+  padding-top: 14px !important;
+  padding-bottom: 16px !important;
+}
+
+.live-beat h2 {
+  font-size: 24px;
+}
+
+.signal {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 700;
+}
+
+.strip {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.live-dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.live-dots button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  outline-offset: 3px;
+  cursor: pointer;
+}
+
+.live-actions {
+  display: flex;
+  gap: 10px;
+  padding: 10px var(--gutter) calc(12px + env(safe-area-inset-bottom));
+  background: var(--surface);
+}
+
+.live-actions .btn {
+  flex: 1;
+  min-height: 56px;
+}
+
+.live-red {
+  flex: 1.4;
+  min-height: 56px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: #c62828;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.live-paused {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(10, 8, 9, 0.92);
+  color: var(--text);
+}
+
+/* Red: calm, full screen, readable. */
+.live-redscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: #6e1410;
+  color: #fff4ef;
+}
+
+.live-redscreen .screen {
+  padding-top: calc(24px + env(safe-area-inset-top));
+}
+
+.red-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.red-card h2 {
+  margin: 4px 0 0;
+  font-size: 17px;
+  color: #ffd9cc;
+}
+
+.red-card p {
+  margin: 0;
+  font-size: 17px;
+}
+
+.red-call,
+.red-primary {
+  min-height: 56px;
+  background: #fff4ef;
+  color: #6e1410;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.red-ghost {
+  min-height: 52px;
+  background: transparent;
+  color: #fff4ef;
+  border: 2px solid rgba(255, 244, 239, 0.6);
+}

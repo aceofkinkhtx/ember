@@ -52,7 +52,10 @@ export function SharedVibes() {
               <span className="note">{v.vibe.date ? new Date(`${v.vibe.date}T12:00`).toLocaleDateString() : 'No date yet'}</span>
             </div>
             <VibeCurve vibe={v.vibe} height={60} />
-            <span className="note">From {name}</span>
+            <span className="note">
+              From {name}
+              {v.check && !v.answered ? '. Pre-scene check waiting for you.' : v.live && !v.live.endedAt ? '. The scene has started.' : ''}
+            </span>
           </Link>
         );
       })}
@@ -113,6 +116,35 @@ export function VibePage() {
           {name} designed this for you.
         </p>
       </div>
+      {shared.check && (
+        <section className="card stack" style={{ gap: 10 }} aria-label="Pre-scene check">
+          <div className="eyebrow">Before the scene</div>
+          {shared.live && !shared.live.endedAt ? (
+            <>
+              <p className="setting-desc" style={{ margin: 0 }}>The scene has started.</p>
+              <Link to={`/vibes/${shared.id}/live`} className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
+                Open the live view
+              </Link>
+            </>
+          ) : shared.answered ? (
+            <>
+              <p className="setting-desc" style={{ margin: 0 }}>You've sent your part of the pre-scene check.</p>
+              <Link to={`/vibes/${shared.id}/live`} className="btn btn-outline" style={{ alignSelf: 'flex-start' }}>
+                Open the live view
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="setting-desc" style={{ margin: 0 }}>
+                {name} sent the pre-scene check{shared.check.maybes.length ? `, with ${shared.check.maybes.length === 1 ? 'one maybe' : `${shared.check.maybes.length} maybes`} to say yes or no to` : ''}.
+              </p>
+              <Link to={`/vibes/${shared.id}/check`} className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
+                Answer the check
+              </Link>
+            </>
+          )}
+        </section>
+      )}
       <VibeView vibe={shared.vibe} />
 
       <section className="card stack" style={{ gap: 10 }} aria-label="The full plan">

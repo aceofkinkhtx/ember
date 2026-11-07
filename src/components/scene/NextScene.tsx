@@ -47,7 +47,11 @@ export function NextScene({ role, word, empty }: { role: 'top' | 'bottom'; word:
   }
   const date = next?.scene ? next.scene.date : next!.vibe!.vibe.date;
   const title = next?.scene ? next.scene.title : next!.vibe!.vibe.title;
-  const to = next?.scene ? `/scenes/${next.scene.id}` : `/vibes/${next!.vibe!.id}`;
+  const v = next?.vibe;
+  // A waiting pre-scene check, or a scene under way, goes straight there.
+  const waiting = Boolean(v?.check && !v.answered);
+  const running = Boolean(v?.live && !v.live.endedAt);
+  const to = next?.scene ? `/scenes/${next.scene.id}` : waiting ? `/vibes/${v!.id}/check` : running ? `/vibes/${v!.id}/live` : `/vibes/${v!.id}`;
   return (
     <Link to={to} className="card stack" style={{ gap: 8, textDecoration: 'none', color: 'inherit' }}>
       <div className="person">
@@ -59,6 +63,8 @@ export function NextScene({ role, word, empty }: { role: 'top' | 'bottom'; word:
       </div>
       {next?.scene ? <MiniCurve scene={next.scene} height={44} /> : <VibeCurve vibe={next!.vibe!.vibe} height={60} />}
       <span className="note">{new Date(`${date}T12:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+      {waiting && <span className="box box-info">Your pre-scene check is waiting. Tap to answer.</span>}
+      {running && <span className="box box-info">The scene has started. Tap for the live view.</span>}
     </Link>
   );
 }

@@ -279,7 +279,12 @@ export function SceneEditor() {
 
       <div className="stack" style={{ gap: 8 }}>
         {scene.role === 'top' && (
-          <Link to={`/scenes/${scene.id}/vibe`} className="btn btn-primary btn-block">
+          <Link to={`/scenes/${scene.id}/live`} className="btn btn-primary btn-block">
+            {scene.live && !scene.live.endedAt ? 'Back to the live scene' : scene.live ? 'Scene record' : 'Start the scene'}
+          </Link>
+        )}
+        {scene.role === 'top' && (
+          <Link to={`/scenes/${scene.id}/vibe`} className="btn btn-outline btn-block">
             {scene.share ? 'SceneVibe and plan' : scene.partnerId ? 'Share SceneVibe' : 'Preview SceneVibe'}
           </Link>
         )}

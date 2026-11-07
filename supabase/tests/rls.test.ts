@@ -757,6 +757,32 @@ describe('scene vibes', () => {
     expect((await sub.db.from('scene_vibes').select('sealed_plan').eq('id', vibeId).single()).data?.sealed_plan).toBe('locked-plan');
   });
 
+  it('carry the live scene: each person writes only their own part (M6)', async () => {
+    // Nothing to answer until the Top asks; a SceneVibe can't start with a check.
+    expect((await sub.db.from('scene_vibes').update({ sealed_answer: 'early' }).eq('id', vibeId)).error).not.toBeNull();
+    expect((await top.db.from('scene_vibes').insert({ recipient_id: sub.id, scene_ref: '22222222-2222-4333-8444-555555555555', sealed_vibe: 'v', sealed_check: 'c' })).error).not.toBeNull();
+
+    expect((await top.db.from('scene_vibes').update({ sealed_check: 'locked-check' }).eq('id', vibeId)).error).toBeNull();
+    // The bottom can't change the check or the clock; the Top can't answer for them or signal.
+    expect((await sub.db.from('scene_vibes').update({ sealed_check: 'fake' }).eq('id', vibeId)).error).not.toBeNull();
+    expect((await sub.db.from('scene_vibes').update({ sealed_live: 'fake' }).eq('id', vibeId)).error).not.toBeNull();
+    expect((await top.db.from('scene_vibes').update({ sealed_answer: 'fake' }).eq('id', vibeId)).error).not.toBeNull();
+    expect((await top.db.from('scene_vibes').update({ sealed_signal: 'fake' }).eq('id', vibeId)).error).not.toBeNull();
+    expect((await other.db.from('scene_vibes').update({ sealed_signal: 'fake' }).eq('id', vibeId)).error).toBeNull();
+
+    expect((await sub.db.from('scene_vibes').update({ sealed_answer: 'locked-answer' }).eq('id', vibeId)).error).toBeNull();
+    expect((await sub.db.from('scene_vibes').update({ sealed_signal: 'locked-red' }).eq('id', vibeId)).error).toBeNull();
+    expect((await top.db.from('scene_vibes').update({ sealed_live: 'locked-clock' }).eq('id', vibeId)).error).toBeNull();
+    const row = (await admin.from('scene_vibes').select('sealed_answer, sealed_signal, sealed_live').eq('id', vibeId).single()).data;
+    expect(row).toEqual({ sealed_answer: 'locked-answer', sealed_signal: 'locked-red', sealed_live: 'locked-clock' });
+    expect((await other.db.from('scene_vibes').select('sealed_answer')).data).toEqual([]);
+
+    // A new check starts fresh: old answers, signals and clock are cleared.
+    expect((await top.db.from('scene_vibes').update({ sealed_check: 'second-check' }).eq('id', vibeId)).error).toBeNull();
+    const fresh = (await admin.from('scene_vibes').select('sealed_answer, sealed_signal, sealed_live').eq('id', vibeId).single()).data;
+    expect(fresh).toEqual({ sealed_answer: null, sealed_signal: null, sealed_live: null });
+  });
+
   it('go away when either person removes them or the connection ends', async () => {
     expect((await other.db.from('scene_vibes').delete().eq('id', vibeId)).error).toBeNull();
     expect((await admin.from('scene_vibes').select('id').eq('id', vibeId)).data).toHaveLength(1);

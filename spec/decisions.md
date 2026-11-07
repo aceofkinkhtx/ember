@@ -2,7 +2,26 @@
 
 Decisions Michael made outside the spec tabs, newest first. The spec still wins where it is more specific.
 
+## Nov 7, 2026
+
+- **Michael approved every pending choice** ("yes to all"): the M6 choices marked as Claude's, the M5 SceneVibe choices, the M4b choices, the M3 choices and the edge play list below now stand as decisions.
+- **M6 went live:** the database change was applied to the real database with Michael's OK.
+
 ## Nov 6, 2026
+
+- **M6 Live Scene Mode** (Michael's choices, and Claude's where marked, approved Nov 7):
+  - **Every maybe needs the bottom's answer** (Michael). Before the scene, the bottom sees every maybe and unanswered item in the plan by name, surprises included (they learn what, not when), and answers yes, no or "let's talk". A no takes it out of the plan. "Let's talk" needs the Top to mark "talked: keep it" or "take it out" before starting. This replaces the Nov 3 "Surprise me: don't tell me about maybes" option. Items the Top already confirmed (a no they talked through, edge play, a sex act) were agreed separately and aren't asked again.
+  - **One check, not two** (Claude): the pre-scene check-in (feeling, final negotiation, excitement) and the day-of check (body, emotions, anything new, substance agreement, readiness) are one form for the bottom, under two minutes.
+  - **Where the bottom answers:** on their own phone (the check travels sealed on the shared SceneVibe), or on the Top's phone handed over, for a partner without the app or without signal.
+  - **Starting needs:** the bottom's part, every "let's talk" settled, the Top's energy and focus (1 to 5), all four safety kit items, and every "say aloud" tick (signals, honorific, others present, marks). "Space set" is there to tick but isn't required (Claude). Low energy shows a gentle note; it doesn't change the design by itself (Claude; the spec said capacity scales the design).
+  - **The consent snapshot** locks at Start: both parts, the aloud list, every maybe and its answer, what was taken out, and the bottom's care details (signals, limits, body notes, aftercare, overwhelm plan, emergency contact), so the guide works offline.
+  - **The bottom's phone during the scene** (Michael): a simple dark view with the wave and a line showing where the scene is, Red and Yellow buttons that reach the Top's phone, and the regulation toolkit. Never the plan. Spoken signals stay first; the buttons are a backup and need a connection.
+  - **Red** (Michael): stops every timer, shows "Stop. Check in." with the stop steps, the bottom's aftercare and overwhelm plan, an emergency call button (their contact, and 911 always), first aid basics, and "Go to aftercare". Resuming the scene needs a second tap confirming you've both checked in and want to go on. A red from the bottom's phone opens it on the Top's phone.
+  - **Timers** (Claude): the scene clock and each beat's clock count up; the beat clock turns amber when the beat runs long. The Top moves between beats; nothing advances on its own.
+  - **Restraint timer** (Claude): runs only for activities that bind (cuffs, rope, a cross, a bench, a swing, mummification), not blindfolds, gags or a collar. A circulation check is asked for every 10 minutes and logged.
+  - **The toolkit** opens by itself on a yellow (from either phone) and at the start of each recovery beat.
+  - **Quick log:** yellow, highlight or a short note, with the time. A voice note isn't built (optional in the spec).
+  - **Copies** of a scene no longer carry its SceneVibe link, request or live record (fixed while building M6).
 
 - **Editor changes after M5** (Michael):
   - **Drag anywhere:** a step drags into any beat, in any section, and a beat drags into any section. The arrow keys move them too, crossing into the next beat or section at either end. Every drop still goes through the rules, so a move that breaks a block rule is refused with its reason.
@@ -10,7 +29,7 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
   - **Smooth wave map** (Michael chose option B): the scene map and the SceneVibe curve are a smooth wave through the middle of each beat, filled with the phase colors underneath. The curve never rises above or dips below the beats on either side, so it never shows a beat as more intense than planned. The animated SceneVibe (Phase 2) will build on this shape. On the SceneVibe, the play shapes sit on the line itself (Michael), each on a small light disc so it reads over any phase color; they keep their own shapes and colors, are a little smaller, and slide apart along the line when they would touch.
   - **Live scene map:** the map stays pinned at the top of the editor while you scroll, shows where a dragged beat would land, and appears in the beat and length sheets, updating as you move the sliders.
 
-- **M5 SceneVibe choices** (Claude, for Michael to confirm):
+- **M5 SceneVibe choices** (Claude, approved Nov 7):
   - **What the SceneVibe shows:** the intensity curve in the Top's phase colors, one marker per kind of play per beat, the date, time, length, place, a "to bring or prepare" note, and the aftercare steps by name. It never shows activity names, gear, DO or SAY words, notes or flags.
   - **Shapes and colors:** impact is an ember triangle, sensation a gold star, restraint a teal square outline, touch a rose circle, fingers (digital) a violet diamond, penetration a garnet hexagon, and a surprise is a question mark in a dashed saffron circle. Surprise markers never show their kind, and each surprise is counted once even if it comes back in a later beat.
   - **Sharing:** the Top shares from "Ready to share", which shows the SceneVibe exactly as the bottom will see it. It's sealed so only the bottom can open it, updates by itself whenever the design changes, and "Stop sharing" withdraws it. Deleting the scene or ending the connection removes it.
@@ -31,7 +50,7 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
   - **Impact gear in order** (Michael): in the Impact category, "Gear, in order" lists impact gear in the order to use it, each as one of the impact picks (guessed from its name, changeable). The design spreads it from the warm-up (about a quarter) through the build (about a third) to the peaks.
   - **Editing time** (Michael): the whole scene's length and each section's length can be changed; beats keep their share, and aftercare grows to fit. Any step can be moved to another beat from its edit sheet.
 
-- **M4b choices** (Claude, for Michael to confirm):
+- **M4b choices** (Claude, approved Nov 7):
   - **A bottom designs for their Top** from the bottom's own latest intake, with every category open, since the Top's offerings aren't shared. Picks start at 6 of 10. The design is sent as a request, sealed so only the Top can open it; the server sees only who sent it to whom, when, and the answer.
   - **The Top accepts or passes.** Accepting saves the Top's own copy with their offerings and settings applied: anything that needs the Top's own confirmation (a no override, edge play, a negotiated act) is taken out and listed, aftercare grows to the Top's setting, and the Top's range shows as warnings. Passing is quiet: the bottom sees that the Top passed and can change the design and send it again. Either person can remove a request, and ending the connection removes them.
   - **A switch chooses the role per scene** in Scene basics. Designing as the bottom sends a request; designing as the Top works as before.
@@ -62,7 +81,7 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
   - **"Toys" is now "Gear"** everywhere in the app (the tab, My gear, Add gear, Share my gear). It is one fixed word, not editable. Discreet mode still says "Kit" and "My items". Sex-toy activities such as "Toys in mouth" keep their names.
   - **Account deletion** removing toy photos waits for M9 (Michael agreed).
 
-- **M3 Top setup and toys** (built; Claude's choices for Michael to confirm):
+- **M3 Top setup and toys** (built; Claude's choices, approved Nov 7):
   - **Offerings:** each play category is a switch with a degree (now a 1 to 10 range, see above). Inside a category every regular activity is on until the Top turns it off, and Tops can add their own. Edge play shows only in Studio mode and is never on by default. Penile and oral sex appear only if the Top turns on "can appear in my scenes" in their settings (off by default), and even then each item is chosen separately and only used when negotiated for that scene.
   - **Top settings:** aftercare 10% to 60% of scene length for regular and intense scenes (intense scenes never under 30 minutes), check-in cadence (none, weekly, twice a week, daily), a one-line voice, phase colors, and a one-tap starting point (now "Default settings"). A phase color too light for white text (under 4.5:1) is refused.
   - **Onboarding:** Tops now get the offerings and settings steps (both skippable). First toys (O7) need an account, so they start from the Toys tab after signing in.
@@ -129,7 +148,7 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 - **Age:** an "I'm 18 or older" confirmation on the welcome screen.
 - **Map axes and quadrants:** in `product-spec.md` (The three maps).
 - **Activity list:** taken from the A.C.E. Pre-Negotiation Form into `src/data/activities.ts`. Tops can add their own activities (M3) and bottoms can add their own in intake (M2). Custom activities behave like built-in ones.
-- **Edge play flags** (Claude's proposal, Michael to confirm): choking, knife play, sharps and plastic wrap mummification. These are never auto-added and need Studio mode and explicit negotiation.
+- **Edge play flags** (Claude's proposal, approved Nov 7): choking, knife play, sharps and plastic wrap mummification. These are never auto-added and need Studio mode and explicit negotiation.
 - **Phase colors:** Claude chooses the defaults; every color is customizable by each Top. Defaults are in `src/content/phases.ts`.
 - **Aftercare:** minimum 30 minutes for any scene marked intense, whatever the Top's percentage setting.
 - **Donations:** Zelle aceofkinkhtx@gmail.com, Cash App $michaelchapter4, Venmo @MichaelPBrown1. (Prompt frequency updated Nov 3: once a month.)

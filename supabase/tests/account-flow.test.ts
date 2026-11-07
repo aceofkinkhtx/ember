@@ -423,6 +423,69 @@ describe('account flow', () => {
     expect((await admin.from('scene_vibes').select('id').eq('id', shared.share!.id)).data).toEqual([]);
   });
 
+  it('runs the pre-scene check and live scene between two phones, all locked (M6)', async () => {
+    await account.signOut();
+    const scenes = await import('../../src/lib/scenes');
+    const vibes = await import('../../src/lib/vibes');
+    const liveSync = await import('../../src/lib/liveSync');
+    const live = await import('../../src/lib/scene/live');
+    const { design } = await import('../../src/lib/scene/designer');
+    const { emptyTopSetup } = await import('../../src/content/topSetup');
+    const intakeLib = await import('../../src/lib/intake');
+
+    await account.signIn(riverUser.email, riverUser.password);
+    const riverKeys = account.loadKeys()!;
+    const conn = (await account.listConnections(riverKeys, river)).find((c) => c.otherId === jadeUser.id)!;
+    const intake = intakeLib.emptyIntake();
+    intake.detailed = { ...intakeLib.emptyDetailed(), answers: { flogger: { choice: 'yes' }, wax: { choice: 'maybe' } } };
+    const top = emptyTopSetup();
+    for (const c of ['impact', 'sensation'] as const) top.offerings.categories[c] = { on: true, min: 1, max: 8 };
+    const ctx = { intake, top, studio: false, optedOutGear: [], gear: [] };
+    const scene = design('climb', {
+      title: 'Live night', connectionId: conn.id, partnerId: jadeUser.id, partnerName: 'Jade', role: 'top',
+      date: '2026-12-02', startTime: '20:00', minutes: 60, location: '', isPublic: false, intense: false, intakeVersion: 1, marks: 'day',
+      useSpecificGear: false, gearIds: [], overrides: [], notes: '',
+      picks: [{ activityId: 'flogger', intensity: 6, surprise: false }, { activityId: 'wax', intensity: 5, surprise: true }]
+    }, ctx);
+    const shared = await vibes.shareVibe(riverKeys, await scenes.saveScene(riverKeys, scene), {});
+    const maybes = live.maybesIn(shared, ctx);
+    expect(maybes.map((m) => m.activityId)).toEqual(['wax']);
+    await liveSync.sendCheck(shared.share!.id, jadeUser.id, { maybes, askedAt: new Date().toISOString() });
+    const { data: raw } = await admin.from('scene_vibes').select('sealed_check').eq('id', shared.share!.id).single();
+    expect(raw!.sealed_check).not.toMatch(/wax|Wax/);
+    await account.signOut();
+
+    // The bottom sees the maybe by name, and says no.
+    await account.signIn(jadeUser.email, jadeUser.password);
+    const mine = (await vibes.listSharedVibes(account.loadKeys()!)).find((v) => v.vibe.title === 'Live night')!;
+    expect(mine.check?.maybes.map((m) => m.activityId)).toEqual(['wax']);
+    expect(mine.answered).toBe(false);
+    const answer = { ...live.emptyBottomCheck(), feeling: 4, excitement: 5, body: 4, emotion: 4, finalNegotiation: true, substanceToday: true, maybes: { wax: 'no' as const }, answeredAt: new Date().toISOString() };
+    await liveSync.answerCheck(mine.id, riverUser.id, answer);
+    await account.signOut();
+
+    // The Top reads it, starts, and the bottom's red reaches the Top's phone.
+    await account.signIn(riverUser.email, riverUser.password);
+    const got = await liveSync.readFromBottom(account.loadKeys()!, shared.share!.id);
+    expect(got?.answer?.maybes).toEqual({ wax: 'no' });
+    const planned = live.removeActivities(shared, ['wax']);
+    expect(JSON.stringify(planned.phases)).not.toContain('"wax"');
+    const running = live.startLive(planned, ctx, { care: live.careInfo(intake) } as never, new Date().toISOString());
+    expect(await liveSync.sendLive(shared.share!.id, jadeUser.id, running)).toBe(true);
+    await account.signOut();
+
+    await account.signIn(jadeUser.email, jadeUser.password);
+    const clock = await liveSync.readLive(account.loadKeys()!, shared.share!.id);
+    expect(clock?.startedAt).toBe(running.startedAt);
+    expect(JSON.stringify(clock)).not.toMatch(/flogger|snapshot|care/);
+    await liveSync.sendSignal(shared.share!.id, riverUser.id, { red: new Date().toISOString(), yellows: [] });
+    await account.signOut();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    expect((await liveSync.readFromBottom(account.loadKeys()!, shared.share!.id))?.signal?.red).toBeTruthy();
+    await scenes.deleteScene(shared.id);
+  });
+
   it("sends a design from bottom to Top as a locked request, accepted into the Top's own scenes", async () => {
     await account.signOut();
     const scenes = await import('../../src/lib/scenes');

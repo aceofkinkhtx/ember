@@ -1,3 +1,4 @@
+import type { LiveState } from './live';
 import type { PhaseType } from '../../content/phases';
 
 // The scene data model (M4): Scene > Phase > Beat > Step, as in
@@ -120,6 +121,10 @@ export interface Scene {
   prepare?: string;
   /** When the SceneVibe was shared with the partner, and its share id. */
   share?: { id: string; sharedAt: string };
+  /** When the pre-scene check was sent to the partner's phone. */
+  checkAskedAt?: string;
+  /** Live Scene Mode (M6): the consent snapshot, clock and log once the scene starts. */
+  live?: LiveState;
   createdAt: string;
   updatedAt: string;
 }

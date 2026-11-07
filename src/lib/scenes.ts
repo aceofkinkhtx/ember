@@ -42,7 +42,8 @@ export async function deleteScene(id: string): Promise<void> {
 /** A copy for reuse: a new id, out of the library, not yet tied to a date. */
 export function copyScene(scene: Scene): Scene {
   const now = new Date().toISOString();
-  return { ...structuredClone(scene), id: crypto.randomUUID(), title: `${scene.title} (copy)`, inLibrary: false, createdAt: now, updatedAt: now };
+  // A copy is a new design: it has not been shared, sent or run.
+  return { ...structuredClone(scene), id: crypto.randomUUID(), title: `${scene.title} (copy)`, inLibrary: false, share: undefined, request: undefined, live: undefined, checkAskedAt: undefined, createdAt: now, updatedAt: now };
 }
 
 // The scene being set up, kept on this phone between the setup screens.

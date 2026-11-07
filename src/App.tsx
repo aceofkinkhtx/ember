@@ -21,6 +21,8 @@ import { Scenes } from './screens/scenes/Scenes';
 import { PlanPage, VibePage } from './screens/scenes/VibePage';
 import { VibeShare } from './screens/scenes/VibeShare';
 import { IntakePage } from './screens/intake/IntakePage';
+import { BottomCheckPage, BottomLivePage } from './screens/live/BottomLive';
+import { LiveScene } from './screens/live/LiveScene';
 import { AccountProvider } from './state/account';
 import { SettingsProvider, useSettings, type Settings } from './state/settings';
 
@@ -39,6 +41,8 @@ function useTheme(guest: boolean) {
 function Shell() {
   const { settings } = useSettings();
   const tabs = tabsByRole[settings.activeRole];
+  // Live Scene Mode fills the screen: no tab bar to tap by accident.
+  const live = /\/(live|check)$/.test(useLocation().pathname);
   return (
     <div className="app">
       <Routes>
@@ -59,6 +63,9 @@ function Shell() {
         <Route path="/scenes/:id/vibe" element={<VibeShare />} />
         <Route path="/vibes/:id" element={<VibePage />} />
         <Route path="/vibes/:id/plan" element={<PlanPage />} />
+        <Route path="/scenes/:id/live" element={<LiveScene />} />
+        <Route path="/vibes/:id/check" element={<BottomCheckPage />} />
+        <Route path="/vibes/:id/live" element={<BottomLivePage />} />
         {tabs
           .filter((t) => t !== 'home' && t !== 'me' && t !== 'connections' && t !== 'profile' && t !== 'toys' && t !== 'scenes')
           .map((t) => (
@@ -66,7 +73,7 @@ function Shell() {
           ))}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <TabBar />
+      {!live && <TabBar />}
     </div>
   );
 }
