@@ -72,6 +72,7 @@ export interface GearStep {
 const plans: Record<ArcShape, [PhaseType, number][]> = {
   climb: [['arrival', 0.1], ['build', 0.4], ['peak', 0.25], ['descent', 0.15], ['close', 0.1]],
   twin: [['arrival', 0.08], ['build', 0.22], ['peak', 0.12], ['recovery', 0.08], ['peak', 0.25], ['descent', 0.15], ['close', 0.1]],
+  custom: [['arrival', 0.1], ['build', 0.4], ['peak', 0.25], ['descent', 0.15], ['close', 0.1]],
   waves: [['arrival', 0.08], ['build', 0.17], ['peak', 0.1], ['recovery', 0.07], ['peak', 0.12], ['recovery', 0.07], ['peak', 0.14], ['descent', 0.15], ['close', 0.1]]
 };
 
@@ -90,6 +91,7 @@ const INSERTABLE_STAGE = (a: Activity): Stage | null => (a.category === 'penetra
 const minutesOf = (total: number, share: number) => Math.max(2, Math.round(total * share));
 
 export function design(shape: ArcShape, req: DesignRequest, ctx: RuleContext): Scene {
+  if (shape === 'custom') return customDesign(req, ctx);
   const now = new Date().toISOString();
   const gearPlan = (req.impactPlan ?? []).filter((g) => activityOf(ctx, g.activityId) && !ctx.optedOutGear.includes(g.gearId));
   const picked = req.picks
@@ -266,6 +268,32 @@ export function design(shape: ArcShape, req: DesignRequest, ctx: RuleContext): S
   };
   scene.nextMorningCheckIn = needsNextMorningCheckIn(scene, ctx);
   return scene;
+}
+
+/**
+ * Build your own: the usual sections, each with one empty beat to fill. Only
+ * what the safety rules need comes filled in: the spoken landing line in the
+ * descent, and aftercare.
+ */
+export function customDesign(req: DesignRequest, ctx: RuleContext): Scene {
+  const empty: Record<string, Partial<Beat>> = {
+    arrival: { title: 'Arrival', intensity: 2 },
+    build: { kind: 'warmup', title: 'Warm-up', intensity: 3 },
+    peak: { title: 'Peak', intensity: 6 },
+    descent: { kind: 'landing', title: fixed.descent.title, intensity: 3, steps: [newStep({ do: fixed.descent.do, say: fixed.descent.say })] },
+    close: { kind: 'named', title: 'Close', intensity: 1 }
+  };
+  // Section lengths add up to the play time; the close takes what rounding leaves.
+  const lengths = plans.custom.map(([, share]) => minutesOf(req.minutes, share));
+  lengths[lengths.length - 1] = Math.max(2, req.minutes - lengths.slice(0, -1).reduce((n, m) => n + m, 0));
+  const phases: Phase[] = plans.custom.map(([type], i) => ({
+    id: newId('p'),
+    type,
+    beats: [newBeat({ steps: [], ...empty[type], minutes: lengths[i] })]
+  }));
+  const scene = design('climb', { ...req, picks: [], impactPlan: [] }, ctx);
+  phases.push(aftercarePhase(phases, req, ctx));
+  return { ...scene, shape: 'custom', picks: req.picks, phases, nextMorningCheckIn: false };
 }
 
 function aftercarePhase(play: Phase[], req: DesignRequest, ctx: RuleContext): Phase {

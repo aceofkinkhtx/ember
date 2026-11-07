@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { BeatSheet, MinutesSheet, StepSheet } from '../../components/scene/EditSheets';
+import { BeatSheet, GearSheet, MinutesSheet, StepSheet } from '../../components/scene/EditSheets';
 import { moveStep, placeBeat, placeStep, playMinutes, setPhaseMinutes, setPlayMinutes, withAftercareFit } from '../../lib/scene/timing';
 import { MiniCurve, PhaseStrip, sceneFacts, usePhaseColor } from '../../components/scene/SceneCurve';
 import { RequestCard, ReuseSheet } from '../../components/scene/SceneActions';
@@ -29,6 +29,7 @@ import { useSceneData } from '../../state/sceneContext';
 type Editing =
   | { kind: 'beat'; phaseId: string; beatId: string }
   | { kind: 'step'; beatId: string; stepId: string }
+  | { kind: 'gear'; beatId: string }
   | { kind: 'phase-time'; phaseId: string }
   | { kind: 'play-time' }
   | null;
@@ -228,6 +229,7 @@ export function SceneEditor() {
         stepDrag={stepDrag}
         onEditBeat={(phaseId, beatId) => setEditing({ kind: 'beat', phaseId, beatId })}
         onEditStep={(beatId, stepId) => setEditing({ kind: 'step', beatId, stepId })}
+        onAddGear={(beatId) => setEditing({ kind: 'gear', beatId })}
         onEditPhaseTime={(phaseId) => setEditing({ kind: 'phase-time', phaseId })}
       />
 
@@ -361,6 +363,22 @@ export function SceneEditor() {
           onClose={() => setEditing(null)}
         />
       )}
+      {editing?.kind === 'gear' && beatById(editing.beatId) && (
+        <GearSheet
+          gear={data.gear.filter((g) => !ctx.optedOutGear.includes(g.id))}
+          partnerName={scene.partnerId && !data.theirGearShown ? scene.partnerName : ''}
+          onShowTheirGear={showTheirGear}
+          onPick={(g) => {
+            const beatId = editing.beatId;
+            const step = newStep({ gearId: g.id, do: `Use the ${g.name.toLowerCase()}.` });
+            const reason = apply(mapPhases((p) => ({ ...p, beats: p.beats.map((b) => (b.id === beatId ? { ...b, steps: [...b.steps, step] } : b)) })));
+            if (reason) return reason;
+            setEditing({ kind: 'step', beatId, stepId: step.id });
+            return null;
+          }}
+          onClose={() => setEditing(null)}
+        />
+      )}
       {confirmDelete && (
         <div className="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="scene-delete-title">
           <div className="sheet">
@@ -458,6 +476,7 @@ function Phases({
   stepDrag,
   onEditBeat,
   onEditStep,
+  onAddGear,
   onEditPhaseTime
 }: {
   scene: Scene;
@@ -469,6 +488,7 @@ function Phases({
   stepDrag: Drag;
   onEditBeat: (phaseId: string, beatId: string) => void;
   onEditStep: (beatId: string, stepId: string) => void;
+  onAddGear: (beatId: string) => void;
   onEditPhaseTime: (phaseId: string) => void;
 }) {
   const colorOf = usePhaseColor();
@@ -498,7 +518,7 @@ function Phases({
                 {phaseMinutes(phase)} min ✎
               </button>
             </summary>
-            <Beats scene={scene} phase={phase} ctx={ctx} issues={issues} auto={auto} onApply={onApply} beatDrag={beatDrag} stepDrag={stepDrag} onEditBeat={onEditBeat} onEditStep={onEditStep} />
+            <Beats scene={scene} phase={phase} ctx={ctx} issues={issues} auto={auto} onApply={onApply} beatDrag={beatDrag} stepDrag={stepDrag} onEditBeat={onEditBeat} onEditStep={onEditStep} onAddGear={onAddGear} />
           </details>
         );
       })}
@@ -516,7 +536,8 @@ function Beats({
   beatDrag,
   stepDrag,
   onEditBeat,
-  onEditStep
+  onEditStep,
+  onAddGear
 }: {
   scene: Scene;
   phase: Phase;
@@ -528,6 +549,7 @@ function Beats({
   stepDrag: Drag;
   onEditBeat: (phaseId: string, beatId: string) => void;
   onEditStep: (beatId: string, stepId: string) => void;
+  onAddGear: (beatId: string) => void;
 }) {
   const withBeats = (beats: Beat[]) => ({ ...scene, phases: scene.phases.map((p) => (p.id === phase.id ? { ...p, beats } : p)) });
   return (
@@ -571,7 +593,7 @@ function Beats({
                 {f.text}
               </p>
             ))}
-            <Steps scene={scene} beat={beat} ctx={ctx} onApply={onApply} stepDrag={stepDrag} onEditStep={onEditStep} />
+            <Steps scene={scene} beat={beat} ctx={ctx} onApply={onApply} stepDrag={stepDrag} onEditStep={onEditStep} onAddGear={onAddGear} />
           </article>
         );
       })}
@@ -594,7 +616,8 @@ function Steps({
   ctx,
   onApply,
   stepDrag,
-  onEditStep
+  onEditStep,
+  onAddGear
 }: {
   scene: Scene;
   beat: Beat;
@@ -602,12 +625,13 @@ function Steps({
   onApply: (next: Scene) => string | null;
   stepDrag: Drag;
   onEditStep: (beatId: string, stepId: string) => void;
+  onAddGear: (beatId: string) => void;
 }) {
   const withSteps = (steps: Step[]) => ({ ...scene, phases: scene.phases.map((p) => ({ ...p, beats: p.beats.map((b) => (b.id === beat.id ? { ...b, steps } : b)) })) });
   const label = (s: Step) => {
     const gear = s.gearId ? ctx.gear.find((g) => g.id === s.gearId)?.name : undefined;
     const what = activityOf(ctx, s.activityId)?.label ?? (s.do.split('.')[0] || 'Step');
-    return gear ? `${what} (${gear})` : what;
+    return gear && !what.toLowerCase().includes(gear.toLowerCase()) ? `${what} (${gear})` : what;
   };
   return (
     <ol className="stack" style={{ gap: 4, margin: 0, padding: 0, listStyle: 'none' }} {...stepDrag.container(beat.id)}>
@@ -628,9 +652,12 @@ function Steps({
           </li>
         );
       })}
-      <li>
+      <li style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
         <button type="button" className="btn btn-quiet" onClick={() => onApply(withSteps([...beat.steps, newStep()]))}>
           + Add step
+        </button>
+        <button type="button" className="btn btn-quiet" onClick={() => onAddGear(beat.id)}>
+          + Add gear
         </button>
       </li>
     </ol>

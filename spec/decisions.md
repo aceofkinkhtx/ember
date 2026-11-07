@@ -6,6 +6,10 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 - **Michael approved every pending choice** ("yes to all"): the M6 choices marked as Claude's, the M5 SceneVibe choices, the M4b choices, the M3 choices and the edge play list below now stand as decisions.
 - **M6 went live:** the database change was applied to the real database with Michael's OK.
+- **Build your own (Michael):** alongside the starting designs there is a custom design. It has the usual sections (arrival, build, peak, descent, close), each with one empty beat that the Top or bottom adds to, moves, resizes and fills with their own actions. It is always offered, and it is the only choice when nothing is picked. Section lengths add up to the play time.
+  - Claude's call, by the safety rules: the descent keeps its spoken landing line (a block rule) and aftercare comes filled in, so an empty design never breaks the safety floor. The close starts empty and shows its usual amber reminder.
+- **Gear is added inside each section (Michael):** the "Use specific gear" toggle before the design is gone. Every beat in every section has "+ Add gear": pick a piece (yours, or theirs after "Show their gear"), and it becomes a step in that beat, opened so you can choose what it is for. Gear kept out of scenes with that person is never offered. Replaces the Nov 3 "Specific toys are a toggle" decision.
+  - Claude's call: "Gear, in order" inside Impact stays, since it plans the impact progression; it now notes that gear can also be added in the editor.
 
 ## Nov 6, 2026
 
@@ -114,7 +118,7 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 - **Scene names.** Every name field asks for a scene name, so people share only what they choose. The scene name on a personal code is the one name Ember keeps readable on the server, because anyone with the code sees it.
 - **Each person picks their own role in each connection:** Top, bottom or switch, and can change it later. Two switches can connect; two Tops or two bottoms can't, since no scene could be planned. With a switch, whoever designs a scene chooses the role they design it as (M4).
 - **Electricity is not edge play.** It stays a regular sensation activity (Michael confirmed). The edge flags for choking, knife play, sharps and mummification are unchanged.
-- **Specific toys are a toggle, not a separate design type.** Replaces the "Centerpiece" idea. Every scene design gets a toggle, "Use specific toys," off by default. When it is on, the designer picks toys to build around. (M4.)
+- **(Replaced Nov 7: gear is now added inside each section.)** **Specific toys are a toggle, not a separate design type.** Replaces the "Centerpiece" idea. Every scene design gets a toggle, "Use specific toys," off by default. When it is on, the designer picks toys to build around. (M4.)
   - A bottom designing for a chosen Top sees that Top's shared toys when they ask for them, through a "Show their toys" button, not up front.
   - A Top picks from their own toys.
   - Bottoms can keep their own toy collection too (M3, alongside the Top's toy directory).

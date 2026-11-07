@@ -319,6 +319,71 @@ export function StepSheet({
   );
 }
 
+/**
+ * Add gear to a beat: pick a piece, and it becomes a new step there, opened
+ * so you can say what it is for. Gear kept out of scenes with this person
+ * isn't offered.
+ */
+export function GearSheet({
+  gear,
+  partnerName,
+  onShowTheirGear,
+  onPick,
+  onClose
+}: {
+  gear: Toy[];
+  /** Set while the partner's shared gear isn't shown yet. */
+  partnerName: string;
+  onShowTheirGear: () => Promise<number>;
+  onPick: (g: Toy) => string | null;
+  onClose: () => void;
+}) {
+  const { keys } = useAccount();
+  const [note, setNote] = useState('');
+  return (
+    <Sheet title="Add gear" onClose={onClose}>
+      {gear.length ? (
+        <div className="stack" style={{ gap: 6 }}>
+          {gear.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              className="choice"
+              style={{ justifyContent: 'space-between' }}
+              onClick={() => {
+                const reason = onPick(g);
+                if (reason) setNote(reason);
+              }}
+            >
+              <span className="choice-word">{g.name}</span>
+              <span className="note">{g.ownerId !== keys?.userId ? 'theirs' : g.types.join(', ')}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="note" style={{ margin: 0 }}>
+          No gear yet. Add pieces in the Gear tab.
+        </p>
+      )}
+      {partnerName && (
+        <button
+          type="button"
+          className="btn btn-outline"
+          style={{ alignSelf: 'flex-start' }}
+          onClick={() => void onShowTheirGear().then((n) => setNote(n ? '' : `${partnerName} isn't sharing any gear with you.`))}
+        >
+          Show {partnerName}'s gear
+        </button>
+      )}
+      {note && (
+        <p className="note" role="status" style={{ margin: 0 }}>
+          {note}
+        </p>
+      )}
+    </Sheet>
+  );
+}
+
 /** Set a length in minutes: a whole section, or the scene's play time. */
 export function MinutesSheet({
   title,

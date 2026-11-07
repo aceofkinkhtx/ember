@@ -1,6 +1,6 @@
 import { emptyTopSetup } from '../../content/topSetup';
 import { emptyAftercare, emptyDetailed, emptyIntake, type Intake } from '../intake';
-import { designOptions, shapeOrder, suggestedPicks, type DesignRequest } from './designer';
+import { customDesign, designOptions, shapeOrder, suggestedPicks, type DesignRequest } from './designer';
 import { blocks, validate, type RuleContext } from './rules';
 
 // The auto-designer only builds from yes items the Top offers, and every
@@ -179,5 +179,22 @@ describe('planned impact gear', () => {
     const [scene] = designOptions(request(ctx, { impactPlan }), ctx);
     const used = scene.phases.flatMap((p) => p.beats.flatMap((b) => b.steps.map((s) => s.gearId)));
     expect(used).not.toContain('rattan');
+  });
+});
+
+describe('build your own', () => {
+  it('starts with the usual sections empty, only the safety pieces filled, and passes every block rule', () => {
+    const ctx = context(lots);
+    const scene = customDesign(request(ctx), ctx);
+    expect(scene.shape).toBe('custom');
+    expect(scene.phases.map((p) => p.type)).toEqual(['arrival', 'build', 'peak', 'descent', 'close', 'aftercare']);
+    const steps = (type: string) => scene.phases.filter((p) => p.type === type).flatMap((p) => p.beats.flatMap((b) => b.steps));
+    for (const t of ['arrival', 'build', 'peak', 'close']) expect(steps(t)).toEqual([]);
+    expect(steps('descent')[0].say).toMatch(/coming down/i);
+    expect(steps('aftercare').length).toBeGreaterThan(0);
+    expect(scene.phases.slice(0, 5).reduce((n, p) => n + p.beats[0].minutes, 0)).toBe(90);
+    expect(blocks(validate(scene, ctx))).toEqual([]);
+    // The picks are kept for reference; none are placed.
+    expect(scene.picks.length).toBeGreaterThan(0);
   });
 });

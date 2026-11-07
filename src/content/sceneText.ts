@@ -7,7 +7,8 @@ import type { ArcShape } from '../lib/scene/model';
 export const shapes: Record<ArcShape, { label: string; desc: string }> = {
   climb: { label: 'One long climb', desc: 'A patient build to a single peak, then a slow way down.' },
   twin: { label: 'Two peaks', desc: 'A lighter first peak, a real rest, then a fuller second peak.' },
-  waves: { label: 'Waves', desc: 'Three smaller peaks, each a little higher, with breaths between.' }
+  waves: { label: 'Waves', desc: 'Three smaller peaks, each a little higher, with breaths between.' },
+  custom: { label: 'Build your own', desc: 'Empty sections in the usual order. Add beats, move them, and fill them with your own actions.' }
 };
 
 /** Which shape fits each Flow word best. */

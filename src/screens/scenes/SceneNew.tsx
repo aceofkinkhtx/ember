@@ -10,7 +10,7 @@ import { categories, markOptions } from '../../data/activities';
 import type { Toy } from '../../lib/toys';
 import { moved } from '../../components/scene/useReorder';
 import { AccountError, cardFor, listConnections, type Connection } from '../../lib/account';
-import { designOptions, suggestedPicks, type DesignRequest } from '../../lib/scene/designer';
+import { customDesign, designOptions, suggestedPicks, type DesignRequest } from '../../lib/scene/designer';
 import type { Pick } from '../../lib/scene/model';
 import { activityOf, blocks, validate, warnings } from '../../lib/scene/rules';
 import { clearSceneDraft, loadSceneDraft, saveScene, saveSceneDraft } from '../../lib/scenes';
@@ -59,7 +59,8 @@ export function SceneNew() {
   const [req, setReq] = useState<DesignRequest>(() => {
     const draft = loadSceneDraft()?.request;
     const wanted = params.get('connection');
-    return draft && (!wanted || draft.connectionId === wanted) ? draft : { ...blankRequest(), connectionId: wanted };
+    // Gear is chosen inside each section now, not before the design.
+    return draft && (!wanted || draft.connectionId === wanted) ? { ...draft, useSpecificGear: false, gearIds: [] } : { ...blankRequest(), connectionId: wanted };
   });
   const [picksReady, setPicksReady] = useState(req.picks.length > 0);
   const [error, setError] = useState('');
@@ -118,7 +119,7 @@ export function SceneNew() {
     setBusy(true);
     setError('');
     try {
-      const options = designOptions(req, data.ctx);
+      const options = startingDesigns(req, data.ctx);
       const saved = await saveScene(keys, req.solo ? { ...options[index], inLibrary: true } : options[index]);
       clearSceneDraft();
       navigate(`/scenes/${saved.id}`, { replace: true });
@@ -143,7 +144,6 @@ export function SceneNew() {
           set={set}
           people={people}
           data={data}
-          showTheirGear={showTheirGear}
           onNext={() => setStep('picks')}
           onPerson={(c) => {
             setPicksReady(false);
@@ -159,7 +159,7 @@ export function SceneNew() {
           }}
         />
       )}
-      {step === 'picks' && data && <Picks req={req} set={set} ctx={data.ctx} gear={data.gear.filter((g) => !data.ctx.optedOutGear.includes(g.id))} onBack={() => setStep('basics')} onNext={() => setStep('options')} />}
+      {step === 'picks' && data && <Picks req={req} set={set} ctx={data.ctx} gear={data.gear.filter((g) => !data.ctx.optedOutGear.includes(g.id))} onShowTheirGear={req.partnerId && !data.theirGearShown ? () => void showTheirGear() : undefined} onBack={() => setStep('basics')} onNext={() => setStep('options')} />}
       {step === 'options' && data && <Options req={req} data={data} busy={busy} onBack={() => setStep('picks')} onChoose={choose} />}
       {error && (
         <p className="note error" role="alert">
@@ -175,7 +175,6 @@ function Basics({
   set,
   people,
   data,
-  showTheirGear,
   onPerson,
   onSolo,
   onRole,
@@ -185,20 +184,16 @@ function Basics({
   set: (patch: Partial<DesignRequest>) => void;
   people: Connection[] | null;
   data: SceneData | null | undefined;
-  showTheirGear: () => Promise<number>;
   onPerson: (c: Connection) => void;
   onSolo: (role: 'top' | 'bottom') => void;
   onRole: (role: 'top' | 'bottom') => void;
   onNext: () => void;
 }) {
   const { settings } = useSettings();
-  const { keys } = useAccount();
-  const [gearNote, setGearNote] = useState('');
   if (people === null) return <p className="note">Loading...</p>;
   const agreed = data?.ctx.intakeOf === 'none' ? 'open' : (data?.ctx.intake?.detailed?.impact.marks ?? 'none');
   const marks = markOptions.filter((m) => MARK_ORDER.indexOf(m.id) <= MARK_ORDER.indexOf(agreed));
   const pct = req.intense ? settings.top.settings.intensePercent : settings.top.settings.aftercarePercent;
-  const gear = (data?.gear ?? []).filter((g) => !data?.ctx.optedOutGear.includes(g.id));
   const hours = `${Math.floor(req.minutes / 60) ? `${Math.floor(req.minutes / 60)} h ` : ''}${req.minutes % 60 ? `${req.minutes % 60} min` : ''}`.trim();
 
   return (
@@ -312,43 +307,6 @@ function Basics({
         )}
       </section>
 
-      <section className="card stack" style={{ gap: 12 }}>
-        <SettingSwitch
-          label="Use specific gear"
-          description={gear.length ? 'Build the design around pieces you choose.' : 'Add gear in the Gear tab to use this.'}
-          checked={req.useSpecificGear}
-          onChange={(useSpecificGear) => set({ useSpecificGear })}
-        />
-        {req.useSpecificGear && gear.length > 0 && (
-          <div className="chips" role="group" aria-label="Gear to use">
-            {gear.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                className="chip"
-                aria-pressed={req.gearIds.includes(g.id)}
-                onClick={() => set({ gearIds: req.gearIds.includes(g.id) ? req.gearIds.filter((x) => x !== g.id) : [...req.gearIds, g.id] })}
-              >
-                {g.name}
-                {g.ownerId !== keys?.userId ? ' (theirs)' : ''}
-              </button>
-            ))}
-          </div>
-        )}
-        {req.useSpecificGear && data && !data.theirGearShown && req.partnerId && (
-          <button
-            type="button"
-            className="btn btn-outline"
-            style={{ alignSelf: 'flex-start' }}
-            onClick={() => void showTheirGear().then((n) => setGearNote(n ? '' : `${req.partnerName} isn't sharing any gear with you.`))}
-          >
-            Show their gear
-          </button>
-        )}
-        {gearNote && <p className="note" style={{ margin: 0 }}>{gearNote}</p>}
-        {(data?.ctx.optedOutGear.length ?? 0) > 0 && <p className="note" style={{ margin: 0 }}>Gear kept out of scenes with {req.partnerName} isn't shown.</p>}
-      </section>
-
       <button type="button" className="btn btn-primary btn-block" disabled={(!req.connectionId && !req.solo) || !data || !req.title.trim()} onClick={onNext}>
         Continue
       </button>
@@ -361,6 +319,7 @@ function Picks({
   set,
   ctx,
   gear,
+  onShowTheirGear,
   onBack,
   onNext
 }: {
@@ -368,6 +327,7 @@ function Picks({
   set: (patch: Partial<DesignRequest>) => void;
   ctx: SceneData['ctx'];
   gear: Toy[];
+  onShowTheirGear?: () => void;
   onBack: () => void;
   onNext: () => void;
 }) {
@@ -404,7 +364,7 @@ function Picks({
                 {picks.length} chosen {open === c.id ? '▴' : '▾'}
               </span>
             </button>
-            {open === c.id && c.id === 'impact' && <GearPlan req={req} set={set} ctx={ctx} gear={gear} />}
+            {open === c.id && c.id === 'impact' && <GearPlan req={req} set={set} ctx={ctx} gear={gear} onShowTheirGear={onShowTheirGear} />}
             {open === c.id &&
               picks.map((p) => {
           const a = activityOf(ctx, p.activityId);
@@ -471,9 +431,10 @@ function Picks({
           onChange={(notes) => set({ notes })}
         />
       </section>
-      <button type="button" className="btn btn-primary btn-block" disabled={!req.picks.length} onClick={onNext}>
-        See designs
+      <button type="button" className="btn btn-primary btn-block" onClick={onNext}>
+        {req.picks.length ? 'See designs' : 'Build your own'}
       </button>
+      {!req.picks.length && <p className="note" style={{ margin: 0, textAlign: 'center' }}>With nothing chosen, you start from empty sections.</p>}
       <button type="button" className="btn btn-quiet btn-block" onClick={onBack}>
         Back
       </button>
@@ -494,12 +455,12 @@ function Options({
   onBack: () => void;
   onChoose: (index: number) => void;
 }) {
-  const options = useMemo(() => designOptions(req, data.ctx), [req, data.ctx]);
+  const options = useMemo(() => startingDesigns(req, data.ctx), [req, data.ctx]);
   const [open, setOpen] = useState<number | null>(null);
   return (
     <>
       <h1>Pick a starting design</h1>
-      <p className="lede">Each is a different shape. Everything stays editable.</p>
+      <p className="lede">{options.length > 1 ? 'Each is a different shape, or build your own from empty sections. Everything stays editable.' : 'Start from empty sections and fill them with your own actions.'}</p>
       {options.map((scene, i) => {
         const issues = validate(scene, data.ctx);
         const warn = warnings(issues).length;
@@ -549,6 +510,11 @@ function Options({
   );
 }
 
+/** The starting designs (when there are picks to place), then Build your own. */
+function startingDesigns(req: DesignRequest, ctx: SceneData['ctx']) {
+  return [...(req.picks.length ? designOptions(req, ctx) : []), customDesign(req, ctx)];
+}
+
 /** Guesses which impact pick a piece of gear is, from its name. */
 function guessActivity(name: string, impactIds: string[]): string {
   const n = name.toLowerCase();
@@ -568,7 +534,7 @@ function guessActivity(name: string, impactIds: string[]): string {
  * of your impact picks. Ember builds the impact progression from this order,
  * warm-up through the peaks.
  */
-function GearPlan({ req, set, ctx, gear }: { req: DesignRequest; set: (patch: Partial<DesignRequest>) => void; ctx: SceneData['ctx']; gear: Toy[] }) {
+function GearPlan({ req, set, ctx, gear, onShowTheirGear }: { req: DesignRequest; set: (patch: Partial<DesignRequest>) => void; ctx: SceneData['ctx']; gear: Toy[]; onShowTheirGear?: () => void }) {
   const { keys } = useAccount();
   const impactPicks = req.picks.map((p) => activityOf(ctx, p.activityId)).filter((a) => a?.category === 'impact') as NonNullable<ReturnType<typeof activityOf>>[];
   const plan = req.impactPlan ?? [];
@@ -583,13 +549,18 @@ function GearPlan({ req, set, ctx, gear }: { req: DesignRequest; set: (patch: Pa
     <section className="card stack" style={{ gap: 10 }} aria-label="Gear, in order">
       <div className="card-title">Gear, in order</div>
       <p className="setting-desc" style={{ margin: 0 }}>
-        Plan the progression: list your impact gear in the order you want to use it. Ember spreads it from the warm-up to the peaks.
+        Plan the progression: list your impact gear in the order you want to use it. Ember spreads it from the warm-up to the peaks. You can also add gear to any section later, in the editor.
       </p>
+      {onShowTheirGear && (
+        <button type="button" className="btn btn-quiet" style={{ alignSelf: 'flex-start' }} onClick={onShowTheirGear}>
+          Show {req.partnerName}'s gear too
+        </button>
+      )}
       {!impactPicks.length ? (
         <p className="note" style={{ margin: 0 }}>Add an impact activity first, so each piece has something to be.</p>
       ) : !impactGear.length ? (
         <p className="note" style={{ margin: 0 }}>
-          Add impact gear in the Gear tab{req.partnerId ? ', or tap "Show their gear" in the basics' : ''} to plan it here.
+          Add impact gear in the Gear tab to plan it here.
         </p>
       ) : (
         <>

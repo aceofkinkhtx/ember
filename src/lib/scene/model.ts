@@ -5,7 +5,8 @@ import type { PhaseType } from '../../content/phases';
 // intake-and-data-model.md. Pure data, no UI, so the rules engine can be
 // tested on its own.
 
-export type ArcShape = 'climb' | 'twin' | 'waves';
+/** The arc a design starts from; custom starts with empty sections. */
+export type ArcShape = 'climb' | 'twin' | 'waves' | 'custom';
 
 export type RequestStatus = 'sent' | 'accepted' | 'declined';
 
