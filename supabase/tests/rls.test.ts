@@ -864,6 +864,14 @@ describe('after the scene and messages (M7)', () => {
     expect((await admin.from('reports').select('reason').eq('reporter_id', sub.id)).data).toEqual([{ reason: 'harassment' }]);
   });
 
+  it('take beta feedback that nobody can read in the app, or send for someone else', async () => {
+    expect((await sub.db.from('beta_feedback').insert({ kind: 'feedback', answers: { overall: { best: 'Fictional praise' } }, app_version: '0.1' })).error).toBeNull();
+    expect((await sub.db.from('beta_feedback').insert({ kind: 'problem', answers: {}, user_id: top.id })).error).not.toBeNull();
+    expect((await anon.from('beta_feedback').insert({ kind: 'problem', answers: {} })).error).not.toBeNull();
+    expect((await sub.db.from('beta_feedback').select('id')).data ?? []).toEqual([]);
+    expect((await admin.from('beta_feedback').select('kind').eq('user_id', sub.id)).data).toEqual([{ kind: 'feedback' }]);
+  });
+
   it('keep each phone alert sign-up to its owner', async () => {
     const one = { endpoint: `https://push.example.com/${run}`, p256dh: 'k', auth: 'a' };
     expect((await top.db.from('push_subscriptions').insert(one)).error).toBeNull();

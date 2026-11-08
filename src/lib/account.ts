@@ -182,6 +182,7 @@ export async function signOut(): Promise<void> {
     window.localStorage.removeItem('ember.sceneDraft');
     window.localStorage.removeItem('ember.live');
     window.localStorage.removeItem('ember.clearedThreads');
+    window.localStorage.removeItem('ember.feedbackDraft');
     window.localStorage.removeItem(AVATAR);
   } catch {
     // Storage unavailable: nothing was saved.

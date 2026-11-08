@@ -15,6 +15,7 @@ import { Profile } from './screens/Profile';
 import { ToyEdit } from './screens/ToyEdit';
 import { Toys } from './screens/Toys';
 import { OfferingsPage, TopSettingsPage } from './screens/TopSetupPages';
+import { FeedbackPage } from './screens/Feedback';
 import { SceneEditor } from './screens/scenes/SceneEditor';
 import { SceneNew } from './screens/scenes/SceneNew';
 import { Scenes } from './screens/scenes/Scenes';
@@ -59,6 +60,7 @@ function Shell() {
         <Route path="/toys/:id" element={<ToyEdit />} />
         <Route path="/me/offerings" element={<OfferingsPage />} />
         <Route path="/me/top-settings" element={<TopSettingsPage />} />
+        <Route path="/me/feedback" element={<FeedbackPage />} />
         <Route path="/scenes" element={<Scenes />} />
         <Route path="/scenes/new" element={<SceneNew />} />
         <Route path="/scenes/:id" element={<SceneEditor />} />

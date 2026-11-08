@@ -48,6 +48,14 @@ export function Me() {
       <h1>Me</h1>
       <AvatarEditor />
 
+      <Link to="/me/feedback" className="card setting" style={{ color: 'inherit', textDecoration: 'none' }}>
+        <div>
+          <div className="setting-label">Beta feedback</div>
+          <div className="setting-desc">Tell Michael how each part works for you, or report a problem.</div>
+        </div>
+        <span aria-hidden="true">›</span>
+      </Link>
+
       <details className="card">
         <summary className="card-title" style={{ cursor: 'pointer', minHeight: 'var(--touch)', display: 'flex', alignItems: 'center' }}>
           About you
