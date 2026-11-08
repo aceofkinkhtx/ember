@@ -25,7 +25,7 @@ export function ActivityTag({ ctx, activity }: { ctx: RuleContext; activity: Act
 
 /** Everything a designer could add, with the bottom's own additions. */
 export function choosable(ctx: RuleContext): Activity[] {
-  const mine = allTopActivities(ctx.top.offerings).filter((a) => available(a, ctx.top.settings, true));
+  const mine = allTopActivities(ctx.top.offerings).filter((a) => available(a, ctx.top.settings));
   return [...mine, ...(ctx.intake?.detailed?.custom ?? [])];
 }
 

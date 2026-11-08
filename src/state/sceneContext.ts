@@ -73,7 +73,6 @@ function toData(loaded: Loaded, settings: Settings, role: 'top' | 'bottom', part
     ctx: {
       intake: loaded.intake,
       top: role === 'bottom' ? openSetup() : settings.top,
-      studio: settings.depth === 'studio',
       optedOutGear: loaded.optedOut,
       gear: gear.map((g) => ({ id: g.id, name: g.name, feel: g.feel, types: g.types })),
       intakeOf: role === 'bottom' ? 'self' : partnerId ? 'partner' : 'none'

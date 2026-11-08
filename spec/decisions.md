@@ -4,6 +4,19 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 7, 2026
 
+- **M7 went live** with Michael's OK: the database change, the alert sender and its 5-minute job.
+- **Simple and Studio are merged (Michael):** "the distinction doesn't offer enough to be two different modes." There is one mode. The Depth step in onboarding and the Depth control in Me are gone.
+  - Claude's call, by the safety rules: edge play is still never on by default. A Top turns on each kind in Offerings, it is never suggested in a design, and it is added to a scene only after the Top confirms it was negotiated for that scene (a block rule, unchanged). The only thing removed is the extra Studio switch in front of it.
+- **M9 Hardening** (Michael: "run M9 and push it"). Claude's choices, for Michael to confirm:
+  - **Download my data** (Me, Your data): unlocks everything the person can read on that phone (profile versions, gear with photos, scenes, connections with their messages, their own check-ins and debriefs, and this phone's settings without the PIN) into one JSON file saved on the phone. Nothing is sent anywhere. The file is not locked, and Me says so.
+  - **Delete my account:** typed confirmation ("DELETE"). It removes the person's photo files first, then the account; every table that belongs to the account goes with it, including their connections, and the messages and check-ins on both sides. The other person isn't told.
+  - **Reports survive the reported person deleting their account,** so deleting can't erase a report. The reporter's own reports still go with the reporter's account.
+  - **Face ID or fingerprint** (Me, Privacy, shown only with a PIN, on phones that support it): uses the phone's own passkey check. It's a screen lock like the PIN, nothing about a face or finger reaches Ember, and the PIN always still works.
+  - **"Forgot PIN?"** now also says that signing in again brings back locked account data.
+  - **Security review:** every table has row-level security; every privileged database function fixes its search path; the only things that work without signing in are the invite, guest link and personal code lookups, as designed.
+  - **Accessibility pass:** an automated WCAG 2.1 AA check of the main Top and bottom screens found no problems. The role buttons and on/off switches now have 44 px touch areas.
+  - **Offline check:** the whole app and its fonts are stored on the phone, so it opens without signal; a running scene works from the phone, and a Red that can't reach the Top's phone tells the bottom to say it out loud.
+
 - **Michael approved every pending choice** ("yes to all"): the M6 choices marked as Claude's, the M5 SceneVibe choices, the M4b choices, the M3 choices and the edge play list below now stand as decisions.
 - **M6 went live:** the database change was applied to the real database with Michael's OK.
 - **Build your own (Michael):** alongside the starting designs there is a custom design. It has the usual sections (arrival, build, peak, descent, close), each with one empty beat that the Top or bottom adds to, moves, resizes and fills with their own actions. It is always offered, and it is the only choice when nothing is picked. Section lengths add up to the play time.

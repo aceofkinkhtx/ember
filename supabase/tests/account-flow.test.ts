@@ -382,7 +382,7 @@ describe('account flow', () => {
     intake.detailed = { ...intakeLib.emptyDetailed(), answers: { flogger: { choice: 'yes' }, wax: { choice: 'yes' } } };
     const top = emptyTopSetup();
     for (const c of ['impact', 'sensation'] as const) top.offerings.categories[c] = { on: true, min: 1, max: 8 };
-    const ctx = { intake, top, studio: false, optedOutGear: [], gear: [] };
+    const ctx = { intake, top, optedOutGear: [], gear: [] };
     const scene = design('climb', {
       title: 'Ember night', connectionId: conn.id, partnerId: jadeUser.id, partnerName: 'Jade', role: 'top',
       date: '2026-12-01', startTime: '20:00', minutes: 60, location: '', isPublic: false, intense: false, intakeVersion: 1, marks: 'day',
@@ -440,7 +440,7 @@ describe('account flow', () => {
     intake.detailed = { ...intakeLib.emptyDetailed(), answers: { flogger: { choice: 'yes' }, wax: { choice: 'maybe' } } };
     const top = emptyTopSetup();
     for (const c of ['impact', 'sensation'] as const) top.offerings.categories[c] = { on: true, min: 1, max: 8 };
-    const ctx = { intake, top, studio: false, optedOutGear: [], gear: [] };
+    const ctx = { intake, top, optedOutGear: [], gear: [] };
     const scene = design('climb', {
       title: 'Live night', connectionId: conn.id, partnerId: jadeUser.id, partnerName: 'Jade', role: 'top',
       date: '2026-12-02', startTime: '20:00', minutes: 60, location: '', isPublic: false, intense: false, intakeVersion: 1, marks: 'day',
@@ -508,7 +508,7 @@ describe('account flow', () => {
       title: 'After night', connectionId: conn.id, partnerId: jadeUser.id, partnerName: 'Jade', role: 'top',
       date: '2026-12-03', startTime: '20:00', minutes: 45, location: '', isPublic: false, intense: false, intakeVersion: 1, marks: 'day',
       useSpecificGear: false, gearIds: [], overrides: [], notes: '', picks: [{ activityId: 'flogger', intensity: 6, surprise: false }]
-    }, { intake, top, studio: false, optedOutGear: [], gear: [] });
+    }, { intake, top, optedOutGear: [], gear: [] });
     const shared = await vibes.shareVibe(riverKeys, await scenes.saveScene(riverKeys, scene), {});
     const vibeId = shared.share!.id;
     await after.scheduleAfterScene(vibeId);
@@ -574,7 +574,7 @@ describe('account flow', () => {
     const conn = (await account.listConnections(jadeKeys, jade)).find((c) => c.otherId === riverUser.id)!;
     const intake = intakeLib.emptyIntake();
     intake.detailed = { ...intakeLib.emptyDetailed(), answers: { 'bare-hand': { choice: 'yes' }, cuddling: { choice: 'yes' } } };
-    const ctx = { intake, top: openSetup(), studio: false, optedOutGear: [], gear: [] };
+    const ctx = { intake, top: openSetup(), optedOutGear: [], gear: [] };
     const mine = design('climb', {
       title: 'Velvet Saturday', connectionId: conn.id, partnerId: riverUser.id, partnerName: 'River', role: 'bottom',
       date: '', startTime: '', minutes: 45, location: '', isPublic: false, intense: false, intakeVersion: 1, marks: 'none',
@@ -601,5 +601,54 @@ describe('account flow', () => {
     await account.signIn(jadeUser.email, jadeUser.password);
     expect((await scenes.sentRequestStatuses(account.loadKeys()!))[sent.request!.id]).toBe('accepted');
     for (const s of await scenes.listScenes(account.loadKeys()!)) await scenes.deleteScene(s.id);
+  });
+  it("exports what you can read, then deletes the account, its rows and its photo files, but keeps reports about it (M9)", async () => {
+    await account.signOut();
+    const myData = await import("../../src/lib/myData");
+    const messages = await import("../../src/lib/messages");
+    const toys = await import("../../src/lib/toys");
+    const avatar = await import("../../src/lib/avatar");
+    const { defaultSettings } = await import("../../src/state/settings");
+
+    // Jade has a picture, gear with a photo, and a message to River.
+    await account.signIn(jadeUser.email, jadeUser.password);
+    const jadeKeys = account.loadKeys()!;
+    const conn = (await account.listConnections(jadeKeys, jade)).find((c) => c.otherId === riverUser.id)!;
+    await avatar.setAvatar(jadeKeys, new Uint8Array([1, 2, 3]));
+    await toys.saveToy(jadeKeys, { details: { ...toys.emptyToy(), name: "Soft rope" } }, new Uint8Array([4, 5, 6]));
+    await messages.sendMessage(jadeKeys, conn.id, riverUser.id, { text: "See you Saturday" });
+
+    const data = await myData.collectMyData(jadeKeys, { ...defaultSettings, identity: { ...defaultSettings.identity, name: "Jade" } });
+    expect(data.account.email).toBe(jadeUser.email);
+    expect(data.gear.map((g) => g.name)).toContain("Soft rope");
+    expect(data.connections.find((c) => c.messages.some((m) => m.text === "See you Saturday" && m.from === "you"))).toBeTruthy();
+    expect(JSON.stringify(data.onThisPhone)).not.toMatch(/hash|salt/);
+    await account.signOut();
+
+    // River reports Jade.
+    await account.signIn(riverUser.email, riverUser.password);
+    await messages.report(account.loadKeys()!, jadeUser.id, "spam", "Fictional test report", []);
+    await account.signOut();
+
+    // Jade deletes the account.
+    await account.signIn(jadeUser.email, jadeUser.password);
+    await myData.deleteMyAccount(account.loadKeys()!);
+    expect(account.loadKeys()).toBeNull();
+
+    const { data: gone } = await admin.auth.admin.getUserById(jadeUser.id);
+    expect(gone.user).toBeNull();
+    for (const [table, column] of [["profiles", "id"], ["toys", "owner_id"], ["intakes", "owner_id"], ["messages", "sender_id"], ["scene_notes", "author_id"], ["personal_codes", "user_id"]] as const) {
+      const { count } = await admin.from(table).select("*", { count: "exact", head: true }).eq(column, jadeUser.id);
+      expect([table, count]).toEqual([table, 0]);
+    }
+    const { count: conns } = await admin.from("connections").select("*", { count: "exact", head: true }).eq("id", conn.id);
+    expect(conns).toBe(0);
+    for (const bucket of ["toy-photos", "avatars"]) {
+      const { data: files } = await admin.storage.from(bucket).list(jadeUser.id);
+      expect([bucket, (files ?? []).length]).toEqual([bucket, 0]);
+    }
+    const { data: reports } = await admin.from("reports").select("reported_id, details").eq("reporter_id", riverUser.id);
+    expect(reports).toEqual([{ reported_id: null, details: "Fictional test report" }]);
+    await admin.from("reports").delete().eq("reporter_id", riverUser.id);
   });
 });

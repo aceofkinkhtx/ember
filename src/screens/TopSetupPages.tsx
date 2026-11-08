@@ -11,7 +11,6 @@ export function useTopSetup() {
   const now = () => new Date().toISOString();
   return {
     setup: settings.top,
-    studio: settings.depth === 'studio',
     changeOfferings: (change: (o: Offerings) => Offerings) =>
       update((s) => ({ top: { ...s.top, offerings: { ...change(s.top.offerings), setAt: now() } } })),
     changeSettings: (change: (t: TopSettings) => TopSettings) =>
@@ -28,14 +27,14 @@ function Back() {
 }
 
 export function OfferingsPage() {
-  const { setup, studio, changeOfferings } = useTopSetup();
+  const { setup, changeOfferings } = useTopSetup();
   return (
     <main className="screen">
       <Back />
       <h1>What you offer</h1>
       <p className="lede">Choose the kinds of play you do and how far you go. Scene designs only use what you offer here.</p>
-      <OfferingsEditor setup={setup} studio={studio} onChange={changeOfferings} />
-      {!studio && <p className="note">Edge play appears in Studio mode, which you can turn on under Depth in Me.</p>}
+      <OfferingsEditor setup={setup} onChange={changeOfferings} />
+      <p className="note">Edge play is never on by default. Turn on each kind you offer, and it is only added to a scene after you confirm it was negotiated.</p>
     </main>
   );
 }

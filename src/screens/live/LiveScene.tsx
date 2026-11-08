@@ -119,7 +119,7 @@ export function LiveScene() {
     [keys]
   );
 
-  const fallback: RuleContext = { intake: null, top: settings.top, studio: settings.depth === 'studio', optedOutGear: [], gear: [] };
+  const fallback: RuleContext = { intake: null, top: settings.top, optedOutGear: [], gear: [] };
   const ctx = data?.ctx ?? fallback;
 
   if (scene === undefined) {

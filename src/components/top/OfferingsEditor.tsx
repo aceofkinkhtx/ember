@@ -20,7 +20,7 @@ import { SettingSwitch } from '../Switch';
 // O4 and Me > Offerings: what this Top does, and how far they go. Each category
 // is a switch with a range slider; inside it, every activity is a chip that is
 // on unless the Top turns it off. Press and hold a chip to rename it. Edge play
-// shows only in Studio mode, and penile or oral sex only when the Top allows it
+// is never on by default, and penile or oral sex only when the Top allows it
 // in their settings.
 
 const intro: Record<CategoryId, string> = {
@@ -35,12 +35,12 @@ const HOLD_MS = 550;
 
 type Change = (change: (o: Offerings) => Offerings) => void;
 
-export function OfferingsEditor({ setup, studio, onChange }: { setup: TopSetup; studio: boolean; onChange: Change }) {
+export function OfferingsEditor({ setup, onChange }: { setup: TopSetup; onChange: Change }) {
   const [renaming, setRenaming] = useState<Activity | null>(null);
   return (
     <div className="stack" style={{ gap: 14 }}>
       {categories.map((c) => (
-        <CategoryCard key={c.id} id={c.id} label={c.label} setup={setup} studio={studio} onChange={onChange} onRename={setRenaming} />
+        <CategoryCard key={c.id} id={c.id} label={c.label} setup={setup} onChange={onChange} onRename={setRenaming} />
       ))}
       {renaming && <RenameSheet activity={renaming} onChange={onChange} onClose={() => setRenaming(null)} />}
     </div>
@@ -51,14 +51,12 @@ function CategoryCard({
   id,
   label,
   setup,
-  studio,
   onChange,
   onRename
 }: {
   id: CategoryId;
   label: string;
   setup: TopSetup;
-  studio: boolean;
   onChange: Change;
   onRename: (a: Activity) => void;
 }) {
@@ -67,13 +65,13 @@ function CategoryCard({
   const cat = setup.offerings.categories[id];
   const on = Boolean(cat?.on);
   const range = cat ? { min: cat.min, max: cat.max } : defaultRange();
-  const items = allTopActivities(setup.offerings).filter((a) => a.category === id && available(a, setup.settings, studio));
+  const items = allTopActivities(setup.offerings).filter((a) => a.category === id && available(a, setup.settings));
 
   const setCategory = (patch: Partial<CategoryOffering>) =>
     onChange((o) => ({ ...o, categories: { ...o.categories, [id]: { on, ...range, ...o.categories[id], ...patch } } }));
 
   const toggleActivity = (a: Activity) =>
-    onChange((o) => ({ ...o, activities: { ...o.activities, [a.id]: !isOffered({ ...setup, offerings: o }, a, studio) } }));
+    onChange((o) => ({ ...o, activities: { ...o.activities, [a.id]: !isOffered({ ...setup, offerings: o }, a) } }));
 
   function addOwn() {
     const label = adding.trim();
@@ -122,7 +120,7 @@ function CategoryCard({
                 <ActivityChip
                   key={a.id}
                   activity={a}
-                  pressed={isOffered(setup, a, studio)}
+                  pressed={isOffered(setup, a)}
                   onTap={() => (renameMode ? onRename(a) : toggleActivity(a))}
                   onHold={() => onRename(a)}
                 />

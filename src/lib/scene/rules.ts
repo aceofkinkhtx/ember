@@ -24,7 +24,6 @@ export interface RuleContext {
   intake: Intake | null;
   /** The Top's setup: offerings, ranges and settings. */
   top: TopSetup;
-  studio: boolean;
   /** Gear kept out of scenes with this person. */
   optedOutGear: string[];
   gear: GearInfo[];
@@ -276,8 +275,8 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
       } else if (choice === 'maybe') add('maybe', 'warn', `${a.label} is a maybe for them. Discussed together?`, where);
       else if (choice === null) add('unanswered', 'warn', `${a.label} isn't in their answers. Discussed together?`, where);
 
-      if (a.edge && (!ctx.studio || !confirmed(a.id, 'edge')))
-        add('edge', 'block', `${a.label} is edge play: it needs Studio mode and a confirmed negotiation.`, where);
+      if (a.edge && !confirmed(a.id, 'edge'))
+        add('edge', 'block', `${a.label} is edge play: it needs a confirmed negotiation.`, where);
       if (a.negotiatedOnly && (!ctx.top.settings.allowNegotiatedSex || !confirmed(a.id, 'negotiated')))
         add('negotiated', 'block', `${a.label} needs your setting turned on and a confirmed negotiation for this scene.`, where);
 
@@ -337,7 +336,6 @@ export function confirmationsFor(ctx: RuleContext, a: Activity): { blocked: stri
     confirm.push({ kind: 'no', question: 'They marked this as no. Have you talked and agreed to include it?' });
   }
   if (a.edge) {
-    if (!ctx.studio) return { blocked: `${a.label} is edge play. It needs Studio mode (Me, then Depth).` };
     confirm.push({ kind: 'edge', question: `${a.label} is edge play. Have you explicitly negotiated it with them for this scene?` });
   }
   if (a.negotiatedOnly) {

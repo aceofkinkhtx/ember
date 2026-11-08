@@ -8,11 +8,13 @@ import { SettingSwitch } from '../components/Switch';
 import { roleLabel, type RoleChoice } from '../content/copy';
 import { pronounLabel } from '../content/identity';
 import { cadenceLabels, offeringsSummary } from '../content/topSetup';
-import { signOut } from '../lib/account';
+import { AccountError, signOut } from '../lib/account';
+import { biometricAvailable, setUpBiometric } from '../lib/biometric';
+import { collectMyData, deleteMyAccount, exportFileName, saveFile } from '../lib/myData';
 import { pushState, setPushWants, turnOffPush, turnOnPush, type PushState } from '../lib/push';
 import { eraseAll } from '../lib/storage';
 import { useAccount } from '../state/account';
-import { roleFor, useSettings, type Depth } from '../state/settings';
+import { roleFor, useSettings } from '../state/settings';
 
 // M1 (Top) and BM1 (bottom): settings for this device.
 
@@ -78,28 +80,6 @@ export function Me() {
             </button>
           ))}
         </div>
-        {settings.roles !== 'bottom' && (
-          <>
-            <div className="eyebrow" id="me-depth" style={{ marginTop: 8 }}>
-              Depth
-            </div>
-            <div className="segmented" role="radiogroup" aria-labelledby="me-depth" style={{ alignSelf: 'flex-start' }}>
-              {(['simple', 'studio'] as Depth[]).map((d) => (
-                <button key={d} type="button" role="radio" aria-checked={settings.depth === d} onClick={() => update({ depth: d })}>
-                  {d === 'simple' ? 'Simple' : 'Studio'}
-                </button>
-              ))}
-            </div>
-            <div className="stack" style={{ gap: 6 }}>
-              <p className="setting-desc" style={{ margin: 0 }}>
-                <strong>Simple:</strong> designs built for you from what they said yes to, the full editor, gear, Live Scene Mode and every safety rule. Edge play stays out.
-              </p>
-              <p className="setting-desc" style={{ margin: 0 }}>
-                <strong>Studio:</strong> everything in Simple, plus edge play (choking, knife play, sharps and plastic wrap mummification). Each one is added only after you confirm it was negotiated for that scene, and the same safety rules apply.
-              </p>
-            </div>
-          </>
-        )}
       </section>
 
       {settings.roles !== 'bottom' && (
@@ -144,8 +124,9 @@ export function Me() {
             {settings.pin ? 'Change' : 'Set PIN'}
           </button>
         </div>
+        {settings.pin && <BiometricSetting />}
         {settings.pin && (
-          <button type="button" className="btn btn-quiet" style={{ alignSelf: 'flex-start' }} onClick={() => update({ pin: null })}>
+          <button type="button" className="btn btn-quiet" style={{ alignSelf: 'flex-start' }} onClick={() => update({ pin: null, biometric: null })}>
             Turn off PIN
           </button>
         )}
@@ -184,9 +165,13 @@ export function Me() {
 
       <section className="card" aria-label="Your data">
         <div className="eyebrow">Your data</div>
+        <MyDataActions />
         <button type="button" className="btn btn-outline" onClick={() => setConfirmErase(true)}>
           Erase Ember from this phone
         </button>
+        <p className="setting-desc" style={{ margin: 0 }}>
+          Erasing this phone keeps your account. Sign in again and your locked data comes back.
+        </p>
       </section>
 
       <section className="card" aria-label="Support Ember">
@@ -293,6 +278,136 @@ function PhoneAlerts({ wants }: { wants: { checkins: boolean; messages: boolean 
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+/** Face or fingerprint unlock (M9). Shown only with a PIN, which always still works. */
+function BiometricSetting() {
+  const { settings, update } = useSettings();
+  const [available, setAvailable] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    void biometricAvailable().then(setAvailable);
+  }, []);
+  if (!available) return null;
+  return (
+    <>
+      <SettingSwitch
+        label="Face ID or fingerprint"
+        description="Unlock with your face or finger instead of typing the PIN. It stays on this phone, and the PIN always still works."
+        checked={settings.biometric !== null}
+        onChange={(on) => {
+          setError('');
+          if (!on) return update({ biometric: null });
+          setUpBiometric().then(
+            (biometric) => update({ biometric }),
+            () => setError("Ember couldn't set that up. You can keep using your PIN.")
+          );
+        }}
+      />
+      {error && (
+        <p className="note error" role="alert" style={{ margin: 0 }}>
+          {error}
+        </p>
+      )}
+    </>
+  );
+}
+
+/** Download my data and delete my account (M9). Needs an account. */
+function MyDataActions() {
+  const account = useAccount();
+  const { settings } = useSettings();
+  const [step, setStep] = useState('');
+  const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  if (account.status !== 'signed-in' || !account.keys) return null;
+  const keys = account.keys;
+
+  async function download() {
+    setError('');
+    setStep('Starting');
+    try {
+      saveFile(await collectMyData(keys, settings, setStep), exportFileName());
+    } catch {
+      setError("Ember couldn't gather everything. Please try again.");
+    } finally {
+      setStep('');
+    }
+  }
+
+  return (
+    <>
+      <button type="button" className="btn btn-outline" disabled={Boolean(step)} onClick={() => void download()}>
+        {step ? `Gathering: ${step}...` : 'Download my data'}
+      </button>
+      <p className="setting-desc" style={{ margin: 0 }}>
+        Unlocks everything you can read here (your profile, gear and photos, scenes, connections, messages and check-ins) and saves it as one file on
+        this phone. The file isn't locked, so keep it somewhere private.
+      </p>
+      {error && (
+        <p className="note error" role="alert" style={{ margin: 0 }}>
+          {error}
+        </p>
+      )}
+      <button type="button" className="btn btn-danger" onClick={() => setDeleting(true)}>
+        Delete my account
+      </button>
+      {deleting && <DeleteAccountSheet onClose={() => setDeleting(false)} onDelete={() => deleteMyAccount(keys)} />}
+    </>
+  );
+}
+
+function DeleteAccountSheet({ onClose, onDelete }: { onClose: () => void; onDelete: () => Promise<void> }) {
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const ready = typed.trim().toUpperCase() === 'DELETE';
+  return (
+    <div className="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="me-delete-title">
+      <div className="sheet stack" style={{ gap: 12 }}>
+        <h2 id="me-delete-title" style={{ margin: 0 }}>
+          Delete your account?
+        </h2>
+        <p style={{ margin: 0 }}>This can't be undone. Ember deletes, for good:</p>
+        <ul style={{ margin: 0, paddingLeft: 20 }}>
+          <li>your profile and every version of it, your gear and photos, and your scenes;</li>
+          <li>your connections, and what you shared with them;</li>
+          <li>your check-ins, debriefs and messages, on both sides.</li>
+        </ul>
+        <p style={{ margin: 0 }}>The people you're connected to won't be told; you'll just disappear from their connections. Download your data first if you want a copy.</p>
+        <label className="field">
+          <span className="field-label">Type DELETE to confirm</span>
+          <input className="input" value={typed} autoCapitalize="characters" autoComplete="off" onChange={(e) => setTyped(e.target.value)} />
+        </label>
+        {error && (
+          <p className="note error" role="alert" style={{ margin: 0 }}>
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-danger btn-block"
+          disabled={!ready || busy}
+          onClick={() => {
+            setBusy(true);
+            setError('');
+            onDelete().then(
+              () => window.location.assign('/'),
+              (e) => {
+                setError(e instanceof AccountError ? e.message : "Ember couldn't delete your account. Please try again.");
+                setBusy(false);
+              }
+            );
+          }}
+        >
+          {busy ? 'Deleting...' : 'Delete my account for good'}
+        </button>
+        <button type="button" className="btn btn-secondary btn-block" disabled={busy} onClick={onClose}>
+          Keep my account
+        </button>
+      </div>
     </div>
   );
 }

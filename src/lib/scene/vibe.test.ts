@@ -14,7 +14,7 @@ function scene(): Scene {
   for (const id of ['bare-hand', 'flogger', 'cane', 'soft-cuffs', 'wax', 'cuddling', 'fingers-anus', 'toys-anus']) intake.detailed.answers[id] = { choice: 'yes' };
   const top = emptyTopSetup();
   for (const c of ['impact', 'bondage', 'sensation', 'touch', 'penetration'] as const) top.offerings.categories[c] = { on: true, min: 1, max: 8 };
-  const ctx: RuleContext = { intake, top, studio: false, optedOutGear: [], gear: [{ id: 'g1', name: 'Rattan cane', feel: ['stingy'], types: ['impact'] }] };
+  const ctx: RuleContext = { intake, top, optedOutGear: [], gear: [{ id: 'g1', name: 'Rattan cane', feel: ['stingy'], types: ['impact'] }] };
   const picks = suggestedPicks(ctx).map((p) => (p.activityId === 'wax' ? { ...p, surprise: true } : p));
   const req: DesignRequest = {
     title: 'Saturday night',

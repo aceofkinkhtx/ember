@@ -1,16 +1,16 @@
 import { useState, type ReactNode } from 'react';
-import { DepthIcon, RoleIcon } from '../../components/Icons';
+import { RoleIcon } from '../../components/Icons';
 import { EmberMark } from '../../components/EmberMark';
 import { IdentityForm } from '../../components/IdentityForm';
 import { PinSetup } from '../../components/PinSetup';
 import { SettingSwitch } from '../../components/Switch';
 import { safetyFloor, type RoleChoice } from '../../content/copy';
-import { nextStep, onboardingSteps, roleFor, useSettings, type Depth } from '../../state/settings';
+import { nextStep, onboardingSteps, roleFor, useSettings } from '../../state/settings';
 import { OfferingsEditor } from '../../components/top/OfferingsEditor';
 import { TopSettingsEditor } from '../../components/top/TopSettingsEditor';
 import { useTopSetup } from '../TopSetupPages';
 
-// O1 Welcome, About you, O2 Privacy setup, O3 Depth, O4 Offerings and O5 Top
+// O1 Welcome, About you, O2 Privacy setup, O4 Offerings and O5 Top
 // settings (Tops only), O6 Safety floor. O7 (first toys) needs an account, so
 // toys start from the Toys tab after signing in.
 
@@ -54,8 +54,6 @@ export function Onboarding() {
       return <About progress={progress} onNext={advance} />;
     case 'privacy':
       return <Privacy progress={progress} onNext={advance} />;
-    case 'depth':
-      return <DepthStep progress={progress} onNext={advance} />;
     case 'offerings':
       return <OfferingsStep progress={progress} onNext={advance} />;
     case 'topSettings':
@@ -206,51 +204,6 @@ function Privacy({ progress, onNext }: { progress: ReactNode; onNext: () => void
   );
 }
 
-const depthOptions: { id: Depth; word: string; desc: string }[] = [
-  { id: 'simple', word: 'Simple', desc: 'Guided steps, automatic designs and a smaller set of choices. Great for starting out.' },
-  { id: 'studio', word: 'Studio', desc: 'The full toolset for experienced Tops: more categories, the full gear directory and advanced options.' }
-];
-
-function DepthStep({ progress, onNext }: { progress: ReactNode; onNext: () => void }) {
-  const { settings, update } = useSettings();
-  return (
-    <div className="app">
-      <main className="screen">
-        {progress}
-        <h1>How much do you want to see?</h1>
-        <p className="lede">Nothing you build is lost if you switch. Change it anytime in Me.</p>
-        <div className="stack" role="radiogroup" aria-label="Depth">
-          {depthOptions.map((o) => (
-            <button
-              key={o.id}
-              type="button"
-              role="radio"
-              aria-checked={settings.depth === o.id}
-              className="choice"
-              onClick={() => update({ depth: o.id })}
-            >
-              <span className="choice-icon">
-                <DepthIcon kind={o.id} />
-              </span>
-              <span>
-                <span className="choice-word">{o.word}</span>
-                <span className="choice-desc" style={{ display: 'block' }}>
-                  {o.desc}
-                </span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </main>
-      <footer className="screen-footer">
-        <button type="button" className="btn btn-primary btn-block" onClick={onNext}>
-          Continue
-        </button>
-      </footer>
-    </div>
-  );
-}
-
 function SkippableFooter({ onNext, started }: { onNext: () => void; started: boolean }) {
   return (
     <footer className="screen-footer">
@@ -262,14 +215,14 @@ function SkippableFooter({ onNext, started }: { onNext: () => void; started: boo
 }
 
 function OfferingsStep({ progress, onNext }: { progress: ReactNode; onNext: () => void }) {
-  const { setup, studio, changeOfferings } = useTopSetup();
+  const { setup, changeOfferings } = useTopSetup();
   return (
     <div className="app">
       <main className="screen">
         {progress}
         <h1>What you offer</h1>
         <p className="lede">Choose the kinds of play you do and how far you go. Finish or change it anytime in Me.</p>
-        <OfferingsEditor setup={setup} studio={studio} onChange={changeOfferings} />
+        <OfferingsEditor setup={setup} onChange={changeOfferings} />
       </main>
       <SkippableFooter onNext={onNext} started={Boolean(setup.offerings.setAt)} />
     </div>

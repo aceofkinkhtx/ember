@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { unlockWithBiometric } from '../lib/biometric';
 import { LOCKOUT_MS, MAX_ATTEMPTS, verifyPin } from '../lib/pin';
 import { eraseAll, readJson, writeJson } from '../lib/storage';
 import { useSettings } from '../state/settings';
@@ -92,6 +93,13 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
     }
   };
 
+  const tryBiometric = async () => {
+    if (settings.biometric && (await unlockWithBiometric(settings.biometric))) {
+      save({ failures: 0, lockedUntil: 0 });
+      onUnlock();
+    } else setMessage("That didn't work. Use your PIN instead.");
+  };
+
   const secondsLeft = Math.ceil((state.lockedUntil - now) / 1000);
 
   return (
@@ -104,6 +112,11 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
         disabled={waiting}
         onComplete={attempt}
       />
+      {settings.biometric && !waiting && (
+        <button type="button" className="btn btn-secondary" onClick={() => void tryBiometric()}>
+          Use Face ID or fingerprint
+        </button>
+      )}
       <button type="button" className="btn btn-quiet" onClick={() => setConfirmErase(true)}>
         Forgot PIN?
       </button>
@@ -114,7 +127,8 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
             <h2 id="erase-title">Start over on this phone?</h2>
             <p>
               A forgotten PIN can't be recovered. Starting over erases everything Ember has saved on this phone, and
-              you'll set it up again from the beginning.
+              you'll set it up again from the beginning. If you have an account, sign in again afterward and your
+              locked data comes back.
             </p>
             <button
               type="button"

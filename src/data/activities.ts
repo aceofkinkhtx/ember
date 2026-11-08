@@ -17,7 +17,7 @@ export interface Activity {
   id: string;
   label: string;
   category: CategoryId;
-  /** Edge play: never auto-added, needs Studio mode and explicit negotiation. */
+  /** Edge play: never auto-added, off until the Top turns it on, and needs explicit negotiation. */
   edge?: boolean;
   /**
    * Needs the in-person STI checkbox (results are never stored).

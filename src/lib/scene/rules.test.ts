@@ -28,7 +28,6 @@ function context(patch: Partial<RuleContext> = {}): RuleContext {
   return {
     intake: intake({ 'bare-hand': 'yes', flogger: 'yes', cane: 'yes', 'soft-cuffs': 'yes', cuddling: 'yes', blindfold: 'yes', wax: 'maybe', biting: 'no' }),
     top,
-    studio: false,
     optedOutGear: [],
     gear: [],
     ...patch
@@ -187,15 +186,14 @@ describe('block: limits', () => {
 });
 
 describe('block: edge play', () => {
-  it('needs Studio mode and a confirmed negotiation', () => {
+  it('needs a confirmed negotiation', () => {
     const ctx = context();
     ctx.intake!.detailed!.answers['knife-play'] = { choice: 'yes' };
     const s = goodScene();
     beat(s, 'peak').steps.push(newStep({ activityId: 'knife-play' }));
     expect(blockRules(s, ctx)).toContain('edge');
     s.overrides = [{ activityId: 'knife-play', kind: 'edge', confirmedAt: '2026-11-04' }];
-    expect(blockRules(s, ctx)).toContain('edge');
-    expect(blockRules(s, { ...ctx, studio: true })).not.toContain('edge');
+    expect(blockRules(s, ctx)).not.toContain('edge');
   });
 });
 
@@ -320,9 +318,8 @@ describe('adding items outside the yes list', () => {
     expect(confirmationsFor(context(), act('wax'))).toEqual({ confirm: [] });
   });
 
-  it('needs Studio mode for edge play, and the Top setting for sex acts', () => {
-    expect('blocked' in confirmationsFor(context(), act('knife-play'))).toBe(true);
-    expect(confirmationsFor(context({ studio: true }), act('knife-play'))).toEqual({ confirm: [expect.objectContaining({ kind: 'edge' })] });
+  it('asks to confirm negotiation for edge play, and needs the Top setting for sex acts', () => {
+    expect(confirmationsFor(context(), act('knife-play'))).toEqual({ confirm: [expect.objectContaining({ kind: 'edge' })] });
     expect('blocked' in confirmationsFor(context(), act('giving-oral'))).toBe(true);
   });
 });

@@ -19,7 +19,7 @@ function intake(answers: Record<string, 'yes' | 'maybe' | 'no'>, marks = 'week')
 function context(answers: Record<string, 'yes' | 'maybe' | 'no'>, patch: Partial<RuleContext> = {}): RuleContext {
   const top = emptyTopSetup();
   for (const c of ['impact', 'bondage', 'sensation', 'touch', 'penetration'] as const) top.offerings.categories[c] = { on: true, min: 1, max: 9 };
-  return { intake: intake(answers), top, studio: true, optedOutGear: [], gear: [], ...patch };
+  return { intake: intake(answers), top, optedOutGear: [], gear: [], ...patch };
 }
 
 function request(ctx: RuleContext, patch: Partial<DesignRequest> = {}): DesignRequest {

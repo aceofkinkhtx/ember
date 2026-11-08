@@ -20,7 +20,7 @@ export function suggestedPicks(ctx: RuleContext): Pick[] {
     if (answer.choice !== 'yes') continue;
     const a = activityOf(ctx, id);
     if (!a || a.edge || a.negotiatedOnly) continue;
-    if (!a.custom && !isOffered(ctx.top, a, ctx.studio)) continue;
+    if (!a.custom && !isOffered(ctx.top, a)) continue;
     const range = ctx.top.offerings.categories[a.category];
     // Up to how far the Top goes, or less if the bottom said so.
     const max = range?.max ?? 6;

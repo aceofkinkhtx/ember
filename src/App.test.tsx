@@ -26,7 +26,7 @@ describe('onboarding', () => {
     expect(next).toBeEnabled();
   });
 
-  it('walks a Top through privacy, depth and the safety floor', async () => {
+  it('walks a Top through privacy, offerings and the safety floor', async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('radio', { name: /Top/ }));
@@ -41,9 +41,6 @@ describe('onboarding', () => {
     expect(screen.getByRole('heading', { name: 'Protect Ember first.' })).toBeInTheDocument();
     await user.click(screen.getByRole('switch', { name: 'Discreet mode' }));
     await user.click(screen.getByRole('button', { name: 'Continue without a PIN' }));
-
-    expect(screen.getByRole('heading', { name: 'How much do you want to see?' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(screen.getByRole('heading', { name: 'What you offer' })).toBeInTheDocument();
     await user.click(screen.getByRole('switch', { name: 'Impact' }));
@@ -84,9 +81,17 @@ describe('onboarding', () => {
     expect(nextStep('welcome', 'bottom')).toBe('about');
     expect(nextStep('welcome', 'top')).toBe('about');
     expect(nextStep('privacy', 'bottom')).toBe('safety');
-    expect(nextStep('privacy', 'top')).toBe('depth');
-    expect(nextStep('depth', 'both')).toBe('offerings');
+    expect(nextStep('privacy', 'top')).toBe('offerings');
+    expect(nextStep('privacy', 'both')).toBe('offerings');
     expect(nextStep('topSettings', 'top')).toBe('safety');
+  });
+
+  it('moves a phone that was on the old Depth step on to offerings, and drops the old setting', () => {
+    localStorage.setItem('ember.settings', JSON.stringify({ version: 1, onboarding: 'depth', depth: 'studio', roles: 'top' }));
+    const loaded = loadSettings() as unknown as Record<string, unknown>;
+    expect(loaded.onboarding).toBe('offerings');
+    expect(loaded.depth).toBeUndefined();
+    localStorage.clear();
   });
 });
 

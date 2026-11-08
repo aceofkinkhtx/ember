@@ -25,7 +25,7 @@ function setup() {
   intake.detailed.answers['flogger'] = { choice: 'yes' };
   intake.detailed.answers['wax'] = { choice: 'maybe' };
   intake.detailed.answers['soft-cuffs'] = { choice: 'yes' };
-  const ctx: RuleContext = { intake, top: emptyTopSetup(), studio: false, optedOutGear: [], gear: [] };
+  const ctx: RuleContext = { intake, top: emptyTopSetup(), optedOutGear: [], gear: [] };
   const scene = {
     role: 'top',
     overrides: [],

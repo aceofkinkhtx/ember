@@ -17,7 +17,7 @@ function intake(answers: Record<string, 'yes' | 'maybe' | 'no'>): Intake {
 function context(answers: Record<string, 'yes' | 'maybe' | 'no'>, patch: Partial<RuleContext> = {}): RuleContext {
   const top = emptyTopSetup();
   for (const c of ['impact', 'bondage', 'sensation', 'touch', 'penetration'] as const) top.offerings.categories[c] = { on: true, min: 1, max: 8 };
-  return { intake: intake(answers), top, studio: false, optedOutGear: [], gear: [], ...patch };
+  return { intake: intake(answers), top, optedOutGear: [], gear: [], ...patch };
 }
 
 const gear = [{ id: 'g1', name: 'Suede flogger', feel: ['thuddy' as const], types: ['impact'] }];

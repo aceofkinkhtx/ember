@@ -116,8 +116,7 @@ export function onByDefault(a: Activity): boolean {
 }
 
 /** Whether this Top can see and offer an activity at all. */
-export function available(a: Activity, settings: TopSettings, studio: boolean): boolean {
-  if (a.edge && !studio) return false;
+export function available(a: Activity, settings: TopSettings): boolean {
   if (a.negotiatedOnly && !settings.allowNegotiatedSex) return false;
   return true;
 }
@@ -129,16 +128,16 @@ export function allTopActivities(offerings: Offerings): Activity[] {
 }
 
 /** Whether the Top offers this activity, given their categories and settings. */
-export function isOffered(setup: TopSetup, a: Activity, studio: boolean): boolean {
+export function isOffered(setup: TopSetup, a: Activity): boolean {
   const cat = setup.offerings.categories[a.category];
-  if (!cat?.on || !available(a, setup.settings, studio)) return false;
+  if (!cat?.on || !available(a, setup.settings)) return false;
   return setup.offerings.activities[a.id] ?? (a.custom ? true : onByDefault(a));
 }
 
 /** Everything this Top offers, with the range for its category. */
-export function offeredActivities(setup: TopSetup, studio: boolean): { activity: Activity; range: DegreeRange }[] {
+export function offeredActivities(setup: TopSetup): { activity: Activity; range: DegreeRange }[] {
   return allTopActivities(setup.offerings)
-    .filter((a) => isOffered(setup, a, studio))
+    .filter((a) => isOffered(setup, a))
     .map((activity) => {
       const { min, max } = setup.offerings.categories[activity.category]!;
       return { activity, range: { min, max } };
