@@ -235,6 +235,12 @@ function StepBody({
             onChange={(notes) => setE({ body: { ...e.body, notes } })}
           />
           <TextInput label="Allergies" value={e.body.allergies} onChange={(allergies) => setE({ body: { ...e.body, allergies } })} max={200} />
+          <div className="stack" style={{ gap: 4 }}>
+            <Segments label="Marks/bruises" options={markOptions} value={e.marks ?? intake.detailed?.impact.marks ?? null} onChange={(marks) => setE({ marks })} />
+            <p className="note" style={{ margin: 0 }}>
+              How long marks or bruises can last after a scene. None means none at all. Your Top confirms this again for each scene, and can only stay at or under it.
+            </p>
+          </div>
         </Section>
         <Section title="Mind">
           <Chips
@@ -495,8 +501,6 @@ function StepBody({
         </Section>
         <Section title="How">
           <Chips legend="Feel" options={feels.map((f) => ({ id: f, label: f }))} value={d.impact.feel} onChange={(feel) => set({ feel: feel as Feel[] })} />
-          <Segments label="Marks" options={markOptions} value={d.impact.marks} onChange={(marks) => set({ marks })} />
-          <p className="note">Marks are confirmed again for each scene.</p>
         </Section>
       </>
     );

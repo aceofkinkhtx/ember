@@ -23,6 +23,12 @@ export interface Essentials {
   substanceAgreedAt: string | null;
   honorifics: string[];
   honorificCustom: string;
+  /**
+   * Marks/bruises: how long they may last after a scene (none, day, week,
+   * open). Asked up front, before the paths. Older intakes kept it in the
+   * detailed path's impact answers; marksOf reads either.
+   */
+  marks?: string | null;
   /** Always asked, whatever the path, so even "essentials only" shows them. */
   limits: { hard: string; soft: string };
   /** "My Top may override a no after we talk." Off by default; every change is dated. */
@@ -89,6 +95,7 @@ export function emptyEssentials(): Essentials {
     substanceAgreedAt: null,
     honorifics: [],
     honorificCustom: '',
+    marks: null,
     limits: { hard: '', soft: '' },
     allowNoOverride: { on: false, changedAt: null }
   };
@@ -106,6 +113,11 @@ export function emptyDetailed(): Detailed {
     words: { welcome: '', offLimits: '' },
     limits: { hardExtra: '', noTouch: '' }
   };
+}
+
+/** The marks/bruises answer, wherever this intake keeps it. */
+export function marksOf(intake: Intake | null | undefined): string | null {
+  return intake?.essentials.marks ?? intake?.detailed?.impact.marks ?? null;
 }
 
 export function emptyAftercare(): Aftercare {

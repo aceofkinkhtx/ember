@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { aftercareMap, bodyAreas, decoderAnswers, desireMap, nearCenter, presenceQuestions, quadrantOf, shadeOf, wordGroups, type Dot, type MapSpec } from '../../content/intake';
 import { activities, categories, experienceLevels, impactAreas, impactPositions, markOptions, speakUpLevels } from '../../data/activities';
-import { limitsOf, type Intake } from '../../lib/intake';
+import { limitsOf, marksOf, type Intake } from '../../lib/intake';
 
 // Everything in an intake, the way the person it is shared with sees it.
 // "Essentials only" shows just the first part.
@@ -104,6 +104,7 @@ export function IntakeSummary({ intake, full = true }: { intake: Intake; full?: 
         <Row label="Body notes">{join(e.body.areas.map((id) => nameOf(bodyAreas, id) ?? id))}</Row>
         <Row label="Injuries and health">{e.body.notes}</Row>
         <Row label="Allergies">{e.body.allergies}</Row>
+        <Row label="Marks/bruises">{nameOf(markOptions, marksOf(intake))}</Row>
         <Row label="Triggers">{join([...e.triggers.chips, e.triggers.notes])}</Row>
         <Row label="If I'm overwhelmed">{join([...e.overwhelm.chips, e.overwhelm.notes])}</Row>
         <Row label="Emergency contact">
@@ -150,7 +151,6 @@ export function IntakeSummary({ intake, full = true }: { intake: Intake; full?: 
           <Row label="Impact areas">{join(d.impact.areas.map((id) => nameOf(impactAreas, id) ?? id))}</Row>
           <Row label="Positions">{join(d.impact.positions.map((id) => nameOf(impactPositions, id) ?? id))}</Row>
           <Row label="Feel">{join(d.impact.feel)}</Row>
-          <Row label="Marks">{nameOf(markOptions, d.impact.marks)}</Row>
           <Row label="Words welcome">{d.words.welcome}</Row>
           <Row label="Words off-limits">{d.words.offLimits}</Row>
           <Row label="Don't touch">{d.limits.noTouch}</Row>

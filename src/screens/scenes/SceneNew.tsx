@@ -7,6 +7,7 @@ import { SettingSwitch } from '../../components/Switch';
 import { shapes } from '../../content/sceneText';
 import { phaseLabels } from '../../content/phases';
 import { categories, markOptions } from '../../data/activities';
+import { marksOf } from '../../lib/intake';
 import type { Toy } from '../../lib/toys';
 import { moved } from '../../components/scene/useReorder';
 import { AccountError, cardFor, listConnections, type Connection } from '../../lib/account';
@@ -91,7 +92,7 @@ export function SceneNew() {
   useEffect(() => {
     if (!data) return;
     setReq((r) => {
-      const agreed = data.ctx.intakeOf === 'none' ? 'open' : (data.ctx.intake?.detailed?.impact.marks ?? 'none');
+      const agreed = data.ctx.intakeOf === 'none' ? 'open' : (marksOf(data.ctx.intake) ?? 'none');
       const marks = MARK_ORDER.indexOf(r.marks) <= MARK_ORDER.indexOf(agreed) && r.intakeVersion === data.intakeVersion ? r.marks : agreed;
       return { ...r, intakeVersion: data.intakeVersion, marks };
     });
@@ -191,7 +192,7 @@ function Basics({
 }) {
   const { settings } = useSettings();
   if (people === null) return <p className="note">Loading...</p>;
-  const agreed = data?.ctx.intakeOf === 'none' ? 'open' : (data?.ctx.intake?.detailed?.impact.marks ?? 'none');
+  const agreed = data?.ctx.intakeOf === 'none' ? 'open' : (marksOf(data?.ctx.intake) ?? 'none');
   const marks = markOptions.filter((m) => MARK_ORDER.indexOf(m.id) <= MARK_ORDER.indexOf(agreed));
   const pct = req.intense ? settings.top.settings.intensePercent : settings.top.settings.aftercarePercent;
   const hours = `${Math.floor(req.minutes / 60) ? `${Math.floor(req.minutes / 60)} h ` : ''}${req.minutes % 60 ? `${req.minutes % 60} min` : ''}`.trim();
@@ -301,7 +302,7 @@ function Basics({
         />
         {data && (
           <div className="stack" style={{ gap: 6 }}>
-            <Segments label="Marks for this scene" options={marks} value={req.marks} onChange={(m) => set({ marks: m })} />
+            <Segments label="Marks/bruises for this scene" options={marks} value={req.marks} onChange={(m) => set({ marks: m })} />
             <span className="note">{req.role === 'bottom' ? 'Up to what your intake says.' : `You can choose less than ${req.partnerName || 'they'} agreed to, never more.`}</span>
           </div>
         )}

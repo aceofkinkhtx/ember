@@ -166,8 +166,8 @@ export const impactPositions = [
 
 export const markOptions = [
   { id: 'none', label: 'None' },
-  { id: 'day', label: 'For the day' },
-  { id: 'week', label: 'For the week' },
+  { id: 'day', label: 'A day' },
+  { id: 'week', label: 'A week' },
   { id: 'open', label: 'Open' }
 ];
 

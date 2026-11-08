@@ -4,6 +4,7 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 7, 2026
 
+- **Marks/bruises asked up front (Michael, Nov 8):** the bottom's intake asks "Marks/bruises" (None, A day, A week, Open) on the Body and mind page, before choosing Quick, Map or Detailed, so every bottom answers it whatever path they take. It moved out of the detailed path's Impact page; older intakes that answered it there still count. It sits with the essentials, so "safety essentials" sharing includes it. The scene and live guide now say "Marks/bruises".
 - **Placing a profile picture (Michael, Nov 8):** after choosing a picture, a "Place your picture" screen shows it in its circle; drag to move, pinch or the slider to zoom (arrow keys and plus or minus too). Only the part inside the circle is kept, saved at 400 px. The picture always fills the circle.
 - **Gear photos from the gallery (Michael, Nov 8):** the "Choose from your photos" button has been there since Nov 7. Claude's fix for photos that wouldn't open: Ember now falls back to the browser's own image loading, and a photo it still can't open (some gallery formats, such as HEIC on some phones) gets a clear message with what to try.
 - **M7 went live** with Michael's OK: the database change, the alert sender and its 5-minute job.

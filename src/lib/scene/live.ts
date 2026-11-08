@@ -119,7 +119,7 @@ export function aloudList(scene: Scene, intake: Intake | null): { id: string; te
     { id: 'signals', text: words ? `Signals said back to each other: ${words}${sign}.` : 'Signals said back to each other, and the hand sign.' },
     { id: 'honorific', text: honorific.length ? `Honorific for this scene: ${honorific.join(' or ')}.` : 'Honorific, if you use one.' },
     { id: 'others', text: scene.isPublic ? 'Consent to anyone else present, watching or joining.' : 'Anyone else present, watching or joining: none, or agreed.' },
-    { id: 'marks', text: `Marks for this scene: ${marksText[scene.marks] ?? 'agreed together'}.` }
+    { id: 'marks', text: `Marks/bruises for this scene: ${marksText[scene.marks] ?? 'agreed together'}.` }
   ];
 }
 

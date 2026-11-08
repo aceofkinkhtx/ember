@@ -42,3 +42,19 @@ describe('intake rules', () => {
     expect(limitsOf(i)).toEqual({ hard: ['Gags'], soft: ['Wax play'] });
   });
 });
+
+describe('marks/bruises', () => {
+  it('is asked up front, and still reads older intakes that kept it in the detailed path', async () => {
+    const { emptyIntake, emptyDetailed, marksOf } = await import('./intake');
+    const fresh = emptyIntake();
+    expect(marksOf(fresh)).toBeNull();
+    fresh.essentials.marks = 'day';
+    expect(marksOf(fresh)).toBe('day');
+    const older = emptyIntake();
+    delete older.essentials.marks;
+    older.detailed = { ...emptyDetailed(), impact: { ...emptyDetailed().impact, marks: 'week' } };
+    expect(marksOf(older)).toBe('week');
+    older.essentials.marks = 'none';
+    expect(marksOf(older)).toBe('none');
+  });
+});
