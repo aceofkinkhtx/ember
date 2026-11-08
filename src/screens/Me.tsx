@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DonateOptions } from '../components/DonateOptions';
 import { AvatarEditor } from '../components/Avatar';
@@ -9,6 +9,7 @@ import { roleLabel, type RoleChoice } from '../content/copy';
 import { pronounLabel } from '../content/identity';
 import { cadenceLabels, offeringsSummary } from '../content/topSetup';
 import { signOut } from '../lib/account';
+import { pushState, setPushWants, turnOffPush, turnOnPush, type PushState } from '../lib/push';
 import { eraseAll } from '../lib/storage';
 import { useAccount } from '../state/account';
 import { roleFor, useSettings, type Depth } from '../state/settings';
@@ -160,11 +161,23 @@ export function Me() {
         />
         <SettingSwitch
           label="Check-in reminders"
-          description="A reminder about 18 hours after a scene. The check-in itself always stays in the app."
+          description="Right after a scene, a few hours later, and once a day for 3 days. The check-in itself always stays in the app."
           checked={settings.notifications.checkIns}
-          onChange={(checkIns) => update((s) => ({ notifications: { ...s.notifications, checkIns } }))}
+          onChange={(checkIns) => {
+            update((s) => ({ notifications: { ...s.notifications, checkIns } }));
+            void setPushWants({ checkins: checkIns, messages: settings.notifications.messages });
+          }}
         />
-        <p className="note">On iPhone, notifications work only after Ember is added to your Home Screen.</p>
+        <SettingSwitch
+          label="Message alerts"
+          description="When someone you're connected to sends a message."
+          checked={settings.notifications.messages}
+          onChange={(messages) => {
+            update((s) => ({ notifications: { ...s.notifications, messages } }));
+            void setPushWants({ checkins: settings.notifications.checkIns, messages });
+          }}
+        />
+        <PhoneAlerts wants={{ checkins: settings.notifications.checkIns, messages: settings.notifications.messages }} />
       </section>
 
       <AccountSection />
@@ -229,5 +242,57 @@ function AccountSection() {
         Sign out on this phone
       </button>
     </section>
+  );
+}
+
+/**
+ * Phone alerts (M7). Asking for permission needs a tap, so it's a button. The
+ * alert text is always generic, and it passes through the phone maker's push
+ * service; the check-ins and messages stay in Ember.
+ */
+function PhoneAlerts({ wants }: { wants: { checkins: boolean; messages: boolean } }) {
+  const { status } = useAccount();
+  const [state, setState] = useState<PushState | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    void pushState().then(setState);
+  }, []);
+  if (status !== 'signed-in' || state === null) return null;
+  const text: Record<PushState, string> = {
+    unsupported: "This browser can't show Ember's alerts. Check-ins still wait on Home.",
+    'needs-install': 'On iPhone, add Ember to your Home Screen first (Share, then Add to Home Screen), then turn alerts on from there.',
+    blocked: 'Alerts are blocked for Ember in your phone settings. Allow notifications for Ember there to turn them on.',
+    off: 'Alerts are off on this phone. Check-ins still wait on Home.',
+    on: 'Alerts are on for this phone. They only ever say "A check-in is waiting" or "You have a new message", never names or details.'
+  };
+  return (
+    <div className="stack" style={{ gap: 8, paddingTop: 8 }}>
+      <p className="note" style={{ margin: 0 }}>
+        {text[state]}
+      </p>
+      {state === 'off' && (wants.checkins || wants.messages) && (
+        <button
+          type="button"
+          className="btn btn-outline"
+          style={{ alignSelf: 'flex-start' }}
+          onClick={() => {
+            setError('');
+            turnOnPush(wants).then(setState, (e) => setError(e instanceof Error ? e.message : "Ember couldn't turn on alerts."));
+          }}
+        >
+          Turn on alerts on this phone
+        </button>
+      )}
+      {state === 'on' && (
+        <button type="button" className="btn btn-quiet" style={{ alignSelf: 'flex-start' }} onClick={() => void turnOffPush().then(() => setState('off'))}>
+          Turn off alerts on this phone
+        </button>
+      )}
+      {error && (
+        <p className="note error" role="alert" style={{ margin: 0 }}>
+          {error}
+        </p>
+      )}
+    </div>
   );
 }

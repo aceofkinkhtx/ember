@@ -23,6 +23,8 @@ import { VibeShare } from './screens/scenes/VibeShare';
 import { IntakePage } from './screens/intake/IntakePage';
 import { BottomCheckPage, BottomLivePage } from './screens/live/BottomLive';
 import { LiveScene } from './screens/live/LiveScene';
+import { AfterScenePage, FollowUpPage, TopCheckInPage } from './screens/after/AfterScene';
+import { MessagesPage } from './screens/Messages';
 import { AccountProvider } from './state/account';
 import { SettingsProvider, useSettings, type Settings } from './state/settings';
 
@@ -66,6 +68,10 @@ function Shell() {
         <Route path="/scenes/:id/live" element={<LiveScene />} />
         <Route path="/vibes/:id/check" element={<BottomCheckPage />} />
         <Route path="/vibes/:id/live" element={<BottomLivePage />} />
+        <Route path="/after/:vibeId" element={<AfterScenePage />} />
+        <Route path="/after/:vibeId/followup/:day" element={<FollowUpPage />} />
+        <Route path="/after/:vibeId/checkin" element={<TopCheckInPage />} />
+        <Route path="/connections/:id/messages" element={<MessagesPage />} />
         {tabs
           .filter((t) => t !== 'home' && t !== 'me' && t !== 'connections' && t !== 'profile' && t !== 'toys' && t !== 'scenes')
           .map((t) => (

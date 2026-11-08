@@ -163,6 +163,11 @@ export function BottomLivePage() {
           <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, left: `${share * 100}%`, width: 3, background: '#fff', boxShadow: '0 0 8px rgba(255,255,255,0.8)' }} />
         )}
       </div>
+      {live?.endedAt && (
+        <Link to={`/after/${id}`} className="btn btn-primary btn-block">
+          How are you? Three quick taps
+        </Link>
+      )}
       <p className="note">{bottomLive.intro}</p>
       {note && (
         <p className="box box-info" role="status" style={{ margin: 0 }}>

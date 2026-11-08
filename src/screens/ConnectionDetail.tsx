@@ -6,6 +6,7 @@ import { IntakeSummary } from '../components/intake/IntakeSummary';
 import { SharePanel } from '../components/intake/SharePanel';
 import { ConnectionToys } from '../components/toys/ConnectionToys';
 import { readSharedProfile, type SharedProfile } from '../lib/intake';
+import { unreadCounts } from '../lib/messages';
 import { AccountError, cardFor, listConnections, rolesFit, setConnectionStatus, setMyRole, type Connection, type Role } from '../lib/account';
 import { useAccount } from '../state/account';
 import { useSettings } from '../state/settings';
@@ -165,6 +166,7 @@ export function ConnectionDetail() {
           </Link>
         </section>
       )}
+      <MessagesLink connection={connection} name={name} />
       <ConnectionToys connection={connection} name={name} />
 
       {comingSections.map((s) => (
@@ -215,5 +217,27 @@ export function ConnectionDetail() {
         </div>
       )}
     </main>
+  );
+}
+
+/** C3/BC2: the Messages button, with how many are unread. */
+function MessagesLink({ connection, name }: { connection: Connection; name: string }) {
+  const { keys } = useAccount();
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    if (keys) void unreadCounts(keys).then((c) => setUnread(c[connection.id] ?? 0));
+  }, [keys, connection.id]);
+  if (connection.status === 'ended') return null;
+  return (
+    <section className="card stack" style={{ gap: 8 }} aria-label="Messages">
+      <div className="eyebrow">Messages</div>
+      <p className="setting-desc" style={{ margin: 0 }}>
+        Locked on your phones. Ember can't read them.
+      </p>
+      <Link to={`/connections/${connection.id}/messages`} className="btn btn-outline" style={{ alignSelf: 'flex-start' }}>
+        Message {name}
+        {unread ? ` (${unread} new)` : ''}
+      </Link>
+    </section>
   );
 }

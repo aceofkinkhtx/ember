@@ -34,6 +34,7 @@ import {
 import { beatsInOrder, type Scene } from '../../lib/scene/model';
 import { activityOf, type RuleContext } from '../../lib/scene/rules';
 import { clearLocal, keepLocally, readFromBottom, readLocal, sendCheck, sendLive } from '../../lib/liveSync';
+import { scheduleAfterScene } from '../../lib/afterScene';
 import { listScenes, saveScene } from '../../lib/scenes';
 import { shareVibe } from '../../lib/vibes';
 import { AccountError } from '../../lib/account';
@@ -833,7 +834,11 @@ function LogList({ live }: { live: LiveState }) {
 function Finished({ scene }: { scene: Scene }) {
   const navigate = useNavigate();
   const live = scene.live!;
-  useEffect(() => clearLocal(), []);
+  useEffect(() => {
+    clearLocal();
+    // Schedules both people's check-ins: right after, 18 hours, and 3 days of follow-ups.
+    if (scene.share) void scheduleAfterScene(scene.share.id).catch(() => {});
+  }, [scene.share]);
   return (
     <Dark>
       <h1 style={{ margin: 0 }}>Scene complete</h1>
@@ -849,7 +854,12 @@ function Finished({ scene }: { scene: Scene }) {
         <p style={{ margin: 0 }}>Locked {new Date(live.snapshot.lockedAt).toLocaleString()}.</p>
         {live.snapshot.maybes.length > 0 && <p style={{ margin: 0 }}>Maybes: {live.snapshot.maybes.map((m) => `${m.label} (${m.answer === 'yes' ? 'yes' : m.answer === 'no' ? 'no' : 'talked'})`).join(', ')}.</p>}
       </section>
-      <button type="button" className="btn btn-primary btn-block" onClick={() => navigate(`/scenes/${scene.id}`)}>
+      {scene.share && (
+        <button type="button" className="btn btn-primary btn-block" onClick={() => navigate(`/after/${scene.share!.id}`)}>
+          Your check-in and debrief
+        </button>
+      )}
+      <button type="button" className="btn btn-outline btn-block" onClick={() => navigate(`/scenes/${scene.id}`)}>
         Back to the design
       </button>
     </Dark>

@@ -21,7 +21,7 @@ export interface Settings {
   discreet: boolean;
   pin: PinRecord | null;
   safetyFloorAcknowledgedAt: string | null;
-  notifications: { dailyTips: boolean; checkIns: boolean };
+  notifications: { dailyTips: boolean; checkIns: boolean; messages: boolean };
   /** When the monthly donation note last appeared. */
   donationPromptedAt: string | null;
   /** A Top's offerings and settings (M3). Kept for switches in the bottom view too. */
@@ -41,7 +41,7 @@ export const defaultSettings: Settings = {
   discreet: false,
   pin: null,
   safetyFloorAcknowledgedAt: null,
-  notifications: { dailyTips: true, checkIns: true },
+  notifications: { dailyTips: true, checkIns: true, messages: true },
   donationPromptedAt: null,
   top: emptyTopSetup()
 };

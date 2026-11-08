@@ -486,6 +486,82 @@ describe('account flow', () => {
     await scenes.deleteScene(shared.id);
   });
 
+  it('runs the after-scene check-ins, debriefs and messages between two phones, all locked (M7)', async () => {
+    await account.signOut();
+    const scenes = await import('../../src/lib/scenes');
+    const vibes = await import('../../src/lib/vibes');
+    const after = await import('../../src/lib/afterScene');
+    const messages = await import('../../src/lib/messages');
+    const { design } = await import('../../src/lib/scene/designer');
+    const { emptyTopSetup } = await import('../../src/content/topSetup');
+    const intakeLib = await import('../../src/lib/intake');
+
+    // The Top's scene ends: check-ins are scheduled for both, and the Top's private answers stay private.
+    await account.signIn(riverUser.email, riverUser.password);
+    const riverKeys = account.loadKeys()!;
+    const conn = (await account.listConnections(riverKeys, river)).find((c) => c.otherId === jadeUser.id)!;
+    const intake = intakeLib.emptyIntake();
+    intake.detailed = { ...intakeLib.emptyDetailed(), answers: { flogger: { choice: 'yes' } } };
+    const top = emptyTopSetup();
+    top.offerings.categories.impact = { on: true, min: 1, max: 8 };
+    const scene = design('climb', {
+      title: 'After night', connectionId: conn.id, partnerId: jadeUser.id, partnerName: 'Jade', role: 'top',
+      date: '2026-12-03', startTime: '20:00', minutes: 45, location: '', isPublic: false, intense: false, intakeVersion: 1, marks: 'day',
+      useSpecificGear: false, gearIds: [], overrides: [], notes: '', picks: [{ activityId: 'flogger', intensity: 6, surprise: false }]
+    }, { intake, top, studio: false, optedOutGear: [], gear: [] });
+    const shared = await vibes.shareVibe(riverKeys, await scenes.saveScene(riverKeys, scene), {});
+    const vibeId = shared.share!.id;
+    await after.scheduleAfterScene(vibeId);
+    expect(after.dueNow(await after.listReminders()).map((r) => r.kind)).toEqual(['post']);
+    await after.saveNote(riverKeys, vibeId, jadeUser.id, 'post', 0, { feeling: 2, attentiveness: 5, overall: 5 }, { activities: [{ id: 'flogger', label: 'Flogger' }] });
+    await after.markDone(vibeId, 'post');
+    expect(after.dueNow(await after.listReminders())).toEqual([]);
+    const { data: raw } = await admin.from('scene_notes').select('sealed_self, sealed_shared').eq('vibe_id', vibeId);
+    expect(JSON.stringify(raw)).not.toMatch(/flogger|Flogger|feeling/);
+    await account.signOut();
+
+    // The bottom sees the Top's activity list, not the Top's ratings, and answers.
+    await account.signIn(jadeUser.email, jadeUser.password);
+    const jadeKeys = account.loadKeys()!;
+    let notes = await after.listNotes(jadeKeys, vibeId);
+    const fromTop = after.find(notes, riverUser.id, 'post')!;
+    expect(fromTop.shared).toEqual({ activities: [{ id: 'flogger', label: 'Flogger' }] });
+    expect(fromTop.mine).toBeNull();
+    expect(after.dueNow(await after.listReminders()).map((r) => r.kind)).toEqual(['post']);
+    await after.saveNote(jadeKeys, vibeId, riverUser.id, 'post', 0, { feeling: 4, attentiveness: 5, overall: 4 }, { feeling: 4, attentiveness: 5, overall: 4 });
+    await after.saveNote(jadeKeys, vibeId, riverUser.id, 'debrief', 0, { scores: { 'feel-now': 4 }, differed: '', keep: 'The slow start', replies: { flogger: 'no-now' } }, { scores: { 'feel-now': 4 }, differed: '', keep: 'The slow start', replies: { flogger: 'no-now' } });
+    notes = await after.listNotes(jadeKeys, vibeId);
+    expect(after.find<{ keep: string }>(notes, jadeUser.id, 'debrief')?.mine?.keep).toBe('The slow start');
+
+    // A message arrives sealed: the server never holds the words.
+    await messages.sendMessage(jadeKeys, conn.id, riverUser.id, { text: 'Thank you for tonight' });
+    const { data: msgRaw } = await admin.from('messages').select('sealed_for_recipient, sealed_for_sender').eq('connection_id', conn.id);
+    expect(JSON.stringify(msgRaw)).not.toContain('Thank you');
+    expect((await messages.listThread(jadeKeys, conn.id)).map((m) => [m.text, m.mine])).toEqual([['Thank you for tonight', true]]);
+    await account.signOut();
+
+    // The Top reads the bottom's debrief and message, and sends the 18-hour check-in.
+    await account.signIn(riverUser.email, riverUser.password);
+    const topKeys = account.loadKeys()!;
+    notes = await after.listNotes(topKeys, vibeId);
+    expect((after.find(notes, jadeUser.id, 'debrief')?.shared as { replies: Record<string, string> }).replies).toEqual({ flogger: 'no-now' });
+    expect((await messages.unreadCounts(topKeys))[conn.id]).toBe(1);
+    expect((await messages.listThread(topKeys, conn.id))[0].text).toBe('Thank you for tonight');
+    await messages.markRead(topKeys, conn.id);
+    expect((await messages.unreadCounts(topKeys))[conn.id]).toBeUndefined();
+    await messages.sendMessage(topKeys, conn.id, jadeUser.id, { text: 'How are you feeling today?', kind: 'checkin' });
+    await after.markDone(vibeId, 'checkin');
+    await account.signOut();
+
+    await account.signIn(jadeUser.email, jadeUser.password);
+    const thread = await messages.listThread(account.loadKeys()!, conn.id);
+    expect(thread.map((m) => m.kind ?? 'text')).toEqual(['text', 'checkin']);
+    await account.signOut();
+
+    await account.signIn(riverUser.email, riverUser.password);
+    await scenes.deleteScene(shared.id);
+  });
+
   it("sends a design from bottom to Top as a locked request, accepted into the Top's own scenes", async () => {
     await account.signOut();
     const scenes = await import('../../src/lib/scenes');

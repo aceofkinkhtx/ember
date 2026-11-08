@@ -3,6 +3,7 @@ import { EmberMark } from '../components/EmberMark';
 import { DonationPrompt } from '../components/DonationPrompt';
 import { RoleToggle } from '../components/RoleToggle';
 import { NextScene } from '../components/scene/NextScene';
+import { DueCheckIns } from './after/AfterScene';
 import { useSettings } from '../state/settings';
 
 // H1 (Top) and BH1 (bottom). Real content arrives with later milestones;
@@ -39,11 +40,7 @@ export function Home() {
               </div>
             </div>
           )}
-          <div className="card">
-            <div className="eyebrow">Check-ins</div>
-            <div className="card-title">Nothing due</div>
-            <p className="setting-desc">Check-ins after a {scene} show up here first, about 18 hours later.</p>
-          </div>
+          <DueCheckIns word={scene} />
           <NextScene role="top" word={scene} empty={`Give a design a date and it shows up here, with a countdown.`} />
           <TipCard />
           <div style={{ display: 'flex', gap: 10 }}>
@@ -59,6 +56,7 @@ export function Home() {
         <>
           <h1>Your space</h1>
           <p className="lede">Share what you want, own your limits, and see what's coming.</p>
+          <DueCheckIns word={scene} />
           <div className="card">
             <div className="eyebrow">Your profile</div>
             <div className="card-title">Tell your partner what you want</div>

@@ -31,7 +31,9 @@ export default defineConfig({
       workbox: {
         // Every current phone browser reads woff2, so the older woff copies are not cached.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        navigateFallback: '/index.html'
+        navigateFallback: '/index.html',
+        // Shows Ember's generic alerts (M7).
+        importScripts: ['push-sw.js']
       }
     })
   ],

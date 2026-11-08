@@ -790,3 +790,91 @@ describe('scene vibes', () => {
     expect((await admin.from('scene_vibes').select('id').eq('id', vibeId)).data).toEqual([]);
   });
 });
+
+describe('after the scene and messages (M7)', () => {
+  let top: Person;
+  let sub: Person;
+  let other: Person;
+  let connId: string;
+  let vibeId: string;
+
+  beforeAll(async () => {
+    [top, sub, other] = await Promise.all([person('m7top'), person('m7sub'), person('m7stranger')]);
+    const inv = await invite(top, 'account', 'top');
+    const accepted = await sub.db.rpc('accept_invite', { invite_code: inv.code });
+    if (accepted.error) throw accepted.error;
+    connId = accepted.data as string;
+    const made = await top.db.from('scene_vibes').insert({ recipient_id: sub.id, scene_ref: '33333333-2222-4333-8444-555555555555', sealed_vibe: 'v' }).select('id').single();
+    if (made.error) throw made.error;
+    vibeId = made.data.id;
+  }, 60_000);
+
+  it('schedule check-ins for both people, only from someone in the scene', async () => {
+    expect((await other.db.rpc('schedule_after_scene', { vibe: vibeId })).error).not.toBeNull();
+    expect((await top.db.rpc('schedule_after_scene', { vibe: vibeId })).error).toBeNull();
+    expect((await sub.db.rpc('schedule_after_scene', { vibe: vibeId })).error).toBeNull();
+    const mine = (await top.db.from('reminders').select('kind, day')).data!;
+    expect(mine.map((r) => `${r.kind}${r.day}`).sort()).toEqual(['checkin0', 'followup1', 'followup2', 'followup3', 'post0']);
+    const theirs = (await sub.db.from('reminders').select('kind, day')).data!;
+    expect(theirs.map((r) => `${r.kind}${r.day}`).sort()).toEqual(['debrief0', 'followup1', 'followup2', 'followup3', 'post0']);
+    expect((await other.db.from('reminders').select('id')).data).toEqual([]);
+    // People can mark their own done, and can't make or move reminders.
+    expect((await sub.db.from('reminders').update({ done_at: new Date().toISOString() }).eq('kind', 'post')).error).toBeNull();
+    expect((await sub.db.from('reminders').update({ due_at: new Date().toISOString() }).eq('kind', 'debrief')).error).not.toBeNull();
+    expect((await sub.db.from('reminders').insert({ user_id: sub.id, kind: 'post', due_at: new Date().toISOString() })).error).not.toBeNull();
+  });
+
+  it('keep notes between the two people in the scene', async () => {
+    expect((await other.db.from('scene_notes').insert({ vibe_id: vibeId, recipient_id: top.id, kind: 'post', sealed_self: 's' })).error).not.toBeNull();
+    expect((await top.db.from('scene_notes').insert({ vibe_id: vibeId, recipient_id: other.id, kind: 'post', sealed_self: 's' })).error).not.toBeNull();
+    expect((await sub.db.from('scene_notes').insert({ vibe_id: vibeId, recipient_id: top.id, kind: 'post', sealed_self: 'mine', sealed_shared: 'for-top' })).error).toBeNull();
+    expect((await top.db.from('scene_notes').select('sealed_shared')).data).toEqual([{ sealed_shared: 'for-top' }]);
+    expect((await other.db.from('scene_notes').select('id')).data).toEqual([]);
+    expect((await top.db.from('scene_notes').update({ sealed_shared: 'changed' }).eq('author_id', sub.id).select('id')).data ?? []).toEqual([]);
+  });
+
+  it('send messages only within the connection, hidden once blocked', async () => {
+    const send = (from: Person, to: Person, text: string) =>
+      from.db.from('messages').insert({ connection_id: connId, recipient_id: to.id, sealed_for_recipient: text, sealed_for_sender: text });
+    expect((await send(other, sub, 'hello')).error).not.toBeNull();
+    expect((await other.db.from('messages').insert({ connection_id: connId, sender_id: top.id, recipient_id: sub.id, sealed_for_recipient: 'x', sealed_for_sender: 'x' })).error).not.toBeNull();
+    expect((await send(top, sub, 'locked-hi')).error).toBeNull();
+    expect((await sub.db.from('messages').select('sealed_for_recipient')).data).toEqual([{ sealed_for_recipient: 'locked-hi' }]);
+    expect((await other.db.from('messages').select('id')).data).toEqual([]);
+    // A message queues one alert for the recipient.
+    expect((await sub.db.from('reminders').select('kind').eq('kind', 'message')).data).toHaveLength(1);
+    // Only the recipient marks it read; only the sender unsends.
+    expect((await top.db.from('messages').update({ read_at: new Date().toISOString() }).eq('recipient_id', sub.id).select('id')).data ?? []).toEqual([]);
+    expect((await sub.db.from('messages').update({ read_at: new Date().toISOString() }).eq('recipient_id', sub.id)).error).toBeNull();
+    expect((await sub.db.from('messages').delete().eq('sender_id', top.id).select('id')).data ?? []).toEqual([]);
+
+    // After a block the sender can still send, without being told, but the bottom no longer sees it.
+    expect((await sub.db.from('blocks').insert({ blocker_id: sub.id, blocked_id: top.id })).error).toBeNull();
+    expect((await send(top, sub, 'after-block')).error).toBeNull();
+    expect((await sub.db.from('messages').select('id')).data).toEqual([]);
+    expect((await top.db.from('messages').select('sealed_for_sender')).data).toHaveLength(2);
+    expect((await other.db.from('blocks').insert({ blocker_id: sub.id, blocked_id: other.id })).error).not.toBeNull();
+  });
+
+  it('take reports that nobody can read in the app', async () => {
+    expect((await sub.db.from('reports').insert({ reported_id: top.id, reason: 'harassment', included_text: 'They said: hi' })).error).toBeNull();
+    expect((await sub.db.from('reports').insert({ reported_id: other.id, reason: 'spam' })).error).not.toBeNull();
+    expect((await sub.db.from('reports').select('id')).data ?? []).toEqual([]);
+    expect((await top.db.from('reports').select('id')).data ?? []).toEqual([]);
+    expect((await admin.from('reports').select('reason').eq('reporter_id', sub.id)).data).toEqual([{ reason: 'harassment' }]);
+  });
+
+  it('keep each phone alert sign-up to its owner', async () => {
+    const one = { endpoint: `https://push.example.com/${run}`, p256dh: 'k', auth: 'a' };
+    expect((await top.db.from('push_subscriptions').insert(one)).error).toBeNull();
+    expect((await sub.db.from('push_subscriptions').select('id')).data).toEqual([]);
+    expect((await other.db.from('push_subscriptions').insert({ ...one, endpoint: `https://push.example.com/${run}-2`, user_id: top.id })).error).not.toBeNull();
+  });
+
+  it('go away when the connection ends', async () => {
+    expect((await top.db.from('connections').update({ status: 'ended' }).eq('id', connId)).error).toBeNull();
+    expect((await admin.from('messages').select('id').eq('connection_id', connId)).data).toEqual([]);
+    expect((await admin.from('scene_notes').select('id').eq('vibe_id', vibeId)).data).toEqual([]);
+    expect((await admin.from('reminders').select('id').eq('vibe_id', vibeId)).data).toEqual([]);
+  });
+});
