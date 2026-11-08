@@ -1098,3 +1098,38 @@ select {
   color: #fff4ef;
   border: 2px solid rgba(255, 244, 239, 0.6);
 }
+
+/* Placing a profile picture in its circle */
+.cropper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #141012;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  display: grid;
+  place-items: center;
+}
+.cropper:active {
+  cursor: grabbing;
+}
+.cropper:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.cropper img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  max-width: none;
+  pointer-events: none;
+}
+.cropper-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 400px rgba(20, 16, 18, 0.62);
+  outline: 2px solid rgba(255, 250, 244, 0.9);
+  pointer-events: none;
+}

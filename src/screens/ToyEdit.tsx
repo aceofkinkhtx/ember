@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Chips, TextArea, TextInput } from '../components/intake/Bits';
 import { ToyPhoto } from '../components/toys/ToyCard';
 import { AccountError, cardFor, listConnections, type Connection } from '../lib/account';
-import { shrinkPhoto } from '../lib/photo';
+import { PhotoError, shrinkPhoto } from '../lib/photo';
 import {
   deleteToy,
   emptyToy,
@@ -79,8 +79,8 @@ export function ToyEdit() {
       const bytes = await shrinkPhoto(f);
       setPhoto(bytes);
       setPreview(URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'image/jpeg' })));
-    } catch {
-      setError("Ember couldn't read that photo. Try another.");
+    } catch (e) {
+      setError(e instanceof PhotoError ? e.message : "Ember couldn't read that photo. Try another.");
     }
   }
 

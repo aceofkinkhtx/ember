@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccountError, cardFor, refreshMyCards } from '../lib/account';
 import { avatarUrl, loadAvatarKey, removeAvatar, setAvatar, type AvatarKey } from '../lib/avatar';
-import { shrinkPhoto } from '../lib/photo';
+import { PhotoCropper } from './PhotoCropper';
 import { useAccount } from '../state/account';
 import { useSettings } from '../state/settings';
 
@@ -45,6 +45,7 @@ export function AvatarEditor() {
   const [photo, setPhoto] = useState(loadAvatarKey());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [cropping, setCropping] = useState<File | null>(null);
   const file = useRef<HTMLInputElement>(null);
 
   if (status !== 'signed-in' || !keys) return null;
@@ -93,7 +94,10 @@ export function AvatarEditor() {
         onChange={(e) => {
           const f = e.target.files?.[0];
           e.target.value = '';
-          if (f) void run(async () => setAvatar(keys, await shrinkPhoto(f, 400)));
+          if (f) {
+            setError('');
+            setCropping(f);
+          }
         }}
       />
       <p className="note" style={{ margin: 0 }}>
@@ -103,6 +107,16 @@ export function AvatarEditor() {
         <p className="note error" role="alert">
           {error}
         </p>
+      )}
+      {cropping && (
+        <PhotoCropper
+          file={cropping}
+          onCancel={() => setCropping(null)}
+          onDone={async (bytes) => {
+            setCropping(null);
+            await run(() => setAvatar(keys, bytes));
+          }}
+        />
       )}
     </section>
   );
