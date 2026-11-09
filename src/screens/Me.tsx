@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { DonateOptions } from '../components/DonateOptions';
 import { AvatarEditor } from '../components/Avatar';
@@ -8,7 +8,7 @@ import { SettingSwitch } from '../components/Switch';
 import { roleLabel, type RoleChoice } from '../content/copy';
 import { pronounLabel } from '../content/identity';
 import { cadenceLabels, offeringsSummary } from '../content/topSetup';
-import { AccountError, signOut } from '../lib/account';
+import { AccountError, changePassword, MIN_PASSWORD, signOut } from '../lib/account';
 import { biometricAvailable, setUpBiometric } from '../lib/biometric';
 import { collectMyData, deleteMyAccount, exportFileName, saveFile } from '../lib/myData';
 import { pushState, setPushWants, turnOffPush, turnOnPush, type PushState } from '../lib/push';
@@ -224,6 +224,7 @@ function AccountSection() {
     <section className="card" aria-label="Account">
       <div className="eyebrow">Account</div>
       <p className="setting-desc">Signed in as {account.email}</p>
+      <ChangePassword />
       <button
         type="button"
         className="btn btn-outline"
@@ -320,6 +321,101 @@ function BiometricSetting() {
         </p>
       )}
     </>
+  );
+}
+
+function ChangePassword() {
+  const { keys, email } = useAccount();
+  const [open, setOpen] = useState(false);
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+  if (!keys || !email) return null;
+
+  const problem = !current
+    ? 'Enter your current password.'
+    : next.length < MIN_PASSWORD
+      ? `Your new password needs at least ${MIN_PASSWORD} characters.`
+      : confirm !== next
+        ? "The two new passwords don't match yet."
+        : '';
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (problem || busy || !keys || !email) return;
+    setBusy(true);
+    setError('');
+    try {
+      await changePassword(keys, email, current, next);
+      setDone(true);
+      setOpen(false);
+      setCurrent('');
+      setNext('');
+      setConfirm('');
+    } catch (err) {
+      setError(err instanceof AccountError ? err.message : "Ember couldn't change your password. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <>
+        {done && (
+          <p className="note" role="status" style={{ margin: 0 }}>
+            Your password was changed. Use the new one next time you sign in. Your recovery code stays the same.
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-outline"
+          onClick={() => {
+            setOpen(true);
+            setDone(false);
+          }}
+        >
+          Change password
+        </button>
+      </>
+    );
+  }
+
+  return (
+    <form className="stack" style={{ gap: 12 }} onSubmit={submit} noValidate>
+      <label className="field">
+        <span className="field-label">Current password</span>
+        <input className="input" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+      </label>
+      <label className="field">
+        <span className="field-label">New password</span>
+        <span className="field-hint">At least {MIN_PASSWORD} characters.</span>
+        <input className="input" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
+      </label>
+      <label className="field">
+        <span className="field-label">New password again</span>
+        <input className="input" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+      </label>
+      {error && (
+        <p className="note error" role="alert" style={{ margin: 0 }}>
+          {error}
+        </p>
+      )}
+      <button type="submit" className="btn btn-primary" disabled={Boolean(problem) || busy}>
+        {busy ? 'Changing...' : 'Change my password'}
+      </button>
+      {problem && (current || next) && (
+        <p className="note" style={{ margin: 0 }}>
+          {problem}
+        </p>
+      )}
+      <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => setOpen(false)}>
+        Cancel
+      </button>
+    </form>
   );
 }
 

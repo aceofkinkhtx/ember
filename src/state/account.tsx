@@ -7,6 +7,9 @@ import { useSettings } from './settings';
 
 type Status = 'loading' | 'signed-out' | 'signed-in';
 
+export const RESET_PATH = '/reset-password';
+const isResetPage = () => window.location.pathname === RESET_PATH;
+
 interface AccountValue {
   status: Status;
   email: string | null;
@@ -32,7 +35,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       }
       // A session without keys (for example from an email link) can't open
       // anything, so it is set aside until the person signs in with a password.
-      if (user) await signOut();
+      // The one exception is the password reset page, which needs it.
+      if (user && !isResetPage()) await signOut();
     } catch {
       // Offline or storage blocked: treat as signed out on this phone.
     }

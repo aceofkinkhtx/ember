@@ -26,7 +26,8 @@ import { BottomCheckPage, BottomLivePage } from './screens/live/BottomLive';
 import { LiveScene } from './screens/live/LiveScene';
 import { AfterScenePage, FollowUpPage, TopCheckInPage } from './screens/after/AfterScene';
 import { MessagesPage } from './screens/Messages';
-import { AccountProvider } from './state/account';
+import { ResetPassword } from './screens/ResetPassword';
+import { AccountProvider, RESET_PATH } from './state/account';
 import { SettingsProvider, useSettings, type Settings } from './state/settings';
 
 const themeColor = { paper: '#F5EDE3', rose: '#F7E9EC' } as const;
@@ -89,13 +90,24 @@ function Shell() {
 function Root() {
   const { settings } = useSettings();
   // Guests have no account or setup on this phone, so their pages skip both.
-  const guest = useLocation().pathname.startsWith('/guest/');
+  const { pathname } = useLocation();
+  const guest = pathname.startsWith('/guest/');
   useTheme(guest);
   if (guest) {
     return (
       <Routes>
         <Route path="/guest/:code" element={<Guest />} />
       </Routes>
+    );
+  }
+  // A reset link can open on a phone that hasn't been set up yet.
+  if (pathname === RESET_PATH) {
+    return (
+      <LockGate>
+        <div className="app">
+          <ResetPassword />
+        </div>
+      </LockGate>
     );
   }
   return <LockGate>{settings.onboarding === 'done' ? <Shell /> : <Onboarding />}</LockGate>;

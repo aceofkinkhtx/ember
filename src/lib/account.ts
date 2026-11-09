@@ -172,9 +172,94 @@ export async function signIn(email: string, password: string): Promise<SignInRes
   return finishSignIn(data.user.id, wrapKey, salt);
 }
 
-export async function signOut(): Promise<void> {
+/**
+ * Locks the private key with a new password, then gives the server the new
+ * sign-in secret. If the server refuses, the old lock is put back, so the
+ * account never ends up with a password that can't open it.
+ */
+async function setNewPassword(userId: string, email: string, privateKey: string, newPassword: string): Promise<{ wrapKey: Uint8Array; salt: string }> {
+  const { data: before, error: readError } = await db
+    .from('profiles')
+    .select('wrapped_private_key, wrap_salt, wrap_params')
+    .eq('id', userId)
+    .single();
+  if (readError) throw new AccountError(friendly(readError.message));
+  const { authSecret, wrapKey, salt } = await deriveFromPassword(email, newPassword);
+  const relock = await db
+    .from('profiles')
+    .update({ wrapped_private_key: await lock(privateKey, wrapKey), wrap_salt: salt, wrap_params: defaultPasswordParams })
+    .eq('id', userId);
+  if (relock.error) throw new AccountError(friendly(relock.error.message));
+  const { error } = await db.auth.updateUser({ password: authSecret });
+  if (error) {
+    await db.from('profiles').update(before).eq('id', userId);
+    throw new AccountError(friendly(error.message));
+  }
+  return { wrapKey, salt };
+}
+
+/** Emails a link that opens the reset page. Says nothing about whether the email has an account. */
+export async function sendPasswordReset(email: string): Promise<void> {
+  const { error } = await db.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/reset-password` });
+  if (error) throw new AccountError(friendly(error.message));
+}
+
+/** The email the reset link signed in with, or null if the link expired or was used. */
+export async function resetLinkEmail(): Promise<string | null> {
+  const { data } = await db.auth.getSession();
+  return data.session?.user.email ?? null;
+}
+
+/**
+ * After the emailed link: the recovery code unlocks the private key, which is
+ * then locked again with the new password. Without the code nothing changes.
+ */
+export async function resetWithRecoveryCode(code: string, newPassword: string): Promise<SignInResult> {
+  const { data } = await db.auth.getSession();
+  const user = data.session?.user;
+  if (!user?.email) throw new AccountError('This reset link has expired or was already used. Ask for a new one from Sign in.');
+  // Another person's things on this phone are put away first.
+  const here = loadKeys();
+  if (here && here.userId !== user.id) forgetPersonOnPhone();
+
+  const { data: profile, error } = await db
+    .from('profiles')
+    .select('recovery_wrapped_private_key, recovery_salt')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (error) throw new AccountError(friendly(error.message));
+
+  if (!profile) {
+    // The account was never opened, so nothing is locked yet: just set the password.
+    const { authSecret, wrapKey, salt } = await deriveFromPassword(user.email, newPassword);
+    const set = await db.auth.updateUser({ password: authSecret });
+    if (set.error) throw new AccountError(friendly(set.error.message));
+    return finishSignIn(user.id, wrapKey, salt);
+  }
+
+  let privateKey: string;
+  try {
+    privateKey = await unlock(profile.recovery_wrapped_private_key, await recoveryKey(code, profile.recovery_salt));
+  } catch {
+    throw new AccountError("That recovery code doesn't match this account. Check it and try again.");
+  }
+  const { wrapKey, salt } = await setNewPassword(user.id, user.email, privateKey, newPassword);
+  return finishSignIn(user.id, wrapKey, salt);
+}
+
+/** Changes the password while signed in. The current password is checked first. */
+export async function changePassword(keys: StoredKeys, email: string, current: string, next: string): Promise<void> {
+  const { authSecret } = await deriveFromPassword(email, current);
+  const check = await db.auth.signInWithPassword({ email, password: authSecret });
+  if (check.error) {
+    throw new AccountError(/invalid login credentials/i.test(check.error.message) ? "Your current password isn't right." : friendly(check.error.message));
+  }
+  await setNewPassword(keys.userId, email, keys.privateKey, next);
+}
+
+/** Removes this person's keys and unsaved work from the phone, keeping the phone's own settings. */
+function forgetPersonOnPhone(): void {
   clearKeys();
-  // Intake keys and any unsaved intake belong to this person, not the phone.
   try {
     window.localStorage.removeItem(RING);
     window.localStorage.removeItem(TOY_RING);
@@ -187,6 +272,11 @@ export async function signOut(): Promise<void> {
   } catch {
     // Storage unavailable: nothing was saved.
   }
+}
+
+export async function signOut(): Promise<void> {
+  // Intake keys and any unsaved intake belong to this person, not the phone.
+  forgetPersonOnPhone();
   await db.auth.signOut({ scope: 'local' });
 }
 
