@@ -22,9 +22,12 @@ export interface Settings {
   /** Face or fingerprint unlock on this phone (M9). Only works alongside a PIN. */
   biometric: BiometricRecord | null;
   safetyFloorAcknowledgedAt: string | null;
-  notifications: { dailyTips: boolean; checkIns: boolean; messages: boolean };
+  /** tipTime is "HH:MM" on this phone's clock, when the daily note alert comes (M8). */
+  notifications: { dailyTips: boolean; tipTime: string; checkIns: boolean; messages: boolean };
   /** When the monthly donation note last appeared. */
   donationPromptedAt: string | null;
+  /** The day (YYYY-MM-DD, local) daily tips were first shown on this phone (M8). */
+  tipsStartedOn: string | null;
   /** A Top's offerings and settings (M3). Kept for switches in the bottom view too. */
   top: TopSetup;
 }
@@ -42,8 +45,9 @@ export const defaultSettings: Settings = {
   pin: null,
   biometric: null,
   safetyFloorAcknowledgedAt: null,
-  notifications: { dailyTips: true, checkIns: true, messages: true },
+  notifications: { dailyTips: true, tipTime: '09:00', checkIns: true, messages: true },
   donationPromptedAt: null,
+  tipsStartedOn: null,
   top: emptyTopSetup()
 };
 

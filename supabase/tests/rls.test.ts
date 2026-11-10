@@ -879,6 +879,26 @@ describe('after the scene and messages (M7)', () => {
     expect((await other.db.from('push_subscriptions').insert({ ...one, endpoint: `https://push.example.com/${run}-2`, user_id: top.id })).error).not.toBeNull();
   });
 
+  it('send the daily note once a day after the chosen time, and only the alert sender can see who is due (M8)', async () => {
+    const endpoint = `https://push.example.com/${run}-tips`;
+    // A made-up time zone is refused.
+    expect((await top.db.from('push_subscriptions').insert({ endpoint, p256dh: 'k', auth: 'a', time_zone: 'Nowhere/Fictional' })).error).not.toBeNull();
+    // Due: the time is midnight, so it is always past it.
+    expect((await top.db.from('push_subscriptions').insert({ endpoint, p256dh: 'k', auth: 'a', time_zone: 'America/Chicago', tip_minute: 0 })).error).toBeNull();
+    const due = async () => ((await admin.rpc('due_daily_tips')).data ?? []).map((s: { endpoint: string }) => s.endpoint);
+    expect(await due()).toContain(endpoint);
+    // Sent today: not due again until tomorrow.
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(new Date());
+    await admin.from('push_subscriptions').update({ last_tip_on: today }).eq('endpoint', endpoint);
+    expect(await due()).not.toContain(endpoint);
+    // Turned off: never due.
+    await admin.from('push_subscriptions').update({ last_tip_on: null, wants_tips: false }).eq('endpoint', endpoint);
+    expect(await due()).not.toContain(endpoint);
+    // Nobody else can ask who is due.
+    expect((await top.db.rpc('due_daily_tips')).error).not.toBeNull();
+    expect((await anon.rpc('due_daily_tips')).error).not.toBeNull();
+  });
+
   it('go away when the connection ends', async () => {
     expect((await top.db.from('connections').update({ status: 'ended' }).eq('id', connId)).error).toBeNull();
     expect((await admin.from('messages').select('id').eq('connection_id', connId)).data).toEqual([]);

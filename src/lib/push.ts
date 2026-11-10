@@ -28,8 +28,42 @@ function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+/** What this phone wants alerts for, and when the daily note comes (M8). */
+export interface PushWants {
+  checkins: boolean;
+  messages: boolean;
+  tips: boolean;
+  /** "HH:MM" on this phone's clock. */
+  tipTime: string;
+}
+
+export const anyAlerts = (w: PushWants) => w.checkins || w.messages || w.tips;
+
+function phoneTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+/** Minutes after midnight, from "HH:MM" (9:00 if it can't be read). */
+export function tipMinute(time: string): number {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(time);
+  if (!m || +m[1] > 23 || +m[2] > 59) return 540;
+  return +m[1] * 60 + +m[2];
+}
+
+const wantsRow = (w: PushWants) => ({
+  wants_checkins: w.checkins,
+  wants_messages: w.messages,
+  wants_tips: w.tips,
+  tip_minute: tipMinute(w.tipTime),
+  time_zone: phoneTimeZone()
+});
+
 /** Asks for permission (from a tap), subscribes this phone and saves what it wants alerts for. */
-export async function turnOnPush(wants: { checkins: boolean; messages: boolean }): Promise<PushState> {
+export async function turnOnPush(wants: PushWants): Promise<PushState> {
   if (!supported()) return pushState();
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') return permission === 'denied' ? 'blocked' : 'off';
@@ -37,7 +71,7 @@ export async function turnOnPush(wants: { checkins: boolean; messages: boolean }
   const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(vapidPublicKey) }));
   const json = sub.toJSON();
   const { error } = await db.from('push_subscriptions').upsert(
-    { endpoint: sub.endpoint, p256dh: json.keys?.p256dh, auth: json.keys?.auth, wants_checkins: wants.checkins, wants_messages: wants.messages },
+    { endpoint: sub.endpoint, p256dh: json.keys?.p256dh, auth: json.keys?.auth, ...wantsRow(wants) },
     { onConflict: 'endpoint' }
   );
   if (error) throw new AccountError("Ember couldn't turn on alerts. Please try again.");
@@ -45,13 +79,13 @@ export async function turnOnPush(wants: { checkins: boolean; messages: boolean }
 }
 
 /** Updates what this phone wants alerts for, if it's signed up. */
-export async function setPushWants(wants: { checkins: boolean; messages: boolean }): Promise<void> {
+export async function setPushWants(wants: PushWants): Promise<void> {
   if (!supported()) return;
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = await reg?.pushManager.getSubscription();
   if (!sub) return;
-  if (!wants.checkins && !wants.messages) return turnOffPush();
-  await db.from('push_subscriptions').update({ wants_checkins: wants.checkins, wants_messages: wants.messages }).eq('endpoint', sub.endpoint);
+  if (!anyAlerts(wants)) return turnOffPush();
+  await db.from('push_subscriptions').update(wantsRow(wants)).eq('endpoint', sub.endpoint);
 }
 
 export async function turnOffPush(): Promise<void> {

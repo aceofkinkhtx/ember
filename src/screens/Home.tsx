@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { localDay, tipFor } from '../lib/tips';
 import { EmberMark } from '../components/EmberMark';
 import { DonationPrompt } from '../components/DonationPrompt';
 import { RoleToggle } from '../components/RoleToggle';
@@ -6,8 +8,7 @@ import { NextScene } from '../components/scene/NextScene';
 import { DueCheckIns } from './after/AfterScene';
 import { useSettings } from '../state/settings';
 
-// H1 (Top) and BH1 (bottom). Real content arrives with later milestones;
-// for now each card says what will live there.
+// H1 (Top) and BH1 (bottom).
 
 export function Home() {
   const { settings } = useSettings();
@@ -73,13 +74,26 @@ export function Home() {
   );
 }
 
+/** Today's tip for the role in view (M8). Turned off with "Daily tips" in Me. */
 function TipCard() {
-  const { settings } = useSettings();
-  if (!settings.notifications.dailyTips) return null;
+  const { settings, update } = useSettings();
+  const today = localDay();
+  const startedOn = settings.tipsStartedOn;
+  const on = settings.notifications.dailyTips;
+  useEffect(() => {
+    if (on && !startedOn) update({ tipsStartedOn: today });
+  }, [on, startedOn, today, update]);
+  if (!on) return null;
+  const { tip, day, total } = tipFor(settings.activeRole, startedOn ?? today, today);
   return (
-    <div className="card card-teal">
-      <div className="eyebrow">Today's note</div>
-      <p>Your daily tip will appear here. The full library arrives in a later update.</p>
-    </div>
+    <section className="card card-teal" aria-labelledby="tip-title">
+      <div className="eyebrow" id="tip-title">
+        Today's note · {tip.theme}
+      </div>
+      <p style={{ margin: 0 }}>{tip.text}</p>
+      <p className="note" style={{ margin: 0 }}>
+        {day} of {total}. A new one each day; turn them off in Me.
+      </p>
+    </section>
   );
 }

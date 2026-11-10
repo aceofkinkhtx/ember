@@ -11,10 +11,10 @@ import { cadenceLabels, offeringsSummary } from '../content/topSetup';
 import { AccountError, changePassword, MIN_PASSWORD, signOut } from '../lib/account';
 import { biometricAvailable, setUpBiometric } from '../lib/biometric';
 import { collectMyData, deleteMyAccount, exportFileName, saveFile } from '../lib/myData';
-import { pushState, setPushWants, turnOffPush, turnOnPush, type PushState } from '../lib/push';
+import { anyAlerts, pushState, setPushWants, turnOffPush, turnOnPush, type PushState, type PushWants } from '../lib/push';
 import { eraseAll } from '../lib/storage';
 import { useAccount } from '../state/account';
-import { roleFor, useSettings } from '../state/settings';
+import { roleFor, useSettings, type Settings } from '../state/settings';
 
 // M1 (Top) and BM1 (bottom): settings for this device.
 
@@ -22,6 +22,12 @@ export function Me() {
   const { settings, update } = useSettings();
   const [settingPin, setSettingPin] = useState(false);
   const [confirmErase, setConfirmErase] = useState(false);
+  // Changing a notification setting also updates this phone's alerts, if they're on.
+  const setNotes = (patch: Partial<Settings['notifications']>) => {
+    const notifications = { ...settings.notifications, ...patch };
+    update({ notifications });
+    void setPushWants(pushWantsFrom(notifications));
+  };
 
   if (settingPin) {
     return (
@@ -144,29 +150,36 @@ export function Me() {
         <div className="eyebrow">Notifications</div>
         <SettingSwitch
           label="Daily tips"
-          description="One short note a day."
+          description={`One short note a day on Home, for the role you're in.${settings.roles === 'both' ? ' Tops and bottoms each have their own.' : ''}`}
           checked={settings.notifications.dailyTips}
-          onChange={(dailyTips) => update((s) => ({ notifications: { ...s.notifications, dailyTips } }))}
+          onChange={(dailyTips) => setNotes({ dailyTips })}
         />
+        {settings.notifications.dailyTips && (
+          <label className="field" style={{ paddingBottom: 8 }}>
+            <span className="field-label">Daily note alert time</span>
+            <span className="field-hint">When phone alerts are on, a note at this time says only "Your daily note is ready".</span>
+            <input
+              className="input"
+              type="time"
+              style={{ maxWidth: 160 }}
+              value={settings.notifications.tipTime}
+              onChange={(e) => e.target.value && setNotes({ tipTime: e.target.value })}
+            />
+          </label>
+        )}
         <SettingSwitch
           label="Check-in reminders"
           description="Right after a scene, a few hours later, and once a day for 3 days. The check-in itself always stays in the app."
           checked={settings.notifications.checkIns}
-          onChange={(checkIns) => {
-            update((s) => ({ notifications: { ...s.notifications, checkIns } }));
-            void setPushWants({ checkins: checkIns, messages: settings.notifications.messages });
-          }}
+          onChange={(checkIns) => setNotes({ checkIns })}
         />
         <SettingSwitch
           label="Message alerts"
           description="When someone you're connected to sends a message."
           checked={settings.notifications.messages}
-          onChange={(messages) => {
-            update((s) => ({ notifications: { ...s.notifications, messages } }));
-            void setPushWants({ checkins: settings.notifications.checkIns, messages });
-          }}
+          onChange={(messages) => setNotes({ messages })}
         />
-        <PhoneAlerts wants={{ checkins: settings.notifications.checkIns, messages: settings.notifications.messages }} />
+        <PhoneAlerts wants={pushWantsFrom(settings.notifications)} />
       </section>
 
       <AccountSection />
@@ -244,7 +257,9 @@ function AccountSection() {
  * alert text is always generic, and it passes through the phone maker's push
  * service; the check-ins and messages stay in Ember.
  */
-function PhoneAlerts({ wants }: { wants: { checkins: boolean; messages: boolean } }) {
+const pushWantsFrom = (n: Settings['notifications']): PushWants => ({ checkins: n.checkIns, messages: n.messages, tips: n.dailyTips, tipTime: n.tipTime });
+
+function PhoneAlerts({ wants }: { wants: PushWants }) {
   const { status } = useAccount();
   const [state, setState] = useState<PushState | null>(null);
   const [error, setError] = useState('');
@@ -257,14 +272,14 @@ function PhoneAlerts({ wants }: { wants: { checkins: boolean; messages: boolean 
     'needs-install': 'On iPhone, add Ember to your Home Screen first (Share, then Add to Home Screen), then turn alerts on from there.',
     blocked: 'Alerts are blocked for Ember in your phone settings. Allow notifications for Ember there to turn them on.',
     off: 'Alerts are off on this phone. Check-ins still wait on Home.',
-    on: 'Alerts are on for this phone. They only ever say "A check-in is waiting" or "You have a new message", never names or details.'
+    on: 'Alerts are on for this phone. They only ever say "A check-in is waiting", "You have a new message" or "Your daily note is ready", never names or details.'
   };
   return (
     <div className="stack" style={{ gap: 8, paddingTop: 8 }}>
       <p className="note" style={{ margin: 0 }}>
         {text[state]}
       </p>
-      {state === 'off' && (wants.checkins || wants.messages) && (
+      {state === 'off' && anyAlerts(wants) && (
         <button
           type="button"
           className="btn btn-outline"
