@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     try {
       await server
         .subscribe({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } })
-        .pushTextMessage(JSON.stringify({ body: text[kind], tag: kind, url: kind === 'message' || kind === 'negotiation' ? '/connections' : '/' }), {
+        .pushTextMessage(JSON.stringify({ body: text[kind], tag: kind, url: kind === 'message' ? '/connections' : '/' }), {
           ttl: kind === 'tip' ? 43200 : 86400
         });
       sent++;

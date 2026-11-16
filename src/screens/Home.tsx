@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { localDay, tipFor } from '../lib/tips';
 import { listNegotiations, type Negotiation } from '../lib/negotiations';
+import { listIncomingRequests, type IncomingRequest } from '../lib/scenes';
+import { ProposeLink } from '../components/ProposeLink';
 import { useAccount } from '../state/account';
 import { EmberMark } from '../components/EmberMark';
 import { DonationPrompt } from '../components/DonationPrompt';
@@ -70,6 +72,12 @@ export function Home() {
               Start
             </Link>
           </div>
+          <div className="card">
+            <div className="eyebrow">Your next {scene}</div>
+            <div className="card-title">Say what you'd like this time</div>
+            <p className="setting-desc">List what you'd like to do, feel and experience. Your Top keeps, removes or adds, and once you both agree, they design from it.</p>
+            <ProposeLink className="btn btn-outline" style={{ alignSelf: 'flex-start' }} />
+          </div>
           <NextScene role="bottom" word={scene} empty={`When your Top shares a ${scene}, its SceneVibe appears here.`} />
           <TipCard />
         </>
@@ -102,24 +110,40 @@ function TipCard() {
   );
 }
 
-/** Scene proposals waiting for your answer (Michael, Nov 16). */
+/** Scene proposals and designs waiting for your answer (Michael, Nov 16). */
 function ProposalsWaiting() {
   const { keys } = useAccount();
   const [waiting, setWaiting] = useState<Negotiation[]>([]);
+  const [designs, setDesigns] = useState<IncomingRequest[]>([]);
   useEffect(() => {
     if (!keys) return;
     listNegotiations(keys)
       .then((all) => setWaiting(all.filter((n) => n.turnId === keys.userId)))
       .catch(() => setWaiting([]));
+    listIncomingRequests(keys)
+      .then(setDesigns)
+      .catch(() => setDesigns([]));
   }, [keys]);
-  if (!waiting.length) return null;
+  const count = waiting.length + designs.length;
+  if (!count) return null;
+  const title =
+    count > 1
+      ? `${count} scenes are waiting for your answer`
+      : waiting.length
+        ? 'A scene proposal is waiting for you'
+        : 'A scene design is waiting for you';
   return (
-    <section className="card stack" style={{ gap: 8 }} aria-label="Scene proposals waiting">
+    <section className="card stack" style={{ gap: 8 }} aria-label="Waiting for your answer">
       <div className="eyebrow">Your turn</div>
-      <div className="card-title">{waiting.length === 1 ? 'A scene proposal is waiting for you' : `${waiting.length} scene proposals are waiting for you`}</div>
+      <div className="card-title">{title}</div>
       {waiting.map((n) => (
         <Link key={n.id} to={`/negotiations/${n.id}`} className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
-          Open {n.body.when ? `"${n.body.when}"` : 'the proposal'}
+          Open the proposal{n.body.when ? ` "${n.body.when}"` : ''}
+        </Link>
+      ))}
+      {designs.map((d) => (
+        <Link key={d.id} to="/scenes" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
+          See the design "{d.scene.title}"
         </Link>
       ))}
     </section>
