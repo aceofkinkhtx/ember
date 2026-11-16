@@ -8,6 +8,7 @@ import * as webpush from 'jsr:@negrel/webpush@0.5.0';
 const text = {
   checkin: 'A check-in is waiting in Ember.',
   message: 'You have a new message in Ember.',
+  negotiation: 'A scene request is waiting in Ember.',
   tip: 'Your daily note is ready in Ember.'
 };
 
@@ -31,7 +32,7 @@ Deno.serve(async (req) => {
     try {
       await server
         .subscribe({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } })
-        .pushTextMessage(JSON.stringify({ body: text[kind], tag: kind, url: kind === 'message' ? '/connections' : '/' }), {
+        .pushTextMessage(JSON.stringify({ body: text[kind], tag: kind, url: kind === 'message' || kind === 'negotiation' ? '/connections' : '/' }), {
           ttl: kind === 'tip' ? 43200 : 86400
         });
       sent++;
@@ -63,11 +64,13 @@ Deno.serve(async (req) => {
       .in('user_id', users);
     for (const user of users) {
       const mine = due.filter((r) => r.user_id === user);
-      const checkins = mine.some((r) => r.kind !== 'message');
+      const checkins = mine.some((r) => r.kind !== 'message' && r.kind !== 'negotiation');
+      const negotiations = mine.some((r) => r.kind === 'negotiation');
       const messages = mine.some((r) => r.kind === 'message');
       for (const s of (subs ?? []).filter((x) => x.user_id === user)) {
-        // One alert per phone per run: a check-in outranks a message.
-        const kind = checkins && s.wants_checkins ? 'checkin' : messages && s.wants_messages ? 'message' : null;
+        // One alert per phone per run: a check-in, then a scene request, then a message.
+        // Scene requests follow the "Messages and scene requests" switch.
+        const kind = checkins && s.wants_checkins ? 'checkin' : negotiations && s.wants_messages ? 'negotiation' : messages && s.wants_messages ? 'message' : null;
         if (kind) await push(s, kind);
       }
     }

@@ -1,6 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { localDay, tipFor } from '../lib/tips';
+import { listNegotiations, type Negotiation } from '../lib/negotiations';
+import { useAccount } from '../state/account';
 import { EmberMark } from '../components/EmberMark';
 import { DonationPrompt } from '../components/DonationPrompt';
 import { RoleToggle } from '../components/RoleToggle';
@@ -42,6 +44,7 @@ export function Home() {
             </div>
           )}
           <DueCheckIns word={scene} />
+          <ProposalsWaiting />
           <NextScene role="top" word={scene} empty={`Give a design a date and it shows up here, with a countdown.`} />
           <TipCard />
           <div style={{ display: 'flex', gap: 10 }}>
@@ -58,6 +61,7 @@ export function Home() {
           <h1>Your space</h1>
           <p className="lede">Share what you want, own your limits, and see what's coming.</p>
           <DueCheckIns word={scene} />
+          <ProposalsWaiting />
           <div className="card">
             <div className="eyebrow">Your profile</div>
             <div className="card-title">Tell your partner what you want</div>
@@ -94,6 +98,30 @@ function TipCard() {
       <p className="note" style={{ margin: 0 }}>
         {day} of {total}. A new one each day; turn them off in Me.
       </p>
+    </section>
+  );
+}
+
+/** Scene proposals waiting for your answer (Michael, Nov 16). */
+function ProposalsWaiting() {
+  const { keys } = useAccount();
+  const [waiting, setWaiting] = useState<Negotiation[]>([]);
+  useEffect(() => {
+    if (!keys) return;
+    listNegotiations(keys)
+      .then((all) => setWaiting(all.filter((n) => n.turnId === keys.userId)))
+      .catch(() => setWaiting([]));
+  }, [keys]);
+  if (!waiting.length) return null;
+  return (
+    <section className="card stack" style={{ gap: 8 }} aria-label="Scene proposals waiting">
+      <div className="eyebrow">Your turn</div>
+      <div className="card-title">{waiting.length === 1 ? 'A scene proposal is waiting for you' : `${waiting.length} scene proposals are waiting for you`}</div>
+      {waiting.map((n) => (
+        <Link key={n.id} to={`/negotiations/${n.id}`} className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
+          Open {n.body.when ? `"${n.body.when}"` : 'the proposal'}
+        </Link>
+      ))}
     </section>
   );
 }

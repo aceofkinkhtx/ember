@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { allTopActivities, available } from '../../content/topSetup';
 import { categories, type Activity } from '../../data/activities';
 import type { Override } from '../../lib/scene/model';
-import { choiceOf, confirmationsFor, type Confirmation, type RuleContext } from '../../lib/scene/rules';
+import { activityOf, choiceOf, confirmationsFor, type Confirmation, type RuleContext } from '../../lib/scene/rules';
 
 // Choose an activity for a scene. Yes items come first; the rest carry a flag:
 // maybe (amber), not answered (gray), no (red, and only with the bottom's
@@ -25,6 +25,8 @@ export function ActivityTag({ ctx, activity }: { ctx: RuleContext; activity: Act
 
 /** Everything a designer could add, with the bottom's own additions. */
 export function choosable(ctx: RuleContext): Activity[] {
+  // From an agreed proposal: exactly what was agreed.
+  if (ctx.agreed) return ctx.agreed.activityIds.map((id) => activityOf(ctx, id)).filter((a): a is Activity => Boolean(a));
   const mine = allTopActivities(ctx.top.offerings).filter((a) => available(a, ctx.top.settings));
   return [...mine, ...(ctx.intake?.detailed?.custom ?? [])];
 }

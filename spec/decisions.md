@@ -2,6 +2,18 @@
 
 Decisions Michael made outside the spec tabs, newest first. The spec still wins where it is more specific.
 
+## Nov 16, 2026
+
+- **Scene proposals (negotiation per scene).** Either person in a connection can start one from the connection page. It lists things to do, to feel and to experience. The other person gets a phone alert ("A scene request is waiting in Ember."), then approves it as is or sends it back with items removed or added. Turns pass back and forth until one person approves the other's version.
+  - **Agreement counts as the confirmed negotiation** for negotiated-only sex acts in that scene. Edge play still needs the Top's own confirmation in the design as well.
+  - **The Top designs strictly from the agreed list.** Anything new is blocked in the editor, with "Ask to add or change something", which reopens the proposal.
+  - **"Not for me" is permanent; "Not this time" is for this proposal only.** "Not this time" applies to the Top's gear. A bottom can take "Not for me" off again from the connection's gear list, so she can change her mind with this Top.
+  - **Her "no" items (Michael's extra):** a bottom can approve a proposed activity she marked "no" in her profile. Her phone shows a warning she must tick first, and it counts for that scene only. The warning is stronger if her profile says the Top may never override her no items. A Top can't propose her no items when she has that "never" setting; she can still add them herself.
+  - When both people are switches, the proposal asks who Tops.
+- **A bottom can mark a Top's gear "Not for me."** Only the person who set it can take it off. The gear stays visible with a note, and is blocked from designs with that person.
+- **Position and furniture for each section.** One setting per section (for example "Kneeling · Bench"), shown in the editor and in Live Scene Mode. Warnings: a position she marked as hard for her body, standing in bondage for over 20 minutes, and any use of a suspension swing.
+- **New intake question:** "Positions that are hard for my body" on the Body and mind page.
+
 ## Nov 7, 2026
 
 - **Michael approved every open choice** ("Yes to all", Nov 10): password reset, the M9 choices, the M7 choices, and the Claude's calls on Build your own and "Gear, in order" now stand as decisions.

@@ -13,7 +13,7 @@ import { phaseLabels, type PhaseType } from '../../content/phases';
 import { fixed, shapes } from '../../content/sceneText';
 import { AccountError } from '../../lib/account';
 import { newBeat, newId, newStep, phaseMinutes, type Beat, type Override, type Phase, type Scene, type Step } from '../../lib/scene/model';
-import { activityOf, automaticFlags, blocks, needsNextMorningCheckIn, tryChange, validate, warnings, type Issue, type RuleContext } from '../../lib/scene/rules';
+import { activityOf, automaticFlags, withAgreed, blocks, needsNextMorningCheckIn, tryChange, validate, warnings, type Issue, type RuleContext } from '../../lib/scene/rules';
 import { copyScene, deleteScene, listScenes, saveScene } from '../../lib/scenes';
 import { shareVibe } from '../../lib/vibes';
 import { useSettings } from '../../state/settings';
@@ -91,7 +91,7 @@ export function SceneEditor() {
       </main>
     );
   }
-  const ctx = data.ctx;
+  const ctx = withAgreed(data.ctx, scene.agreed);
   const current: Scene = scene;
 
   function persist(next: Scene) {

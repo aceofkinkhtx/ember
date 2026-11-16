@@ -1,7 +1,7 @@
 import { emptyTopSetup } from '../../content/topSetup';
 import { emptyDetailed, emptyIntake, type Intake } from '../intake';
 import { newBeat, newStep, type Phase, type Scene } from './model';
-import { activityOf, automaticFlags, blocks, confirmationsFor, needsNextMorningCheckIn, tryChange, validate, warnings, type RuleContext } from './rules';
+import { activityOf, automaticFlags, blocks, confirmationsFor, needsNextMorningCheckIn, tryChange, validate, warnings, withAgreed, type RuleContext } from './rules';
 
 // Every block rule has a test here (CLAUDE.md: write the tests first). Each
 // starts from a scene that passes everything, breaks one rule, and checks the
@@ -367,5 +367,49 @@ describe('positions and furniture (warn)', () => {
 
   it('never blocks a design for its positions', () => {
     expect(blockRules(withSetup(goodScene(), 'peak', 'custom:Hanging upside down', 'swing'))).toEqual([]);
+  });
+});
+
+describe('designing from an agreed proposal (Nov 16)', () => {
+  const agreed = (patch: Partial<NonNullable<Scene['agreed']>> = {}) => ({
+    negotiationId: 'n1',
+    activityIds: ['cuddling', 'bare-hand', 'flogger', 'cane'],
+    noAllowed: [],
+    notThisTime: [],
+    words: [],
+    ...patch
+  });
+
+  it('blocks anything that was not agreed', () => {
+    const s = { ...goodScene(), agreed: agreed() };
+    expect(blockRules(s)).not.toContain('not-agreed');
+    beat(s, 'build').steps.push(newStep({ activityId: 'blindfold' }));
+    expect(blockRules(s)).toContain('not-agreed');
+    const ctx = withAgreed(context(), s.agreed);
+    expect('blocked' in confirmationsFor(ctx, activityOf(ctx, 'blindfold')!)).toBe(true);
+  });
+
+  it('lets her own exception allow a no, even with overrides off', () => {
+    const s = { ...goodScene(), agreed: agreed({ activityIds: ['cuddling', 'bare-hand', 'flogger', 'cane', 'biting'], noAllowed: ['biting'] }) };
+    beat(s, 'build').steps.push(newStep({ activityId: 'biting' }));
+    expect(blockRules(s)).toContain('limits');
+    s.overrides = [{ activityId: 'biting', kind: 'no', confirmedAt: '2026-11-16' }];
+    expect(blockRules(s)).not.toContain('limits');
+    const ctx = withAgreed(context(), s.agreed);
+    expect('confirm' in confirmationsFor(ctx, activityOf(ctx, 'biting')!)).toBe(true);
+  });
+
+  it('blocks gear she marked Not this time', () => {
+    const s = { ...goodScene(), agreed: agreed({ notThisTime: ['gear-1'] }) };
+    beat(s, 'build').steps[0].gearId = 'gear-1';
+    expect(blockRules(s)).toContain('opted-out');
+    expect(withAgreed(context(), s.agreed).optedOutGear).toContain('gear-1');
+  });
+
+  it('does not ask again about agreed maybes', () => {
+    const s = { ...goodScene(), agreed: agreed({ activityIds: ['cuddling', 'bare-hand', 'flogger', 'cane', 'wax'] }) };
+    beat(s, 'build').steps.push(newStep({ activityId: 'wax' }));
+    expect(warnings(validate(s, context())).map((i) => i.rule)).not.toContain('maybe');
+    expect(warnings(validate({ ...s, agreed: undefined }, context())).map((i) => i.rule)).toContain('maybe');
   });
 });

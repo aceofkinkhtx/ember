@@ -7,6 +7,7 @@ import { SharePanel } from '../components/intake/SharePanel';
 import { ConnectionToys } from '../components/toys/ConnectionToys';
 import { readSharedProfile, type SharedProfile } from '../lib/intake';
 import { unreadCounts } from '../lib/messages';
+import { listNegotiations, liveItems, type Negotiation } from '../lib/negotiations';
 import { AccountError, cardFor, listConnections, rolesFit, setConnectionStatus, setMyRole, type Connection, type Role } from '../lib/account';
 import { useAccount } from '../state/account';
 import { useSettings } from '../state/settings';
@@ -166,6 +167,7 @@ export function ConnectionDetail() {
           </Link>
         </section>
       )}
+      {connection.status === 'active' && <Proposals connection={connection} name={name} />}
       <MessagesLink connection={connection} name={name} />
       <ConnectionToys connection={connection} name={name} />
 
@@ -237,6 +239,43 @@ function MessagesLink({ connection, name }: { connection: Connection; name: stri
       <Link to={`/connections/${connection.id}/messages`} className="btn btn-outline" style={{ alignSelf: 'flex-start' }}>
         Message {name}
         {unread ? ` (${unread} new)` : ''}
+      </Link>
+    </section>
+  );
+}
+
+/** Scene proposals with this person (Michael, Nov 16): start one, or open one in progress. */
+function Proposals({ connection, name }: { connection: Connection; name: string }) {
+  const { keys } = useAccount();
+  const [list, setList] = useState<Negotiation[] | null>(null);
+  useEffect(() => {
+    if (!keys) return;
+    listNegotiations(keys, connection.id)
+      .then(setList)
+      .catch(() => setList([]));
+  }, [keys, connection.id]);
+  const me = keys?.userId;
+  return (
+    <section className="card stack" aria-label="Scene proposals">
+      <div className="eyebrow">Scene proposals</div>
+      <p className="setting-desc" style={{ margin: 0 }}>
+        Say what you'd like to do, feel or experience this time. {name} keeps, removes or adds, and once you both agree, the Top designs from it.
+      </p>
+      {(list ?? []).map((n) => {
+        const mine = n.turnId === me;
+        const text = n.status === 'agreed' ? 'Agreed' : mine ? 'Your turn' : `Waiting for ${name}`;
+        return (
+          <Link key={n.id} to={`/negotiations/${n.id}`} className="person" style={{ textDecoration: 'none', color: 'inherit', minHeight: 'var(--touch)' }}>
+            <span>
+              <strong>{n.body.when || 'A scene'}</strong>
+              <span className="note"> · {liveItems(n.body).length} items</span>
+            </span>
+            {mine ? <strong>{text}</strong> : <span className="note">{text}</span>}
+          </Link>
+        );
+      })}
+      <Link to={`/connections/${connection.id}/propose`} className="btn btn-outline" style={{ alignSelf: 'flex-start' }}>
+        Propose a scene
       </Link>
     </section>
   );

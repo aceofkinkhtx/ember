@@ -918,3 +918,69 @@ describe('after the scene and messages (M7)', () => {
     expect((await admin.from('reminders').select('id').eq('vibe_id', vibeId)).data).toEqual([]);
   });
 });
+
+describe('scene negotiations', () => {
+  let tam: Person; // a bottom
+  let oak: Person; // tam's Top
+  let ivy: Person; // a stranger to both
+  let connId: string;
+  let negId: string;
+  const sealed = { sealed_for_starter: 'locked-1', sealed_for_other: 'locked-2' };
+
+  beforeAll(async () => {
+    [tam, oak, ivy] = await Promise.all([person('tamarind'), person('oakleaf'), person('ivyvine')]);
+    const inv = await invite(oak, 'account', 'top');
+    const accepted = await tam.db.rpc('accept_invite', { invite_code: inv.code });
+    if (accepted.error) throw accepted.error;
+    connId = accepted.data as string;
+  }, 60_000);
+
+  const alerts = async (who: Person) =>
+    (await admin.from('reminders').select('id').eq('user_id', who.id).eq('kind', 'negotiation').is('sent_at', null)).data ?? [];
+
+  it('start only with a connection, in your own name, with the move passing to them', async () => {
+    expect((await ivy.db.from('negotiations').insert({ connection_id: connId, other_id: oak.id, turn_id: oak.id, ...sealed })).error).not.toBeNull();
+    expect((await tam.db.from('negotiations').insert({ connection_id: connId, other_id: oak.id, turn_id: tam.id, ...sealed })).error).not.toBeNull();
+    expect((await tam.db.from('negotiations').insert({ connection_id: connId, starter_id: oak.id, other_id: tam.id, turn_id: tam.id, ...sealed })).error).not.toBeNull();
+    const made = await tam.db.from('negotiations').insert({ connection_id: connId, other_id: oak.id, turn_id: oak.id, ...sealed }).select('id, last_by, round').single();
+    expect(made.error).toBeNull();
+    negId = made.data!.id;
+    expect(made.data!.last_by).toBe(tam.id);
+    expect(await alerts(oak)).toHaveLength(1);
+  });
+
+  it('are seen only by the two people, and stay locked', async () => {
+    expect((await oak.db.from('negotiations').select('sealed_for_other').eq('id', negId)).data).toEqual([{ sealed_for_other: 'locked-2' }]);
+    expect((await ivy.db.from('negotiations').select('id')).data).toEqual([]);
+    expect((await anon.from('negotiations').select('id')).data ?? []).toEqual([]);
+  });
+
+  it('take turns: only the person whose move it is answers, and it always passes back', async () => {
+    const early = await tam.db.from('negotiations').update({ sealed_for_starter: 'x', sealed_for_other: 'x', status: 'open', turn_id: oak.id }).eq('id', negId);
+    expect(early.error).not.toBeNull();
+    const keep = await oak.db.from('negotiations').update({ ...sealed, status: 'open', turn_id: oak.id }).eq('id', negId);
+    expect(keep.error).not.toBeNull();
+    const back = await oak.db.from('negotiations').update({ sealed_for_starter: 'locked-3', sealed_for_other: 'locked-4', status: 'open', turn_id: tam.id }).eq('id', negId).select('round, last_by').single();
+    expect(back.error).toBeNull();
+    expect(back.data).toEqual({ round: 2, last_by: oak.id });
+    expect(await alerts(tam)).toHaveLength(1);
+    // Nobody can move it to someone else or change who's in it.
+    expect((await tam.db.from('negotiations').update({ other_id: ivy.id }).eq('id', negId)).error).not.toBeNull();
+    expect((await ivy.db.from('negotiations').update({ status: 'agreed', turn_id: null }).eq('id', negId).select()).data).toEqual([]);
+  });
+
+  it('are agreed when one approves the other’s version, then either can reopen to ask for more', async () => {
+    await admin.from('reminders').update({ sent_at: new Date().toISOString() }).eq('user_id', oak.id).eq('kind', 'negotiation');
+    const agreed = await tam.db.from('negotiations').update({ status: 'agreed', turn_id: null }).eq('id', negId).select('status, last_by').single();
+    expect(agreed.data).toEqual({ status: 'agreed', last_by: tam.id });
+    expect(await alerts(oak)).toHaveLength(1);
+    expect((await oak.db.from('negotiations').update({ status: 'agreed', turn_id: null }).eq('id', negId)).error).not.toBeNull();
+    const reopened = await oak.db.from('negotiations').update({ status: 'open', turn_id: tam.id }).eq('id', negId).select('status').single();
+    expect(reopened.data).toEqual({ status: 'open' });
+  });
+
+  it('go away when the connection ends', async () => {
+    expect((await tam.db.from('connections').update({ status: 'ended' }).eq('id', connId)).error).toBeNull();
+    expect((await admin.from('negotiations').select('id').eq('id', negId)).data).toEqual([]);
+  });
+});

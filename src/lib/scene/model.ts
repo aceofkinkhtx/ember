@@ -82,6 +82,21 @@ export interface Kept {
   at: string;
 }
 
+/**
+ * What both people agreed in a scene proposal (Michael, Nov 16). A design made
+ * from one uses only these activities; anything else is asked for first.
+ */
+export interface Agreed {
+  negotiationId: string;
+  activityIds: string[];
+  /** "No" items the bottom herself allowed for this scene, after a warning. */
+  noAllowed: string[];
+  /** The Top's gear the bottom marked "Not this time". */
+  notThisTime: string[];
+  /** Feelings and their own words, for the design's notes. */
+  words: string[];
+}
+
 export interface Pick {
   activityId: string;
   /** How far to take it, 1 to 10. */
@@ -122,6 +137,8 @@ export interface Scene {
   /** A next-morning check-in, required after subspace or cathartic release. */
   nextMorningCheckIn: boolean;
   inLibrary: boolean;
+  /** Made from an agreed scene proposal. */
+  agreed?: Agreed;
   /** On a design sent to the partner as a request: which one, and its answer. */
   request?: { id: string; sentAt: string; status: RequestStatus };
   /** On a design accepted from a partner's request: who designed it. */

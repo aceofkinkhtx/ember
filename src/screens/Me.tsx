@@ -174,8 +174,8 @@ export function Me() {
           onChange={(checkIns) => setNotes({ checkIns })}
         />
         <SettingSwitch
-          label="Message alerts"
-          description="When someone you're connected to sends a message."
+          label="Messages and scene proposals"
+          description="When someone you're connected to sends a message or a scene proposal, or answers yours."
           checked={settings.notifications.messages}
           onChange={(messages) => setNotes({ messages })}
         />
@@ -272,7 +272,7 @@ function PhoneAlerts({ wants }: { wants: PushWants }) {
     'needs-install': 'On iPhone, add Ember to your Home Screen first (Share, then Add to Home Screen), then turn alerts on from there.',
     blocked: 'Alerts are blocked for Ember in your phone settings. Allow notifications for Ember there to turn them on.',
     off: 'Alerts are off on this phone. Check-ins still wait on Home.',
-    on: 'Alerts are on for this phone. They only ever say "A check-in is waiting", "You have a new message" or "Your daily note is ready", never names or details.'
+    on: 'Alerts are on for this phone. They only ever say "A check-in is waiting", "You have a new message", "A scene request is waiting" or "Your daily note is ready", never names or details.'
   };
   return (
     <div className="stack" style={{ gap: 8, paddingTop: 8 }}>

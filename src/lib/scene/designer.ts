@@ -4,7 +4,7 @@ import { isOffered } from '../../content/topSetup';
 import { aftercareMinutes } from '../../content/topDefaults';
 import type { PhaseType } from '../../content/phases';
 import type { Activity } from '../../data/activities';
-import { newBeat, newId, newStep, type ArcShape, type Beat, type Phase, type Override, type Pick, type Scene, type Step } from './model';
+import { type Agreed, newBeat, newId, newStep, type ArcShape, type Beat, type Phase, type Override, type Pick, type Scene, type Step } from './model';
 import { activityOf, choiceOf, needsNextMorningCheckIn, type RuleContext } from './rules';
 
 // The auto-designer: two or three starting designs built only from the
@@ -61,6 +61,8 @@ export interface DesignRequest {
   solo?: boolean;
   /** Impact gear in the order to use it, each as one of the impact picks. */
   impactPlan?: GearStep[];
+  /** From an agreed scene proposal (Nov 16). */
+  agreed?: Agreed;
 }
 
 export interface GearStep {

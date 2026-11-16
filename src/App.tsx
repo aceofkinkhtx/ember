@@ -26,6 +26,7 @@ import { BottomCheckPage, BottomLivePage } from './screens/live/BottomLive';
 import { LiveScene } from './screens/live/LiveScene';
 import { AfterScenePage, FollowUpPage, TopCheckInPage } from './screens/after/AfterScene';
 import { MessagesPage } from './screens/Messages';
+import { NegotiationPage } from './screens/Negotiation';
 import { ResetPassword } from './screens/ResetPassword';
 import { AccountProvider, RESET_PATH } from './state/account';
 import { SettingsProvider, useSettings, type Settings } from './state/settings';
@@ -75,6 +76,8 @@ function Shell() {
         <Route path="/after/:vibeId/followup/:day" element={<FollowUpPage />} />
         <Route path="/after/:vibeId/checkin" element={<TopCheckInPage />} />
         <Route path="/connections/:id/messages" element={<MessagesPage />} />
+        <Route path="/connections/:id/propose" element={<NegotiationPage />} />
+        <Route path="/negotiations/:negId" element={<NegotiationPage />} />
         {tabs
           .filter((t) => t !== 'home' && t !== 'me' && t !== 'connections' && t !== 'profile' && t !== 'toys' && t !== 'scenes')
           .map((t) => (

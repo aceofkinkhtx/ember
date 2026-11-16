@@ -4,7 +4,7 @@ import { allTopActivities, type TopSetup } from '../../content/topSetup';
 import { aftercareMinutes } from '../../content/topDefaults';
 import { activities, type Activity, type Feel } from '../../data/activities';
 import type { Choice, Intake } from '../intake';
-import { beatsInOrder, phaseMinutes, type Beat, type Flag, type Kept, type Phase, type Scene } from './model';
+import { beatsInOrder, phaseMinutes, type Agreed, type Beat, type Flag, type Kept, type Phase, type Scene } from './model';
 
 // The rulebook (intake-and-data-model.md, "Design rules"). One validator
 // checks every design, automatic or edited by hand. Block rules refuse a
@@ -34,6 +34,8 @@ export interface RuleContext {
    * yet). Maybe and unanswered flags are only for a partner's answers.
    */
   intakeOf?: 'partner' | 'self' | 'none';
+  /** The agreed proposal this design comes from, if any (Nov 16). */
+  agreed?: Agreed;
 }
 
 export type RuleId =
@@ -64,7 +66,8 @@ export type RuleId =
   | 'injury'
   | 'position-body'
   | 'standing-bound'
-  | 'swing';
+  | 'swing'
+  | 'not-agreed';
 
 export interface Issue {
   key: string;
@@ -86,6 +89,12 @@ export const warnings = (issues: Issue[]) => issues.filter((i) => i.level === 'w
 export function activityOf(ctx: RuleContext, id: string | null): Activity | undefined {
   if (!id) return undefined;
   return allTopActivities(ctx.top.offerings).find((a) => a.id === id) ?? ctx.intake?.detailed?.custom.find((a) => a.id === id) ?? activities.find((a) => a.id === id);
+}
+
+/** The rule context for a design made from an agreed proposal: only those activities, minus "Not this time" gear. */
+export function withAgreed(ctx: RuleContext, agreed: Agreed | undefined): RuleContext {
+  if (!agreed) return ctx;
+  return { ...ctx, agreed, optedOutGear: [...new Set([...ctx.optedOutGear, ...agreed.notThisTime])] };
 }
 
 /** The bottom's answer for an activity; null when they didn't answer it. */
@@ -278,20 +287,27 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
   // Limits, overrides and gear
   const confirmed = (id: string, kind: string) => scene.overrides.some((o) => o.activityId === id && o.kind === kind);
   const allowNo = Boolean(ctx.intake?.essentials.allowNoOverride.on);
+  const agreed = scene.agreed;
   for (const { phase, beat } of ordered) {
     for (const s of beat.steps) {
       if (s.gearId && ctx.optedOutGear.includes(s.gearId)) add('opted-out', 'block', 'That gear is kept out of scenes with this person.', { beatId: beat.id });
+      if (s.gearId && agreed?.notThisTime.includes(s.gearId)) add('opted-out', 'block', 'They marked that gear "Not this time" for this scene.', { beatId: beat.id });
       const a = activityOf(ctx, s.activityId);
       if (!a) continue;
       const where = { beatId: beat.id, activityId: a.id };
       const choice = choiceOf(ctx, a.id);
       const forPartner = (ctx.intakeOf ?? 'partner') === 'partner';
+      const inAgreed = Boolean(agreed?.activityIds.includes(a.id));
+      if (agreed && !inAgreed) add('not-agreed', 'block', `${a.label} isn't in what you agreed together. Ask to add it to your proposal first.`, where);
       if (choice === 'no' && !forPartner) add('limits', 'block', `You marked ${a.label} as no. Change your intake first if that has changed.`, where);
       else if (!forPartner) {
         // Your own maybes and unanswered items are yours to choose.
       } else if (choice === 'no') {
-        if (!allowNo) add('limits', 'block', `They marked ${a.label} as no, and haven't allowed overrides.`, where);
+        // Her own exception, made in the proposal after a warning, counts for this scene (Michael, Nov 16).
+        if (!allowNo && !agreed?.noAllowed.includes(a.id)) add('limits', 'block', `They marked ${a.label} as no, and haven't allowed overrides.`, where);
         else if (!confirmed(a.id, 'no')) add('limits', 'block', `They marked ${a.label} as no. Confirm you talked and agreed first.`, where);
+      } else if (inAgreed) {
+        // Agreed together in the proposal: already discussed.
       } else if (choice === 'maybe') add('maybe', 'warn', `${a.label} is a maybe for them. Discussed together?`, where);
       else if (choice === null) add('unanswered', 'warn', `${a.label} isn't in their answers. Discussed together?`, where);
 
@@ -350,10 +366,17 @@ export interface Confirmation {
  */
 export function confirmationsFor(ctx: RuleContext, a: Activity): { blocked: string } | { confirm: Confirmation[] } {
   const confirm: Confirmation[] = [];
+  if (ctx.agreed && !ctx.agreed.activityIds.includes(a.id)) {
+    return { blocked: `${a.label} isn't in what you agreed together. Ask to add it to your proposal first.` };
+  }
   if (choiceOf(ctx, a.id) === 'no') {
     if ((ctx.intakeOf ?? 'partner') !== 'partner') return { blocked: `You marked ${a.label} as no. Change your intake first if that has changed.` };
-    if (!ctx.intake?.essentials.allowNoOverride.on) return { blocked: `They marked ${a.label} as no, and haven't allowed overrides.` };
-    confirm.push({ kind: 'no', question: 'They marked this as no. Have you talked and agreed to include it?' });
+    const herException = Boolean(ctx.agreed?.noAllowed.includes(a.id));
+    if (!ctx.intake?.essentials.allowNoOverride.on && !herException) return { blocked: `They marked ${a.label} as no, and haven't allowed overrides.` };
+    confirm.push({
+      kind: 'no',
+      question: herException ? 'They marked this as no, then allowed it for this scene in your proposal. Include it?' : 'They marked this as no. Have you talked and agreed to include it?'
+    });
   }
   if (a.edge) {
     confirm.push({ kind: 'edge', question: `${a.label} is edge play. Have you explicitly negotiated it with them for this scene?` });
