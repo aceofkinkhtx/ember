@@ -29,6 +29,8 @@ export interface Essentials {
    * detailed path's impact answers; marksOf reads either.
    */
   marks?: string | null;
+  /** Positions that are hard for their body (data/positions.ts ids). Missing before Nov 16. */
+  hardPositions?: string[];
   /** Always asked, whatever the path, so even "essentials only" shows them. */
   limits: { hard: string; soft: string };
   /** "My Top may override a no after we talk." Off by default; every change is dated. */
@@ -96,6 +98,7 @@ export function emptyEssentials(): Essentials {
     honorifics: [],
     honorificCustom: '',
     marks: null,
+    hardPositions: [],
     limits: { hard: '', soft: '' },
     allowNoOverride: { on: false, changedAt: null }
   };

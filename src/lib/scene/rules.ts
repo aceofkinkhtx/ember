@@ -1,9 +1,10 @@
 import { bodyAreas } from '../../content/intake';
+import { choiceLabel, positions } from '../../data/positions';
 import { allTopActivities, type TopSetup } from '../../content/topSetup';
 import { aftercareMinutes } from '../../content/topDefaults';
 import { activities, type Activity, type Feel } from '../../data/activities';
 import type { Choice, Intake } from '../intake';
-import { beatsInOrder, type Beat, type Flag, type Kept, type Phase, type Scene } from './model';
+import { beatsInOrder, phaseMinutes, type Beat, type Flag, type Kept, type Phase, type Scene } from './model';
 
 // The rulebook (intake-and-data-model.md, "Design rules"). One validator
 // checks every design, automatic or edited by hand. Block rules refuse a
@@ -60,7 +61,10 @@ export type RuleId =
   | 'maybe'
   | 'unanswered'
   | 'top-range'
-  | 'injury';
+  | 'injury'
+  | 'position-body'
+  | 'standing-bound'
+  | 'swing';
 
 export interface Issue {
   key: string;
@@ -250,6 +254,22 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
       const names = hurt.map((a) => bodyAreas.find((b) => b.id === (AREA_TO_BODY[a] ?? a))?.label ?? a);
       add('injury', 'warn', `They noted an injury or pain here: ${names.join(', ')}.`, { beatId: beat.id });
     }
+  }
+
+  // Positions and furniture, one setting per section (Michael, Nov 16)
+  const hardForBody = new Set(ctx.intake?.essentials.hardPositions ?? []);
+  for (const phase of scene.phases) {
+    const where = { beatId: phase.beats[0]?.id };
+    const position = phase.setup?.position;
+    if (position && hardForBody.has(position)) {
+      const name = choiceLabel(positions, position)?.toLowerCase();
+      add('position-body', 'warn', ctx.intakeOf === 'self' ? `You said ${name} is hard for your body.` : `They said ${name} is hard for their body.`, where);
+    }
+    const bound = phase.beats.some((b) => b.steps.some((st) => activityOf(ctx, st.activityId)?.category === 'bondage'));
+    if (position === 'standing' && bound && phaseMinutes(phase) > 20)
+      add('standing-bound', 'warn', 'Standing bound for over 20 minutes: watch for fainting, and have a way to get them down fast.', where);
+    if (phase.setup?.furniture === 'swing')
+      add('swing', 'warn', 'Suspension swing: check its weight rating and anchor first, and have a quick way to release.', where);
   }
 
   // Marks: the setting is recorded with the scene, but it doesn't limit

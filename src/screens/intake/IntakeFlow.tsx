@@ -3,6 +3,7 @@ import { BodyMap } from '../../components/intake/BodyMap';
 import { Chips, OneOf, Section, Segments, TextArea, TextInput } from '../../components/intake/Bits';
 import { IntakeSummary } from '../../components/intake/IntakeSummary';
 import { MapPicker } from '../../components/intake/MapPicker';
+import { positions } from '../../data/positions';
 import {
   aftercareMap,
   contactAwareness,
@@ -233,6 +234,13 @@ function StepBody({
             hint="Medical conditions, positions that don't work, anything your Top should plan around."
             value={e.body.notes}
             onChange={(notes) => setE({ body: { ...e.body, notes } })}
+          />
+          <Chips
+            legend="Positions that are hard for my body"
+            hint="Your Top sees a warning if a scene puts you in one of these."
+            options={positions}
+            value={e.hardPositions ?? []}
+            onChange={(hardPositions) => setE({ hardPositions })}
           />
           <TextInput label="Allergies" value={e.body.allergies} onChange={(allergies) => setE({ body: { ...e.body, allergies } })} max={200} />
           <div className="stack" style={{ gap: 4 }}>

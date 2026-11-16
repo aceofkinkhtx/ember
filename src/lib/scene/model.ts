@@ -48,10 +48,18 @@ export interface Beat {
   steps: Step[];
 }
 
+/** Where the bottom is for a whole section (see data/positions.ts). */
+export interface PhaseSetup {
+  position: string | null;
+  furniture: string | null;
+}
+
 export interface Phase {
   id: string;
   type: PhaseType;
   beats: Beat[];
+  /** Missing in designs made before Nov 16. */
+  setup?: PhaseSetup;
 }
 
 /** Why something outside the bottom's yes items is in the scene. */

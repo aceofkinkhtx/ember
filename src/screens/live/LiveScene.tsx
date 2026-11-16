@@ -31,7 +31,8 @@ import {
   type MaybeItem,
   type TopCheck
 } from '../../lib/scene/live';
-import { beatsInOrder, type Scene } from '../../lib/scene/model';
+import { beatsInOrder, type Phase, type Scene } from '../../lib/scene/model';
+import { setupLabel } from '../../data/positions';
 import { activityOf, type RuleContext } from '../../lib/scene/rules';
 import { clearLocal, keepLocally, readFromBottom, readLocal, sendCheck, sendLive } from '../../lib/liveSync';
 import { scheduleAfterScene } from '../../lib/afterScene';
@@ -542,6 +543,7 @@ function Guide({ scene, ctx, onChange, gearLabel }: { scene: Scene; ctx: RuleCon
           </div>
           <h2 style={{ margin: 0 }}>{here.beat.title || 'Untitled beat'}</h2>
           <span className="note">Intensity {here.beat.intensity} of 10</span>
+          <SetupLine scene={scene} phase={here.phase} firstBeat={here.phase.beats[0]?.id === here.beat.id} />
           {here.beat.flags.map((f, k) => (
             <p key={k} className={`box box-${f.kind}`} style={{ margin: 0 }}>
               {f.text}
@@ -863,5 +865,23 @@ function Finished({ scene }: { scene: Scene }) {
         Back to the design
       </button>
     </Dark>
+  );
+}
+
+/**
+ * Where they are for this section, and at the start of a section that moves
+ * them somewhere new, a reminder to help them get there.
+ */
+function SetupLine({ scene, phase, firstBeat }: { scene: Scene; phase: Phase; firstBeat: boolean }) {
+  const label = setupLabel(phase.setup);
+  if (!label) return null;
+  const at = scene.phases.indexOf(phase);
+  const before = scene.phases.slice(0, at).reverse().find((p) => setupLabel(p.setup));
+  const moving = firstBeat && before && setupLabel(before.setup) !== label;
+  return (
+    <p className={`box ${moving ? 'box-warn' : 'box-info'}`} style={{ margin: 0 }}>
+      <strong>{label}.</strong>
+      {moving && ` Moving from ${setupLabel(before.setup)}: release anything holding them first, then help them up and across slowly, with a hand on them the whole way.`}
+    </p>
   );
 }

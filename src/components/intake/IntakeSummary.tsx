@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { aftercareMap, bodyAreas, decoderAnswers, desireMap, nearCenter, presenceQuestions, quadrantOf, shadeOf, wordGroups, type Dot, type MapSpec } from '../../content/intake';
 import { activities, categories, experienceLevels, impactAreas, impactPositions, markOptions, speakUpLevels } from '../../data/activities';
+import { positions } from '../../data/positions';
 import { limitsOf, marksOf, type Intake } from '../../lib/intake';
 
 // Everything in an intake, the way the person it is shared with sees it.
@@ -103,6 +104,7 @@ export function IntakeSummary({ intake, full = true }: { intake: Intake; full?: 
         <Row label="Call me">{honor}</Row>
         <Row label="Body notes">{join(e.body.areas.map((id) => nameOf(bodyAreas, id) ?? id))}</Row>
         <Row label="Injuries and health">{e.body.notes}</Row>
+        <Row label="Hard for my body">{join((e.hardPositions ?? []).map((id) => nameOf(positions, id) ?? id))}</Row>
         <Row label="Allergies">{e.body.allergies}</Row>
         <Row label="Marks/bruises">{nameOf(markOptions, marksOf(intake))}</Row>
         <Row label="Triggers">{join([...e.triggers.chips, e.triggers.notes])}</Row>

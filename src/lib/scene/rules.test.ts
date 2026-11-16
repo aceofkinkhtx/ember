@@ -343,3 +343,29 @@ describe('whose answers', () => {
     expect(confirmationsFor(ctx, activityOf(ctx, 'biting')!)).toEqual({ blocked: expect.stringMatching(/You marked/) });
   });
 });
+
+describe('positions and furniture (warn)', () => {
+  const warnRules = (scene: Scene, ctx = context()) => warnings(validate(scene, ctx)).map((i) => i.rule);
+  const withSetup = (scene: Scene, type: Phase['type'], position: string | null, furniture: string | null, extra?: Phase['beats']) => ({
+    ...scene,
+    phases: scene.phases.map((p) => (p.type === type ? { ...p, setup: { position, furniture }, beats: extra ?? p.beats } : p))
+  });
+
+  it('warns when a section uses a position that is hard for their body', () => {
+    const ctx = context();
+    ctx.intake!.essentials.hardPositions = ['kneeling'];
+    expect(warnRules(withSetup(goodScene(), 'peak', 'kneeling', 'bench'), ctx)).toContain('position-body');
+    expect(warnRules(withSetup(goodScene(), 'peak', 'standing', 'bench'), ctx)).not.toContain('position-body');
+  });
+
+  it('warns about standing bound for over 20 minutes, and about a suspension swing', () => {
+    const bound = [newBeat({ id: 'tied', title: 'Tied', minutes: 25, intensity: 6, steps: [newStep({ activityId: 'soft-cuffs' })] })];
+    expect(warnRules(withSetup(goodScene(), 'peak', 'standing', 'cross', bound))).toContain('standing-bound');
+    expect(warnRules(withSetup(goodScene(), 'peak', 'kneeling', 'cross', bound))).not.toContain('standing-bound');
+    expect(warnRules(withSetup(goodScene(), 'peak', null, 'swing'))).toContain('swing');
+  });
+
+  it('never blocks a design for its positions', () => {
+    expect(blockRules(withSetup(goodScene(), 'peak', 'custom:Hanging upside down', 'swing'))).toEqual([]);
+  });
+});

@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { phaseLabels } from '../../content/phases';
 import { impactAreas, impactPositions } from '../../data/activities';
-import type { Beat, Flag, FlagKind, Override, Phase, Scene, Step } from '../../lib/scene/model';
+import type { Beat, Flag, FlagKind, Override, Phase, PhaseSetup, Scene, Step } from '../../lib/scene/model';
+import { choiceLabel, customChoice, furniture, isCustom, positions, type Option } from '../../data/positions';
 import { MiniCurve, PhaseStrip } from './SceneCurve';
 import { activityOf, type RuleContext } from '../../lib/scene/rules';
 import type { Toy } from '../../lib/toys';
@@ -441,6 +442,73 @@ export function MinutesSheet({
         className="btn btn-primary btn-block"
         onClick={() => {
           const reason = onSave(minutes);
+          if (reason) setRefused(reason);
+          else onClose();
+        }}
+      >
+        Save
+      </button>
+    </Sheet>
+  );
+}
+
+/** One choice from a list, or the person's own words. Tapping the chosen one clears it. */
+function PickOne({ legend, options, value, onChange }: { legend: string; options: Option[]; value: string | null; onChange: (v: string | null) => void }) {
+  const own = value && isCustom(value) ? (choiceLabel(options, value) ?? '') : '';
+  const [text, setText] = useState(own);
+  return (
+    <fieldset className="field">
+      <legend className="field-label">{legend}</legend>
+      <div className="chips">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            className="chip"
+            aria-pressed={value === o.id}
+            onClick={() => {
+              setText('');
+              onChange(value === o.id ? null : o.id);
+            }}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <TextInput
+        label="Or your own"
+        value={text}
+        max={60}
+        onChange={(t) => {
+          setText(t);
+          onChange(t.trim() ? customChoice(t) : value && isCustom(value) ? null : value);
+        }}
+      />
+    </fieldset>
+  );
+}
+
+/** Position and furniture for a whole section (Michael, Nov 16). */
+export function SetupSheet({ phase, onSave, onClose }: { phase: Phase; onSave: (setup: PhaseSetup) => string | null; onClose: () => void }) {
+  const [setup, setSetup] = useState<PhaseSetup>(phase.setup ?? { position: null, furniture: null });
+  const [refused, setRefused] = useState('');
+  return (
+    <Sheet title={`${phaseLabels[phase.type]}: position and furniture`} onClose={onClose}>
+      <p className="note" style={{ margin: 0 }}>
+        Where they are for this whole section. Live Scene Mode shows it, and reminds you to help them move between sections.
+      </p>
+      <PickOne legend="Position" options={positions} value={setup.position} onChange={(position) => setSetup((s) => ({ ...s, position }))} />
+      <PickOne legend="Furniture" options={furniture} value={setup.furniture} onChange={(f) => setSetup((s) => ({ ...s, furniture: f }))} />
+      {refused && (
+        <p className="box box-block" role="alert">
+          {refused}
+        </p>
+      )}
+      <button
+        type="button"
+        className="btn btn-primary btn-block"
+        onClick={() => {
+          const reason = onSave(setup);
           if (reason) setRefused(reason);
           else onClose();
         }}

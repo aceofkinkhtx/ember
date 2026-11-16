@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { BeatSheet, GearSheet, MinutesSheet, StepSheet } from '../../components/scene/EditSheets';
+import { BeatSheet, GearSheet, MinutesSheet, SetupSheet, StepSheet } from '../../components/scene/EditSheets';
+import { setupLabel } from '../../data/positions';
 import { moveStep, placeBeat, placeStep, playMinutes, setPhaseMinutes, setPlayMinutes, withAftercareFit } from '../../lib/scene/timing';
 import { MiniCurve, PhaseStrip, sceneFacts, usePhaseColor } from '../../components/scene/SceneCurve';
 import { RequestCard, ReuseSheet } from '../../components/scene/SceneActions';
@@ -31,6 +32,7 @@ type Editing =
   | { kind: 'step'; beatId: string; stepId: string }
   | { kind: 'gear'; beatId: string }
   | { kind: 'phase-time'; phaseId: string }
+  | { kind: 'phase-setup'; phaseId: string }
   | { kind: 'play-time' }
   | null;
 
@@ -167,6 +169,7 @@ export function SceneEditor() {
   const issues = validate(scene, ctx);
   const auto = automaticFlags(scene, ctx);
   const editingBeat = editing?.kind === 'beat' ? beatById(editing.beatId) : undefined;
+  const setupPhase = editing?.kind === 'phase-setup' ? scene.phases.find((p) => p.id === editing.phaseId) : undefined;
   const editingPhase = editing?.kind === 'phase-time' ? scene.phases.find((p) => p.id === editing.phaseId) : undefined;
   const editingStep = editing?.kind === 'step' ? beatById(editing.beatId)?.steps.find((s) => s.id === editing.stepId) : undefined;
 
@@ -231,6 +234,7 @@ export function SceneEditor() {
         onEditStep={(beatId, stepId) => setEditing({ kind: 'step', beatId, stepId })}
         onAddGear={(beatId) => setEditing({ kind: 'gear', beatId })}
         onEditPhaseTime={(phaseId) => setEditing({ kind: 'phase-time', phaseId })}
+        onEditSetup={(phaseId) => setEditing({ kind: 'phase-setup', phaseId })}
       />
 
       <section className="card stack" style={{ gap: 10 }} aria-label="Add a phase">
@@ -336,6 +340,13 @@ export function SceneEditor() {
             return apply(setPhaseMinutes(scene, editingPhase.id, m));
           }}
           preview={(m) => preview(setPhaseMinutes(scene, editingPhase.id, m))}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {editing?.kind === 'phase-setup' && setupPhase && (
+        <SetupSheet
+          phase={setupPhase}
+          onSave={(setup) => apply(mapPhases((p) => (p.id === setupPhase.id ? { ...p, setup } : p)))}
           onClose={() => setEditing(null)}
         />
       )}
@@ -477,7 +488,8 @@ function Phases({
   onEditBeat,
   onEditStep,
   onAddGear,
-  onEditPhaseTime
+  onEditPhaseTime,
+  onEditSetup
 }: {
   scene: Scene;
   ctx: RuleContext;
@@ -490,6 +502,7 @@ function Phases({
   onEditStep: (beatId: string, stepId: string) => void;
   onAddGear: (beatId: string) => void;
   onEditPhaseTime: (phaseId: string) => void;
+  onEditSetup: (phaseId: string) => void;
 }) {
   const colorOf = usePhaseColor();
   const reorder = useReorder(scene.phases.length, (from, to) => onApply({ ...scene, phases: moved(scene.phases, from, to) }));
@@ -518,6 +531,15 @@ function Phases({
                 {phaseMinutes(phase)} min ✎
               </button>
             </summary>
+            <button
+              type="button"
+              className="btn btn-quiet"
+              style={{ width: '100%', justifyContent: 'flex-start', textAlign: 'left', padding: '6px 12px', minHeight: 'var(--touch)' }}
+              aria-label={`${phaseLabels[phase.type]} position and furniture: ${setupLabel(phase.setup) ?? 'not set'}. Change`}
+              onClick={() => onEditSetup(phase.id)}
+            >
+              {setupLabel(phase.setup) ? <>📍 {setupLabel(phase.setup)} ✎</> : '+ Position and furniture'}
+            </button>
             <Beats scene={scene} phase={phase} ctx={ctx} issues={issues} auto={auto} onApply={onApply} beatDrag={beatDrag} stepDrag={stepDrag} onEditBeat={onEditBeat} onEditStep={onEditStep} onAddGear={onAddGear} />
           </details>
         );
