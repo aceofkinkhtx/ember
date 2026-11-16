@@ -246,16 +246,21 @@ export async function readTheirToys(keys: StoredKeys, ownerId: string): Promise<
 export interface OptOut {
   connectionId: string;
   toyId: string;
+  /** Who set it: the toy's owner, or the other person ("Not for me"). Only they can clear it. */
+  setBy: string;
 }
 
 /** Opt-outs you can see: for your toys, and on your connections. */
 export async function listOptOuts(): Promise<OptOut[]> {
-  const { data, error } = await db.from('toy_opt_outs').select('connection_id, toy_id');
+  const { data, error } = await db.from('toy_opt_outs').select('connection_id, toy_id, set_by');
   if (error) throw new AccountError("Ember couldn't load gear opt-outs.");
-  return (data ?? []).map((r) => ({ connectionId: r.connection_id as string, toyId: r.toy_id as string }));
+  return (data ?? []).map((r) => ({ connectionId: r.connection_id as string, toyId: r.toy_id as string, setBy: r.set_by as string }));
 }
 
-/** Keeps one of your toys out of (or back in) scenes with one connection. */
+/**
+ * Keeps a toy out of (or back in) scenes with one connection: one of yours,
+ * or, as "Not for me", one of theirs. Clearing only ever removes your own.
+ */
 export async function setOptOut(connectionId: string, toyId: string, out: boolean): Promise<void> {
   const { error } = out
     ? await db.from('toy_opt_outs').upsert({ connection_id: connectionId, toy_id: toyId }, { ignoreDuplicates: true })

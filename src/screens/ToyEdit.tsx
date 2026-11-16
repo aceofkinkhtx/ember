@@ -38,6 +38,8 @@ export function ToyEdit() {
   const [people, setPeople] = useState<Connection[]>([]);
   const [optedOut, setOptedOut] = useState<string[]>([]);
   const [optedOutBefore, setOptedOutBefore] = useState<string[]>([]);
+  /** Connections where the other person marked this "Not for me". */
+  const [theyRefused, setTheyRefused] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -57,7 +59,8 @@ export function ToyEdit() {
         const found = toys.find((t) => t.id === id) ?? null;
         setToy(found);
         if (found) setDetails(found);
-        const mine = outs.filter((o) => o.toyId === id).map((o) => o.connectionId);
+        const mine = outs.filter((o) => o.toyId === id && o.setBy === keys.userId).map((o) => o.connectionId);
+        setTheyRefused(outs.filter((o) => o.toyId === id && o.setBy !== keys.userId).map((o) => o.connectionId));
         setOptedOut(mine);
         setOptedOutBefore(mine);
       })
@@ -260,6 +263,13 @@ export function ToyEdit() {
                   Remove
                 </button>
               </div>
+            ))}
+          {people
+            .filter((c) => theyRefused.includes(c.id))
+            .map((c) => (
+              <p key={`refused-${c.id}`} className="note" style={{ margin: 0 }}>
+                {displayName(c)} marked this "Not for me", so it stays out of your scenes together. Only {displayName(c)} can change that.
+              </p>
             ))}
         </section>
       )}

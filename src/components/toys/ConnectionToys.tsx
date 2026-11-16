@@ -6,8 +6,10 @@ import {
   listOptOuts,
   listToyShares,
   readTheirToys,
+  setOptOut,
   setToyShare,
   theyShareToys,
+  type OptOut,
   type Toy,
   type ToyKeyGen
 } from '../../lib/toys';
@@ -23,7 +25,8 @@ export function ConnectionToys({ connection, name }: { connection: Connection; n
   const { keys } = useAccount();
   const [sharing, setSharing] = useState<boolean | null>(null);
   const [mine, setMine] = useState<Toy[]>([]);
-  const [optOuts, setOptOuts] = useState<string[]>([]);
+  /** Opt-outs on this connection: each toy, and who set it. */
+  const [outs, setOuts] = useState<OptOut[]>([]);
   const [theyShare, setTheyShare] = useState(false);
   const [theirs, setTheirs] = useState<{ toys: Toy[]; gens: ToyKeyGen[] } | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
@@ -35,7 +38,7 @@ export function ConnectionToys({ connection, name }: { connection: Connection; n
       .then(([shares, toys, outs, shared]) => {
         setSharing(shares.includes(connection.otherId));
         setMine(toys);
-        setOptOuts(outs.filter((o) => o.connectionId === connection.id).map((o) => o.toyId));
+        setOuts(outs.filter((o) => o.connectionId === connection.id));
         setTheyShare(shared);
       })
       .catch(() => setSharing(false));
@@ -61,16 +64,29 @@ export function ConnectionToys({ connection, name }: { connection: Connection; n
     setTheirs(undefined);
     try {
       const got = await readTheirToys(keys, connection.otherId);
-      // Toys they keep out of scenes with you don't show.
-      setTheirs(got && { ...got, toys: got.toys.filter((t) => !optOuts.includes(t.id)) });
+      // Toys they keep out of scenes with you don't show; ones you marked "Not for me" do, so you can change your mind.
+      const hidden = outs.filter((o) => o.setBy === connection.otherId).map((o) => o.toyId);
+      setTheirs(got && { ...got, toys: got.toys.filter((t) => !hidden.includes(t.id)) });
     } catch {
       setTheirs(null);
       setError("Ember couldn't load their gear. Please try again.");
     }
   }
 
+  async function notForMe(toy: Toy, out: boolean) {
+    setError('');
+    try {
+      await setOptOut(connection.id, toy.id, out);
+      setOuts((o) => (out ? [...o, { connectionId: connection.id, toyId: toy.id, setBy: keys!.userId }] : o.filter((x) => !(x.toyId === toy.id && x.setBy === keys!.userId))));
+    } catch (err) {
+      setError(err instanceof AccountError ? err.message : "That didn't work. Please try again.");
+    }
+  }
+
   if (sharing === null) return null;
-  const kept = mine.filter((t) => optOuts.includes(t.id));
+  const keptByMe = mine.filter((t) => outs.some((o) => o.toyId === t.id && o.setBy === keys?.userId));
+  const refusedByThem = mine.filter((t) => outs.some((o) => o.toyId === t.id && o.setBy === connection.otherId));
+  const mineNotForMe = (t: Toy) => outs.some((o) => o.toyId === t.id && o.setBy === keys?.userId);
 
   return (
     <section className="card stack" aria-label="Gear">
@@ -93,9 +109,14 @@ export function ConnectionToys({ connection, name }: { connection: Connection; n
           You haven't added any gear. <Link to="/toys/new">Add one</Link> to share it with {name}.
         </p>
       )}
-      {kept.length > 0 && (
+      {keptByMe.length > 0 && (
         <p className="note" style={{ margin: 0 }}>
-          Kept out of scenes with {name}: {kept.map((t) => t.name).join(', ')}. Change this on each item in <Link to="/toys">your gear</Link>.
+          You keep out of scenes with {name}: {keptByMe.map((t) => t.name).join(', ')}. Change this on each item in <Link to="/toys">your gear</Link>.
+        </p>
+      )}
+      {refusedByThem.length > 0 && (
+        <p className="note" style={{ margin: 0 }}>
+          {name} marked "Not for me": {refusedByThem.map((t) => t.name).join(', ')}. These stay out of your scenes together, and only {name} can change that.
         </p>
       )}
 
@@ -109,7 +130,28 @@ export function ConnectionToys({ connection, name }: { connection: Connection; n
             <div className="field-label" style={{ fontSize: 16 }}>
               {name}'s gear
             </div>
-            <ToyGrid toys={theirs.toys} gens={theirs.gens} />
+            <p className="note" style={{ margin: 0 }}>
+              Tap "Not for me" on anything you never want used with you. It stays out of every scene with {name} until you change it here.
+            </p>
+            <ToyGrid
+              toys={theirs.toys}
+              gens={theirs.gens}
+              below={(t) => {
+                const out = mineNotForMe(t);
+                return (
+                  <button
+                    type="button"
+                    className="chip"
+                    aria-pressed={out}
+                    style={{ marginTop: 6 }}
+                    aria-label={out ? `${t.name}: Not for me. Tap to allow it again` : `Mark ${t.name} Not for me`}
+                    onClick={() => void notForMe(t, !out)}
+                  >
+                    {out ? '✕ Not for me' : 'Not for me'}
+                  </button>
+                );
+              }}
+            />
           </>
         ) : (
           <p className="note" style={{ margin: 0 }}>

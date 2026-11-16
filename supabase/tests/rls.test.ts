@@ -543,14 +543,26 @@ describe('toys', () => {
     expect((await moss.db.from('toy_shares').delete().eq('owner_id', kit.id).select()).data).toEqual([]);
   });
 
-  it('opt-outs are set only by the owner and seen only by the two people', async () => {
-    expect((await moss.db.from('toy_opt_outs').insert({ connection_id: connId, toy_id: toyId })).error).not.toBeNull();
+  it('opt-outs: the owner, or the partner as "Not for me", and only who set one clears it', async () => {
+    // A stranger can't, and nobody can set one in someone else's name.
     expect((await fen.db.from('toy_opt_outs').insert({ connection_id: connId, toy_id: toyId })).error).not.toBeNull();
+    expect((await moss.db.from('toy_opt_outs').insert({ connection_id: connId, toy_id: toyId, set_by: kit.id })).error).not.toBeNull();
+    // The owner keeps it out; the partner marks it "Not for me" (Kit shares with Moss).
     expect((await kit.db.from('toy_opt_outs').insert({ connection_id: connId, toy_id: toyId })).error).toBeNull();
-    expect((await moss.db.from('toy_opt_outs').select('toy_id')).data).toEqual([{ toy_id: toyId }]);
+    expect((await moss.db.from('toy_opt_outs').insert({ connection_id: connId, toy_id: toyId })).error).toBeNull();
+    const rows = (await kit.db.from('toy_opt_outs').select('set_by').eq('connection_id', connId)).data!.map((r) => r.set_by).sort();
+    expect(rows).toEqual([kit.id, moss.id].sort());
     expect((await fen.db.from('toy_opt_outs').select('toy_id')).data).toEqual([]);
+    // The owner can't clear Moss's "Not for me"; clearing only removes their own.
+    await kit.db.from('toy_opt_outs').delete().eq('toy_id', toyId);
+    expect((await moss.db.from('toy_opt_outs').select('set_by').eq('connection_id', connId)).data).toEqual([{ set_by: moss.id }]);
+    // Moss can change her mind.
     await moss.db.from('toy_opt_outs').delete().eq('toy_id', toyId);
-    expect((await kit.db.from('toy_opt_outs').select('toy_id').eq('connection_id', connId)).data).toHaveLength(1);
+    expect((await kit.db.from('toy_opt_outs').select('set_by').eq('connection_id', connId)).data).toEqual([]);
+    // Without a share, there's nothing of Kit's to mark.
+    await kit.db.from('toy_shares').delete().eq('recipient_id', moss.id);
+    expect((await moss.db.from('toy_opt_outs').insert({ connection_id: connId, toy_id: toyId })).error).not.toBeNull();
+    await kit.db.from('toy_shares').insert({ owner_id: kit.id, recipient_id: moss.id, wrapped_toy_key: 'key-for-moss' });
   });
 
   it('stop being shared when the owner revokes or the connection ends', async () => {

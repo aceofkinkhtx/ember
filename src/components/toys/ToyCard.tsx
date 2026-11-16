@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { feelOptions, photoUrl, playTypes, type Toy, type ToyKeyGen } from '../../lib/toys';
 
@@ -43,7 +44,7 @@ export function ToyPhoto({ toy, gens, size = '100%' }: { toy: Toy; gens: ToyKeyG
   );
 }
 
-export function ToyGrid({ toys, gens, onOpen }: { toys: Toy[]; gens: ToyKeyGen[]; onOpen?: (toy: Toy) => void }) {
+export function ToyGrid({ toys, gens, onOpen, below }: { toys: Toy[]; gens: ToyKeyGen[]; onOpen?: (toy: Toy) => void; below?: (toy: Toy) => ReactNode }) {
   return (
     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
       {toys.map((toy) => {
@@ -70,6 +71,7 @@ export function ToyGrid({ toys, gens, onOpen }: { toys: Toy[]; gens: ToyKeyGen[]
             ) : (
               body
             )}
+            {below?.(toy)}
           </li>
         );
       })}
