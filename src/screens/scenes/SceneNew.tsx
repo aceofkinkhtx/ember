@@ -14,7 +14,8 @@ import { AccountError, cardFor, listConnections, type Connection } from '../../l
 import { customDesign, designOptions, suggestedPicks, type DesignRequest } from '../../lib/scene/designer';
 import type { Pick } from '../../lib/scene/model';
 import { activityOf, blocks, validate, warnings, withAgreed } from '../../lib/scene/rules';
-import { agreedActivityIds, getNegotiation, liveItems } from '../../lib/negotiations';
+import { agreedActivityIds, agreedSetup, getNegotiation, liveItems } from '../../lib/negotiations';
+import { ProposeLink } from '../../components/ProposeLink';
 import { clearSceneDraft, loadSceneDraft, saveScene, saveSceneDraft } from '../../lib/scenes';
 import { useAccount } from '../../state/account';
 import { useSceneData, type SceneData } from '../../state/sceneContext';
@@ -61,10 +62,12 @@ export function SceneNew() {
   const [req, setReq] = useState<DesignRequest>(() => {
     // From an agreed scene proposal: it fills in below, once loaded.
     if (params.get('negotiation')) return blankRequest();
+    // A scene with a partner starts from an agreed proposal (Michael, Nov 16), so
+    // a new design here is for your library.
     const draft = loadSceneDraft()?.request;
-    const wanted = params.get('connection');
-    // Gear is chosen inside each section now, not before the design.
-    return draft && (!wanted || draft.connectionId === wanted) ? { ...draft, useSpecificGear: false, gearIds: [] } : { ...blankRequest(), connectionId: wanted };
+    if (draft?.solo) return { ...draft, useSpecificGear: false, gearIds: [] };
+    const role = settings.roles === 'bottom' ? 'bottom' : settings.roles === 'top' ? 'top' : settings.activeRole;
+    return { ...blankRequest(), solo: true, role, title: 'New scene' };
   });
   const [picksReady, setPicksReady] = useState(req.picks.length > 0);
   const [error, setError] = useState('');
@@ -72,6 +75,10 @@ export function SceneNew() {
   const { data: raw, showTheirGear } = useSceneData(req.connectionId, req.partnerId, req.role);
   const data = useMemo(() => raw && { ...raw, ctx: withAgreed(raw.ctx, req.agreed) }, [raw, req.agreed]);
   const negotiationId = params.get('negotiation');
+  const wantedConnection = params.get('connection');
+  useEffect(() => {
+    if (wantedConnection && !negotiationId) navigate(`/connections/${wantedConnection}/propose`, { replace: true });
+  }, [wantedConnection, negotiationId, navigate]);
   const [negError, setNegError] = useState('');
 
   // An agreed proposal: its connection, the agreed activities as picks, and
@@ -85,7 +92,8 @@ export function SceneNew() {
           return;
         }
         const ids = agreedActivityIds(n.body);
-        const words = liveItems(n.body).filter((i) => i.kind !== 'activity').map((i) => i.label);
+        const words = liveItems(n.body).filter((i) => i.kind === 'feel' || i.kind === 'custom').map((i) => i.label);
+        const setup = agreedSetup(n.body);
         const at = new Date().toISOString();
         const noAllowed = n.body.noAllowed.map((x) => x.activityId).filter((id) => ids.includes(id));
         const overrides = [
@@ -100,7 +108,7 @@ export function SceneNew() {
           picks: ids.map((activityId) => ({ activityId, intensity: 6, surprise: false })),
           overrides,
           notes: [n.body.note, words.length ? `To feel and experience, as agreed: ${words.join(', ')}.` : ''].filter(Boolean).join('\n\n'),
-          agreed: { negotiationId: n.id, activityIds: ids, noAllowed, notThisTime: n.body.notThisTime, words }
+          agreed: { negotiationId: n.id, activityIds: ids, noAllowed, notThisTime: n.body.notThisTime, words, ...setup }
         });
         setPicksReady(true);
       })
@@ -201,17 +209,9 @@ export function SceneNew() {
           people={people}
           data={data}
           onNext={() => setStep('picks')}
-          onPerson={(c) => {
-            setPicksReady(false);
-            set({ agreed: undefined, solo: false, connectionId: c.id, partnerId: c.otherId, partnerName: displayName(c), role: c.myRole === 'bottom' ? 'bottom' : 'top', title: `Scene with ${displayName(c)}`, picks: [], overrides: [], gearIds: [] });
-          }}
           onSolo={(role) => {
             setPicksReady(false);
             set({ agreed: undefined, solo: true, connectionId: null, partnerId: null, partnerName: '', role, title: req.title.startsWith('Scene with') || !req.title ? 'New scene' : req.title, picks: [], overrides: [], gearIds: [] });
-          }}
-          onRole={(role) => {
-            setPicksReady(false);
-            set({ agreed: undefined, role, picks: [], overrides: [] });
           }}
         />
       )}
@@ -231,18 +231,14 @@ function Basics({
   set,
   people,
   data,
-  onPerson,
   onSolo,
-  onRole,
   onNext
 }: {
   req: DesignRequest;
   set: (patch: Partial<DesignRequest>) => void;
   people: Connection[] | null;
   data: SceneData | null | undefined;
-  onPerson: (c: Connection) => void;
   onSolo: (role: 'top' | 'bottom') => void;
-  onRole: (role: 'top' | 'bottom') => void;
   onNext: () => void;
 }) {
   const { settings } = useSettings();
@@ -256,26 +252,18 @@ function Basics({
     <>
       <h1>Scene basics</h1>
       <section className="card stack" style={{ gap: 14 }}>
-        <label className="field">
-          <span className="field-label">Who is this scene with?</span>
-          <select
-            className="input"
-            value={req.solo ? 'solo' : (req.connectionId ?? '')}
-            onChange={(e) => {
-              if (e.target.value === 'solo') return onSolo(settings.roles === 'bottom' ? 'bottom' : settings.roles === 'top' ? 'top' : settings.activeRole);
-              const c = people.find((p) => p.id === e.target.value);
-              if (c) onPerson(c);
-            }}
-          >
-            <option value="">Choose someone</option>
-            <option value="solo">No one yet (save it to my library)</option>
-            {people.map((c) => (
-              <option key={c.id} value={c.id}>
-                {displayName(c)}
-              </option>
-            ))}
-          </select>
-        </label>
+        {req.agreed ? (
+          <p style={{ margin: 0 }}>
+            <strong>With {req.partnerName || 'your partner'}</strong>, from the proposal you both agreed.
+          </p>
+        ) : (
+          <div className="box" style={{ margin: 0 }}>
+            <p style={{ margin: 0 }}>
+              This design goes to your library, with no one in mind yet. A scene with someone starts from a proposal you both agree on.
+            </p>
+            {people.length > 0 && <ProposeLink className="btn btn-outline" style={{ alignSelf: 'flex-start', marginTop: 8 }} />}
+          </div>
+        )}
         {req.solo && settings.roles === 'both' && (
           <Segments
             label="In this scene you are:"
@@ -294,28 +282,11 @@ function Basics({
               : 'Designing from your offerings, with no one in mind yet. It goes to your library; use it with someone later and Ember checks it against their limits.'}
           </p>
         )}
-        {!people.length && !req.solo && <p className="note" style={{ margin: 0 }}>No connections yet, so this design will be for your library.</p>}
-        {req.connectionId && people.find((c) => c.id === req.connectionId)?.myRole === 'switch' && (
-          <Segments
-            label={`You and ${req.partnerName} are S/switches. In this scene you are:`}
-            options={[
-              { id: 'top', label: 'Top' },
-              { id: 'bottom', label: 'bottom' }
-            ]}
-            value={req.role}
-            onChange={onRole}
-          />
-        )}
-        {req.connectionId && data === undefined && <p className="note">Loading the intake...</p>}
-        {req.connectionId && data && (
+        {req.agreed && data === undefined && <p className="note">Loading...</p>}
+        {req.agreed && data && (
           <p className="note" style={{ margin: 0 }}>
-            {req.role === 'bottom'
-              ? data.ctx.intake
-                ? `Designing from your own intake (version ${data.intakeVersion}). ${req.partnerName} gets it as a request to accept and edit, with their own offerings and settings applied.`
-                : 'Save your intake first (Profile), so the design knows what you said yes to.'
-              : data.ctx.intake
-                ? `Designing from ${req.partnerName}'s intake (version ${data.intakeVersion}). Ember only suggests what they said yes to.`
-                : `${req.partnerName} hasn't shared an intake with you yet. You can still design, but every activity will be flagged "Discussed together?". Ask them to share from their profile.`}
+            Built from what you agreed: only those activities, positions and furniture. Anything they asked for or approved counts as discussed. Edge play
+            still needs your own confirmation.
           </p>
         )}
         <TextInput label="Name for this scene" value={req.title} max={60} onChange={(title) => set({ title })} />

@@ -95,6 +95,9 @@ export interface Agreed {
   notThisTime: string[];
   /** Feelings and their own words, for the design's notes. */
   words: string[];
+  /** Positions and furniture agreed; the design uses only these. Missing in proposals agreed before Nov 17. */
+  positions?: string[];
+  furniture?: string[];
 }
 
 export interface Pick {

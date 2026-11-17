@@ -4,6 +4,12 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
 
 ## Nov 16, 2026
 
+- **Proposals are only a list** (Michael, Nov 16, later): activities, positions, furniture and feelings. No design happens with a partner until both agree.
+  - A scene with a partner always starts from an agreed proposal. "New scene" makes a library design; the connection page offers "Propose a scene". The bottom no longer designs a whole scene for her Top; proposals replace that.
+  - The Top designs using only the agreed activities, positions and furniture, with "Ask to add" for anything else.
+  - What a bottom requests or approves counts as her yes for that scene, even if it is a maybe, unanswered, or she has no intake yet. Her own "no" items need one short warning tick, for that scene only.
+  - Still to settle: designs with no Top or bottom declared, shared with anyone, where the person receiving it ticks to accept or deny their own no and maybe items.
+
 - **Scene proposals (negotiation per scene).** Either person in a connection can start one from the connection page. It lists things to do, to feel and to experience. The other person gets a phone alert ("A scene request is waiting in Ember."), then approves it as is or sends it back with items removed or added. Turns pass back and forth until one person approves the other's version.
   - **Agreement counts as the confirmed negotiation** for negotiated-only sex acts in that scene. Edge play still needs the Top's own confirmation in the design as well.
   - **The Top designs strictly from the agreed list.** Anything new is blocked in the editor, with "Ask to add or change something", which reopens the proposal.

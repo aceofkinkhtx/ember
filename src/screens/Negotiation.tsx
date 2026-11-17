@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { TextArea, TextInput } from '../components/intake/Bits';
 import { ToyGrid } from '../components/toys/ToyCard';
 import { feelings } from '../content/feelings';
+import { furniture, positions } from '../data/positions';
 import { allTopActivities } from '../content/topSetup';
 import { activities, categories, type Activity } from '../data/activities';
 import { AccountError, cardFor, listConnections, type Connection } from '../lib/account';
@@ -33,6 +34,8 @@ import { displayName } from './Connections';
 // Safety: the bottom's own phone shows a warning on every item that's a "no"
 // in her profile, and she must tick it before she can send or approve. A Top
 // can't propose her "no" items at all unless she allows exceptions.
+
+const kindLabel = { activity: 'To do', custom: 'To do, in their own words', position: 'Positions', furniture: 'Furniture', feel: 'To feel or experience' } as const;
 
 const newId = (prefix: string) => `${prefix}:${crypto.randomUUID().slice(0, 8)}`;
 
@@ -237,7 +240,7 @@ export function NegotiationPage() {
       )}
       {isNew && (
         <p className="lede" style={{ margin: 0 }}>
-          Not a design yet: just what you'd like to do, feel or experience this time. {name} keeps, removes or adds, and once you both agree,{' '}
+          Not a design yet: just the activities, positions, furniture and feelings you'd like this time. {name} keeps, removes or adds, and once you both agree,{' '}
           {iAmTop ? 'you design' : `${name} designs`} the scene from it.
         </p>
       )}
@@ -275,12 +278,12 @@ export function NegotiationPage() {
       <section className="card stack" style={{ gap: 10 }} aria-label="On the list">
         <h2 className="eyebrow">On the list ({live.length})</h2>
         {live.length === 0 && <p className="note" style={{ margin: 0 }}>Nothing yet. Add what you'd like below.</p>}
-        {(['activity', 'feel', 'custom'] as const).map((kind) => {
+        {(['activity', 'custom', 'position', 'furniture', 'feel'] as const).map((kind) => {
           const items = live.filter((i) => i.kind === kind);
           if (!items.length) return null;
           return (
             <div key={kind} className="stack" style={{ gap: 6 }}>
-              <span className="field-label">{kind === 'activity' ? 'To do' : kind === 'feel' ? 'To feel' : 'In their own words'}</span>
+              <span className="field-label">{kindLabel[kind]}</span>
               {items.map((i) => (
                 <ItemRow
                   key={i.id}
@@ -626,6 +629,31 @@ function AddPanel({
         >
           Add
         </button>
+      </div>
+
+      <span className="field-label">Positions</span>
+      <div className="chips">
+        {positions.map((o) => {
+          const id = `p:${o.id}`;
+          const on = has(id);
+          return (
+            <button key={o.id} type="button" className="chip" aria-pressed={on} onClick={() => (on ? onRemove(id) : onAdd({ id, kind: 'position', ref: o.id, label: o.label }))}>
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      <span className="field-label">Furniture</span>
+      <div className="chips">
+        {furniture.map((o) => {
+          const id = `u:${o.id}`;
+          const on = has(id);
+          return (
+            <button key={o.id} type="button" className="chip" aria-pressed={on} onClick={() => (on ? onRemove(id) : onAdd({ id, kind: 'furniture', ref: o.id, label: o.label }))}>
+              {o.label}
+            </button>
+          );
+        })}
       </div>
 
       <span className="field-label">To feel or experience</span>

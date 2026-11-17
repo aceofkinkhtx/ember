@@ -346,6 +346,7 @@ export function SceneEditor() {
       {editing?.kind === 'phase-setup' && setupPhase && (
         <SetupSheet
           phase={setupPhase}
+          allowed={scene.agreed && { positions: scene.agreed.positions, furniture: scene.agreed.furniture }}
           onSave={(setup) => apply(mapPhases((p) => (p.id === setupPhase.id ? { ...p, setup } : p)))}
           onClose={() => setEditing(null)}
         />

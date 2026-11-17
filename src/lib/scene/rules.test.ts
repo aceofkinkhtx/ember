@@ -406,6 +406,16 @@ describe('designing from an agreed proposal (Nov 16)', () => {
     expect(withAgreed(context(), s.agreed).optedOutGear).toContain('gear-1');
   });
 
+  it('blocks positions and furniture that were not agreed', () => {
+    const s = { ...goodScene(), agreed: agreed({ positions: ['kneeling'], furniture: ['bench'] }) };
+    s.phases[1].setup = { position: 'kneeling', furniture: 'bench' };
+    expect(blockRules(s)).not.toContain('not-agreed');
+    s.phases[1].setup = { position: 'standing', furniture: 'bench' };
+    expect(blockRules(s)).toContain('not-agreed');
+    s.phases[1].setup = { position: 'kneeling', furniture: 'cross' };
+    expect(blockRules(s)).toContain('not-agreed');
+  });
+
   it('does not ask again about agreed maybes', () => {
     const s = { ...goodScene(), agreed: agreed({ activityIds: ['cuddling', 'bare-hand', 'flogger', 'cane', 'wax'] }) };
     beat(s, 'build').steps.push(newStep({ activityId: 'wax' }));

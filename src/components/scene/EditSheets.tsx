@@ -453,7 +453,7 @@ export function MinutesSheet({
 }
 
 /** One choice from a list, or the person's own words. Tapping the chosen one clears it. */
-function PickOne({ legend, options, value, onChange }: { legend: string; options: Option[]; value: string | null; onChange: (v: string | null) => void }) {
+function PickOne({ legend, options, value, onChange, own: allowOwn = true }: { legend: string; options: Option[]; value: string | null; onChange: (v: string | null) => void; own?: boolean }) {
   const own = value && isCustom(value) ? (choiceLabel(options, value) ?? '') : '';
   const [text, setText] = useState(own);
   return (
@@ -475,7 +475,7 @@ function PickOne({ legend, options, value, onChange }: { legend: string; options
           </button>
         ))}
       </div>
-      <TextInput
+      {allowOwn && <TextInput
         label="Or your own"
         value={text}
         max={60}
@@ -483,13 +483,26 @@ function PickOne({ legend, options, value, onChange }: { legend: string; options
           setText(t);
           onChange(t.trim() ? customChoice(t) : value && isCustom(value) ? null : value);
         }}
-      />
+      />}
     </fieldset>
   );
 }
 
 /** Position and furniture for a whole section (Michael, Nov 16). */
-export function SetupSheet({ phase, onSave, onClose }: { phase: Phase; onSave: (setup: PhaseSetup) => string | null; onClose: () => void }) {
+export function SetupSheet({
+  phase,
+  allowed,
+  onSave,
+  onClose
+}: {
+  phase: Phase;
+  /** From an agreed proposal: only these choices. */
+  allowed?: { positions?: string[]; furniture?: string[] };
+  onSave: (setup: PhaseSetup) => string | null;
+  onClose: () => void;
+}) {
+  const posOptions = allowed?.positions ? positions.filter((o) => allowed.positions!.includes(o.id)) : positions;
+  const furnOptions = allowed?.furniture ? furniture.filter((o) => allowed.furniture!.includes(o.id)) : furniture;
   const [setup, setSetup] = useState<PhaseSetup>(phase.setup ?? { position: null, furniture: null });
   const [refused, setRefused] = useState('');
   return (
@@ -497,8 +510,21 @@ export function SetupSheet({ phase, onSave, onClose }: { phase: Phase; onSave: (
       <p className="note" style={{ margin: 0 }}>
         Where they are for this whole section. Live Scene Mode shows it, and reminds you to help them move between sections.
       </p>
-      <PickOne legend="Position" options={positions} value={setup.position} onChange={(position) => setSetup((s) => ({ ...s, position }))} />
-      <PickOne legend="Furniture" options={furniture} value={setup.furniture} onChange={(f) => setSetup((s) => ({ ...s, furniture: f }))} />
+      {allowed && (
+        <p className="note" style={{ margin: 0 }}>
+          Only what you agreed together. To use something else, ask to add it in the proposal.
+        </p>
+      )}
+      {posOptions.length > 0 ? (
+        <PickOne legend="Position" options={posOptions} own={!allowed?.positions} value={setup.position} onChange={(position) => setSetup((s) => ({ ...s, position }))} />
+      ) : (
+        <p className="note">No positions agreed.</p>
+      )}
+      {furnOptions.length > 0 ? (
+        <PickOne legend="Furniture" options={furnOptions} own={!allowed?.furniture} value={setup.furniture} onChange={(f) => setSetup((s) => ({ ...s, furniture: f }))} />
+      ) : (
+        <p className="note">No furniture agreed.</p>
+      )}
       {refused && (
         <p className="box box-block" role="alert">
           {refused}

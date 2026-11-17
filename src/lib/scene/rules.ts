@@ -1,5 +1,5 @@
 import { bodyAreas } from '../../content/intake';
-import { choiceLabel, positions } from '../../data/positions';
+import { choiceLabel, furniture, positions } from '../../data/positions';
 import { allTopActivities, type TopSetup } from '../../content/topSetup';
 import { aftercareMinutes } from '../../content/topDefaults';
 import { activities, type Activity, type Feel } from '../../data/activities';
@@ -277,6 +277,11 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
     const bound = phase.beats.some((b) => b.steps.some((st) => activityOf(ctx, st.activityId)?.category === 'bondage'));
     if (position === 'standing' && bound && phaseMinutes(phase) > 20)
       add('standing-bound', 'warn', 'Standing bound for over 20 minutes: watch for fainting, and have a way to get them down fast.', where);
+    if (scene.agreed?.positions && position && !scene.agreed.positions.includes(position))
+      add('not-agreed', 'block', `${choiceLabel(positions, position)} isn't a position you agreed together. Ask to add it to your proposal first.`, where);
+    const piece = phase.setup?.furniture;
+    if (scene.agreed?.furniture && piece && !scene.agreed.furniture.includes(piece))
+      add('not-agreed', 'block', `${choiceLabel(furniture, piece)} isn't furniture you agreed together. Ask to add it to your proposal first.`, where);
     if (phase.setup?.furniture === 'swing')
       add('swing', 'warn', 'Suspension swing: check its weight rating and anchor first, and have a quick way to release.', where);
   }

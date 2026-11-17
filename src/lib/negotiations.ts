@@ -3,17 +3,17 @@ import { openSealed, sealFor } from './crypto';
 import { partnerKey } from './vibes';
 
 // Scene negotiations (Michael, Nov 16). Either person proposes a scene as a
-// plain list of what they want to do, feel or experience. The other keeps,
+// plain list of activities, positions, furniture and feelings. The other keeps,
 // removes or adds items and sends it back, or approves it as is. Once one of
 // them approves the other's latest version it's agreed, and the Top designs
 // from it. The list is sealed to both people on the sender's phone.
 
-export type ItemKind = 'activity' | 'feel' | 'custom';
+export type ItemKind = 'activity' | 'feel' | 'custom' | 'position' | 'furniture';
 
 export interface NegItem {
   id: string;
   kind: ItemKind;
-  /** The activity id for an activity; null otherwise. */
+  /** The activity, position or furniture id; null for feelings and their own words. */
   ref: string | null;
   label: string;
   addedBy: string;
@@ -70,6 +70,12 @@ export const liveItems = (body: NegBody) => body.items.filter((i) => !i.removedB
 
 /** The activities both agreed to (or that are on the table now). */
 export const agreedActivityIds = (body: NegBody) => liveItems(body).filter((i) => i.kind === 'activity' && i.ref).map((i) => i.ref as string);
+
+/** The positions and furniture both agreed to (Michael, Nov 16). */
+export const agreedSetup = (body: NegBody) => ({
+  positions: liveItems(body).filter((i) => i.kind === 'position' && i.ref).map((i) => i.ref as string),
+  furniture: liveItems(body).filter((i) => i.kind === 'furniture' && i.ref).map((i) => i.ref as string)
+});
 
 const otherOf = (n: Pick<Negotiation, 'starterId' | 'otherId'>, me: string) => (n.starterId === me ? n.otherId : n.starterId);
 
