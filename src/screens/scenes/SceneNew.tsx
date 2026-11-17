@@ -14,7 +14,7 @@ import { AccountError, cardFor, listConnections, type Connection } from '../../l
 import { customDesign, designOptions, suggestedPicks, type DesignRequest } from '../../lib/scene/designer';
 import type { Pick } from '../../lib/scene/model';
 import { activityOf, blocks, openContext, validate, warnings, withAgreed } from '../../lib/scene/rules';
-import { agreedActivityIds, agreedSetup, designFromAgreed, getNegotiation, liveItems } from '../../lib/negotiations';
+import { agreedActivityIds, agreedSetup, designFromAgreed, getNegotiation, liveItems, vibeLines } from '../../lib/negotiations';
 import { ProposeLink } from '../../components/ProposeLink';
 import { clearSceneDraft, loadSceneDraft, saveScene, saveSceneDraft } from '../../lib/scenes';
 import { useAccount } from '../../state/account';
@@ -132,9 +132,9 @@ export function SceneNew() {
           connectionId: n.connectionId,
           role: 'top',
           title: n.body.when ? `Scene: ${n.body.when}` : '',
-          picks: ids.map((activityId) => ({ activityId, intensity: 6, surprise: false })),
+          picks: ids.map((activityId) => ({ activityId, intensity: liveItems(n.body).find((i) => i.ref === activityId && i.kind === 'activity')?.level ?? 6, surprise: false })),
           overrides,
-          notes: [n.body.note, words.length ? `To feel and experience, as agreed: ${words.join(', ')}.` : ''].filter(Boolean).join('\n\n'),
+          notes: [n.body.note, vibeLines(n.body.vibe).length ? `The feel, as agreed:\n${vibeLines(n.body.vibe).join('\n')}` : '', words.length ? `To feel and experience, as agreed: ${words.join(', ')}.` : ''].filter(Boolean).join('\n\n'),
           agreed
         });
         setPicksReady(true);

@@ -8,6 +8,10 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
   - A scene with a partner always starts from an agreed proposal. "New scene" makes a library design; the connection page offers "Propose a scene". The bottom no longer designs a whole scene for her Top; proposals replace that.
   - The Top designs using only the agreed activities, positions and furniture, with "Ask to add" for anything else.
   - What a bottom requests or approves counts as her yes for that scene, even if it is a maybe, unanswered, or she has no intake yet. Her own "no" items need one short warning tick, for that scene only.
+- **Three ways to fill in a proposal** (Michael, Nov 16): quick words, the vibe map or the detailed list, as in the profile, and they can be mixed.
+  - Quick words and the map set the feel of this scene. They never add activities by themselves; the Top adds activities that fit and both agree. A proposal can be sent with only a feel, but it can't be agreed until it has at least one activity.
+  - Each activity can carry a "how far" level from 1 to 10, which becomes its intensity in the design. The feel goes into the design's notes.
+  - "Start from my profile" (the bottom's side) fills in her yes items with their levels, her positions, quick words and map, for her to trim.
 - **Designs with no roles, shared with anyone** (Michael, Nov 16):
   - A Top or a bottom can make a library design with "No roles yet": any activity, no limits applied yet.
   - "Share with someone" (on any design) sends it to a connection as a proposal. Roles follow each person's own role; two switches choose who Tops.

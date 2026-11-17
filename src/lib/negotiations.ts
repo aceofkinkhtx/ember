@@ -3,6 +3,7 @@ import { openSealed, sealFor } from './crypto';
 import { partnerKey } from './vibes';
 import type { Scene } from './scene/model';
 import { choiceLabel, furniture, positions } from '../data/positions';
+import { desireMap, nearCenter, quadrantOf, shadeOf, wordGroups, type Dot, type GroupId } from '../content/intake';
 
 // Scene negotiations (Michael, Nov 16). Either person proposes a scene as a
 // plain list of activities, positions, furniture and feelings. The other keeps,
@@ -19,6 +20,8 @@ export interface NegItem {
   ref: string | null;
   label: string;
   addedBy: string;
+  /** How far to take an activity, 1 to 10; carried into the design. */
+  level?: number;
   /** Set when someone took it off the list; it stays visible, crossed out, so changes are clear. */
   removedBy: string | null;
 }
@@ -50,12 +53,34 @@ export interface NegBody {
   notThisTime: string[];
   noAllowed: NoAllowed[];
   history: NegEvent[];
+  /** The feel of this scene: quick words and a spot on the desire map (Michael, Nov 16). */
+  vibe?: NegVibe;
   /**
    * A design shared as the proposal (Michael, Nov 16): its activities,
    * positions and furniture are the list. Once agreed, the Top gets this design
    * with anything taken off the list removed.
    */
   design?: Scene;
+}
+
+/** Quick words and the desire map, as in the profile, for this scene only. */
+export interface NegVibe {
+  words: Partial<Record<GroupId, string[]>>;
+  map: Dot | null;
+}
+
+export const hasVibe = (v: NegVibe | undefined): v is NegVibe => Boolean(v && (v.map || Object.values(v.words).some((w) => w?.length)));
+
+/** The feel in plain lines, for the proposal and the design's notes. */
+export function vibeLines(v: NegVibe | undefined): string[] {
+  if (!hasVibe(v)) return [];
+  const out: string[] = [];
+  for (const g of wordGroups) {
+    const picked = (v.words[g.id] ?? []).map((id) => g.words.find((w) => w.id === id)?.label).filter(Boolean);
+    if (picked.length) out.push(`${g.title}: ${picked.join(', ')}`);
+  }
+  if (v.map) out.push(`Desire map: ${nearCenter(v.map) ? 'a little of everything' : quadrantOf(desireMap, v.map).label}. ${shadeOf(desireMap, v.map)}`);
+  return out;
 }
 
 export interface Negotiation {
@@ -258,11 +283,21 @@ export function describeChanges(before: NegBody | null, after: NegBody): string 
   const parts = [added.length ? `added ${added.join(', ')}` : '', removed.length ? `removed ${removed.join(', ')}` : ''].filter(Boolean);
   if (after.when !== before.when || after.note !== before.note) parts.push('changed the details');
   if (after.notThisTime.length !== before.notThisTime.length) parts.push('changed "Not this time" gear');
+  if (JSON.stringify(after.vibe ?? null) !== JSON.stringify(before.vibe ?? null)) parts.push('changed the feel');
+  const levels = (x: NegBody) => JSON.stringify(liveItems(x).filter((i) => now.has(i.id) && was.has(i.id)).map((i) => [i.id, i.level ?? null]).sort());
+  if (levels(after) !== levels(before)) parts.push('changed how far');
   return parts.length ? `${parts.join('; ')}.`.replace(/^./, (c) => c.toUpperCase()) : 'No changes.';
 }
 
 export function sameItems(a: NegBody, b: NegBody): boolean {
   const key = (x: NegBody) =>
-    JSON.stringify([liveItems(x).map((i) => i.id).sort(), [...x.notThisTime].sort(), x.when, x.note, x.noAllowed.map((n) => n.activityId).sort()]);
+    JSON.stringify([
+      liveItems(x).map((i) => `${i.id}=${i.level ?? ''}`).sort(),
+      [...x.notThisTime].sort(),
+      x.when,
+      x.note,
+      x.noAllowed.map((n) => n.activityId).sort(),
+      x.vibe ?? null
+    ]);
   return key(a) === key(b);
 }

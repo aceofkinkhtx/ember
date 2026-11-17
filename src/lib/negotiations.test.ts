@@ -1,5 +1,5 @@
 import { newBeat, newStep, type Phase, type Scene } from './scene/model';
-import { cleanDesign, designFromAgreed, itemsFromDesign } from './negotiations';
+import { cleanDesign, describeChanges, designFromAgreed, itemsFromDesign, sameItems, vibeLines, type NegBody } from './negotiations';
 
 // Shared designs (Michael, Nov 16): a design becomes a proposal list, and once
 // agreed the Top gets it back with anything taken off the list removed.
@@ -71,5 +71,26 @@ describe('a shared design as a proposal', () => {
     expect(out.picks.map((p) => p.activityId)).toEqual(['flogger']);
     expect(out.phases[0].setup).toEqual({ position: 'kneeling', furniture: null });
     expect(out.phases[1].setup).toEqual({ position: null, furniture: null });
+  });
+});
+
+describe('the feel and how far (Nov 16)', () => {
+  const body = (patch: Partial<NegBody> = {}): NegBody => ({ v: 1, topId: 't', when: '', note: '', items: [], notThisTime: [], noAllowed: [], history: [], ...patch });
+
+  it('describes quick words and the map in plain lines', () => {
+    expect(vibeLines(undefined)).toEqual([]);
+    const lines = vibeLines({ words: { heat: ['smolder'], hold: ['cherish', 'read'] }, map: { x: 0.8, y: 0.8 } });
+    expect(lines[0]).toBe('Heat: Smolder');
+    expect(lines[1]).toBe('Hold: Cherish me, Read me');
+    expect(lines[2]).toMatch(/^Desire map: /);
+  });
+
+  it('counts a new feel or a new level as a change', () => {
+    const item = { id: 'a:flogger', kind: 'activity' as const, ref: 'flogger', label: 'Flogger', addedBy: 'b', removedBy: null };
+    const a = body({ items: [item] });
+    expect(sameItems(a, body({ items: [{ ...item }] }))).toBe(true);
+    expect(sameItems(a, body({ items: [{ ...item, level: 7 }] }))).toBe(false);
+    expect(sameItems(a, body({ items: [item], vibe: { words: { flow: ['drift'] }, map: null } }))).toBe(false);
+    expect(describeChanges(a, body({ items: [{ ...item, level: 7 }], vibe: { words: {}, map: { x: 0, y: 0.5 } } }))).toBe('Changed the feel; changed how far.');
   });
 });
