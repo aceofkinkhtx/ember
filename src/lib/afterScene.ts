@@ -115,7 +115,10 @@ export const find = <T,>(notes: Note[], by: string, kind: NoteKind, day = 0): No
 
 // Reminders -------------------------------------------------------------------
 
-export type ReminderKind = 'post' | 'debrief' | 'followup' | 'checkin' | 'message';
+export type ReminderKind = 'post' | 'debrief' | 'followup' | 'checkin' | 'message' | 'negotiation';
+
+/** The kinds that are check-ins. Message and proposal alerts are phone alerts only. */
+const checkInKinds: ReminderKind[] = ['post', 'debrief', 'followup', 'checkin'];
 
 export interface Reminder {
   id: string;
@@ -133,9 +136,9 @@ export async function listReminders(): Promise<Reminder[]> {
   return (data ?? []).map((r) => ({ id: r.id, vibeId: r.vibe_id, kind: r.kind as ReminderKind, day: r.day, dueAt: r.due_at, doneAt: r.done_at }));
 }
 
-/** Check-ins due now and not done yet, allowing a minute of clock difference with the server. Message alerts are counted elsewhere. */
+/** Check-ins due now and not done yet, allowing a minute of clock difference with the server. Message and proposal alerts are left out. */
 export function dueNow(all: Reminder[], now = Date.now()): Reminder[] {
-  return all.filter((r) => r.kind !== 'message' && !r.doneAt && Date.parse(r.dueAt) <= now + 60_000);
+  return all.filter((r) => checkInKinds.includes(r.kind) && !r.doneAt && Date.parse(r.dueAt) <= now + 60_000);
 }
 
 export async function markDone(vibeId: string, kind: ReminderKind, day = 0): Promise<void> {
