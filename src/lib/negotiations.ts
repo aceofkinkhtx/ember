@@ -1,6 +1,8 @@
 import { AccountError, db, type StoredKeys } from './account';
 import { openSealed, sealFor } from './crypto';
 import { partnerKey } from './vibes';
+import type { Scene } from './scene/model';
+import { choiceLabel, furniture, positions } from '../data/positions';
 
 // Scene negotiations (Michael, Nov 16). Either person proposes a scene as a
 // plain list of activities, positions, furniture and feelings. The other keeps,
@@ -48,6 +50,12 @@ export interface NegBody {
   notThisTime: string[];
   noAllowed: NoAllowed[];
   history: NegEvent[];
+  /**
+   * A design shared as the proposal (Michael, Nov 16): its activities,
+   * positions and furniture are the list. Once agreed, the Top gets this design
+   * with anything taken off the list removed.
+   */
+  design?: Scene;
 }
 
 export interface Negotiation {
@@ -76,6 +84,62 @@ export const agreedSetup = (body: NegBody) => ({
   positions: liveItems(body).filter((i) => i.kind === 'position' && i.ref).map((i) => i.ref as string),
   furniture: liveItems(body).filter((i) => i.kind === 'furniture' && i.ref).map((i) => i.ref as string)
 });
+
+/** A design, ready to travel with a proposal: no pairing, no history. */
+export function cleanDesign(scene: Scene): Scene {
+  const d = structuredClone(scene);
+  return {
+    ...d,
+    connectionId: null,
+    partnerId: null,
+    partnerName: '',
+    overrides: [],
+    kept: {},
+    agreed: undefined,
+    request: undefined,
+    fromRequest: undefined,
+    share: undefined,
+    checkAskedAt: undefined,
+    live: undefined,
+    inLibrary: false
+  };
+}
+
+/** The list a shared design stands for: its activities, positions and furniture. */
+export function itemsFromDesign(scene: Scene, me: string, labelOf: (activityId: string) => string | undefined): NegItem[] {
+  const out: NegItem[] = [];
+  const add = (id: string, kind: ItemKind, ref: string, label: string) => {
+    if (!out.some((i) => i.id === id)) out.push({ id, kind, ref, label, addedBy: me, removedBy: null });
+  };
+  for (const phase of scene.phases) {
+    if (phase.setup?.position) add(`p:${phase.setup.position}`, 'position', phase.setup.position, choiceLabel(positions, phase.setup.position) ?? phase.setup.position);
+    if (phase.setup?.furniture) add(`u:${phase.setup.furniture}`, 'furniture', phase.setup.furniture, choiceLabel(furniture, phase.setup.furniture) ?? phase.setup.furniture);
+    for (const beat of phase.beats)
+      for (const step of beat.steps) {
+        const label = step.activityId ? labelOf(step.activityId) : undefined;
+        if (step.activityId && label) add(`a:${step.activityId}`, 'activity', step.activityId, label);
+      }
+  }
+  return out;
+}
+
+/** The Top's copy of an agreed shared design: only what stayed on the list. */
+export function designFromAgreed(design: Scene, agreed: NonNullable<Scene['agreed']>): Scene {
+  const d = structuredClone(design);
+  const ok = new Set(agreed.activityIds);
+  return {
+    ...d,
+    picks: d.picks.filter((p) => ok.has(p.activityId)),
+    phases: d.phases.map((phase) => ({
+      ...phase,
+      setup: phase.setup && {
+        position: phase.setup.position && agreed.positions?.includes(phase.setup.position) ? phase.setup.position : null,
+        furniture: phase.setup.furniture && agreed.furniture?.includes(phase.setup.furniture) ? phase.setup.furniture : null
+      },
+      beats: phase.beats.map((beat) => ({ ...beat, steps: beat.steps.filter((st) => !st.activityId || ok.has(st.activityId)) }))
+    }))
+  };
+}
 
 const otherOf = (n: Pick<Negotiation, 'starterId' | 'otherId'>, me: string) => (n.starterId === me ? n.otherId : n.starterId);
 

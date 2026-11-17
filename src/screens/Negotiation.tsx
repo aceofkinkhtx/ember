@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { MiniCurve, sceneFacts } from '../components/scene/SceneCurve';
+import { listScenes } from '../lib/scenes';
 import { TextArea, TextInput } from '../components/intake/Bits';
 import { ToyGrid } from '../components/toys/ToyCard';
 import { feelings } from '../content/feelings';
@@ -10,7 +12,9 @@ import { AccountError, cardFor, listConnections, type Connection } from '../lib/
 import { listVersions, readSharedProfile, type Choice, type Intake } from '../lib/intake';
 import {
   answerNegotiation,
+  cleanDesign,
   describeChanges,
+  itemsFromDesign,
   getNegotiation,
   liveItems,
   MAX_ITEMS,
@@ -77,6 +81,10 @@ export function NegotiationPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [params] = useSearchParams();
+  const designId = params.get('design');
+  /** Items the person a design was shared with has accepted: their maybes, or what's outside their offerings. */
+  const [accepted, setAccepted] = useState<string[]>([]);
 
   // The proposal, then its connection.
   useEffect(() => {
@@ -89,10 +97,20 @@ export function NegotiationPage() {
       const c = all.find((x) => x.id === connId) ?? null;
       setConnection(c);
       if (n) setDraft(structuredClone(n.body));
-      else if (c) setDraft(emptyBody(c.myRole === 'bottom' ? c.otherId : keys.userId));
+      else if (c) {
+        const body = emptyBody(c.myRole === 'bottom' ? c.otherId : keys.userId);
+        const design = designId ? (await listScenes(keys)).find((x) => x.id === designId) : undefined;
+        if (design) {
+          const label = (id: string) => [...activities, ...allTopActivities(settings.top.offerings)].find((a) => a.id === id)?.label;
+          body.items = itemsFromDesign(design, keys.userId, label);
+          body.design = cleanDesign(design);
+          body.history = [];
+        }
+        setDraft(body);
+      }
     })().catch(() => setConnection(null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [keys, negId, connectionParam]);
+  }, [keys, negId, connectionParam, designId]);
 
   const me = keys?.userId ?? '';
   const iAmTop = draft?.topId === me;
@@ -183,13 +201,39 @@ export function NegotiationPage() {
   const unticked = myNos.filter((i) => !acks.includes(i.ref!));
   const changed = neg ? !sameItems(draft, neg.body) : true;
 
+  // A shared design: the person it was shared with accepts each of their own
+  // maybes, or (as the Top) anything outside their offerings, or takes it off.
+  // Their own "no" items use the warning tick above. Taking things off is part
+  // of accepting; adding something sends it back for the other to approve.
+  const shared = draft.design;
+  const offeredByMe = (id: string) => {
+    const a = offered.find((x) => x.id === id);
+    return Boolean(a && settings.top.offerings.categories[a.category]?.on);
+  };
+  const toAccept = (i: NegItem): string | null => {
+    if (!shared || i.kind !== 'activity' || !i.ref || i.addedBy === me) return null;
+    if (iAmTop) return offeredByMe(i.ref) ? null : 'Not in your offerings. Accept it for this scene?';
+    return bottom.choice(i.ref) === 'maybe' ? 'A maybe for you. Accept it for this scene?' : null;
+  };
+  const unaccepted = myTurn && !agreed ? live.filter((i) => toAccept(i) && !accepted.includes(i.id)) : [];
+  const before = new Set(neg ? liveItems(neg.body).map((i) => i.id) : []);
+  const addedSome = live.some((i) => !before.has(i.id));
+  const acceptAsIs = Boolean(shared && neg && !reopening && !addedSome);
+
   function finalBody(action: 'send' | 'approve'): NegBody {
     const at = new Date().toISOString();
     const noAllowed = iAmTop
       ? draft!.noAllowed.filter((n) => live.some((i) => i.ref === n.activityId))
       : myNos.map((i) => draft!.noAllowed.find((n) => n.activityId === i.ref) ?? { activityId: i.ref!, at });
     const body: NegBody = { ...draft!, noAllowed, notThisTime: iAmTop ? draft!.notThisTime : draft!.notThisTime };
-    const text = action === 'approve' ? 'Approved it as is.' : describeChanges(neg?.body ?? null, body);
+    const text =
+      action === 'approve'
+        ? changed
+          ? `Accepted it. ${describeChanges(neg?.body ?? null, body)}`
+          : 'Approved it as is.'
+        : isNew && body.design
+          ? `Shared the design "${body.design.title || 'A scene'}".`
+          : describeChanges(neg?.body ?? null, body);
     return { ...body, history: [...body.history, { by: me, at, text }] };
   }
 
@@ -245,6 +289,21 @@ export function NegotiationPage() {
         </p>
       )}
 
+      {shared && (
+        <section className="card stack" style={{ gap: 8 }} aria-label="Shared design">
+          <div className="eyebrow">{isNew ? 'Sharing a design' : neg!.starterId === me ? 'The design you shared' : `A design ${name} shared`}</div>
+          <div className="card-title">{shared.title || 'A scene'}</div>
+          <MiniCurve scene={shared} height={44} />
+          <span className="note">{sceneFacts(shared)}</span>
+          {!isNew && neg!.starterId !== me && myTurn && !agreed && (
+            <p className="note" style={{ margin: 0 }}>
+              Accept or take off anything that's a no or maybe for you. Taking things off still counts as accepting. Adding something sends it back to {name} to
+              approve.
+            </p>
+          )}
+        </section>
+      )}
+
       {isNew && bothSwitch && (
         <div className="field">
           <span className="field-label">Who Tops this scene?</span>
@@ -298,6 +357,9 @@ export function NegotiationPage() {
                   ticked={i.ref ? acks.includes(i.ref) : false}
                   onTick={(on) => setAcks((a) => (on ? [...a, i.ref!] : a.filter((x) => x !== i.ref)))}
                   onRemove={() => remove(i.id)}
+                  acceptText={myTurn && !agreed ? toAccept(i) : null}
+                  accepted={accepted.includes(i.id)}
+                  onAccept={(on) => setAccepted((a) => (on ? [...a, i.id] : a.filter((x) => x !== i.id)))}
                 />
               ))}
             </div>
@@ -374,6 +436,11 @@ export function NegotiationPage() {
           {error}
         </p>
       )}
+      {unaccepted.length > 0 && (
+        <p className="box box-warn" style={{ margin: 0 }}>
+          Accept or take off each flagged item before you answer.
+        </p>
+      )}
       {unticked.length > 0 && myTurn && !agreed && (
         <p className="box box-warn" style={{ margin: 0 }}>
           Tick the warning on each item your profile says no to, or take it off the list, before you send.
@@ -382,7 +449,16 @@ export function NegotiationPage() {
 
       {myTurn && !agreed && (
         <div className="stack" style={{ gap: 8 }}>
-          {!isNew && !changed && !reopening ? (
+          {acceptAsIs ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-block"
+              disabled={busy || unticked.length > 0 || unaccepted.length > 0 || live.length === 0}
+              onClick={() => void submit('approve')}
+            >
+              {busy ? 'Sending...' : changed ? 'Accept without what I took off' : 'Accept the scene'}
+            </button>
+          ) : !isNew && !changed && !reopening ? (
             <button type="button" className="btn btn-primary btn-block" disabled={busy || unticked.length > 0 || live.length === 0} onClick={() => void submit('approve')}>
               {busy ? 'Sending...' : 'Approve as is'}
             </button>
@@ -390,13 +466,13 @@ export function NegotiationPage() {
             <button
               type="button"
               className="btn btn-primary btn-block"
-              disabled={busy || unticked.length > 0 || live.length === 0 || (!isNew && !changed)}
+              disabled={busy || unticked.length > 0 || unaccepted.length > 0 || live.length === 0 || (!isNew && !changed)}
               onClick={() => void submit('send')}
             >
               {busy ? 'Sending...' : isNew ? `Send to ${name}` : `Send back to ${name}`}
             </button>
           )}
-          {!isNew && !changed && !reopening && (
+          {!isNew && !changed && !reopening && !acceptAsIs && (
             <p className="note" style={{ margin: 0, textAlign: 'center' }}>
               Change anything and this becomes "Send back".
             </p>
@@ -420,10 +496,14 @@ export function NegotiationPage() {
         <div className="stack" style={{ gap: 8 }}>
           {iAmTop && (
             <Link to={`/scenes/new?negotiation=${neg!.id}`} className="btn btn-primary btn-block">
-              Design this scene
+              {draft.design ? 'Open the design' : 'Design this scene'}
             </Link>
           )}
-          {!iAmTop && <p className="note" style={{ margin: 0 }}>{name} designs the scene from this list.</p>}
+          {!iAmTop && (
+            <p className="note" style={{ margin: 0 }}>
+              {draft.design ? `${name} gets the design, ready to run.` : `${name} designs the scene from this list.`}
+            </p>
+          )}
           <button type="button" className="btn btn-outline btn-block" onClick={() => setReopening(true)}>
             Ask to add or change something
           </button>
@@ -494,7 +574,10 @@ function ItemRow({
   allowedNo,
   ticked,
   onTick,
-  onRemove
+  onRemove,
+  acceptText,
+  accepted,
+  onAccept
 }: {
   item: NegItem;
   who: string;
@@ -507,6 +590,9 @@ function ItemRow({
   ticked: boolean;
   onTick: (on: boolean) => void;
   onRemove: () => void;
+  acceptText?: string | null;
+  accepted?: boolean;
+  onAccept?: (on: boolean) => void;
 }) {
   const choice = item.ref ? bottom.choice(item.ref) : null;
   const tags = [
@@ -532,6 +618,12 @@ function ItemRow({
         <p className="note" style={{ margin: 0 }}>
           Edge play: even once agreed, the Top confirms it again in the design.
         </p>
+      )}
+      {acceptText && (
+        <label className="box" style={{ margin: 0, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <input type="checkbox" checked={Boolean(accepted)} onChange={(e) => onAccept?.(e.target.checked)} style={{ marginTop: 4, width: 22, height: 22 }} />
+          <span>{acceptText} Or take it off the list.</span>
+        </label>
       )}
       {myNo && (
         <label className="box box-warn" style={{ margin: 0, display: 'flex', gap: 10, alignItems: 'flex-start' }}>

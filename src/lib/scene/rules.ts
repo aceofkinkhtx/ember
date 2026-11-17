@@ -2,7 +2,7 @@ import { bodyAreas } from '../../content/intake';
 import { choiceLabel, furniture, positions } from '../../data/positions';
 import { allTopActivities, type TopSetup } from '../../content/topSetup';
 import { aftercareMinutes } from '../../content/topDefaults';
-import { activities, type Activity, type Feel } from '../../data/activities';
+import { activities, categories, type Activity, type Feel } from '../../data/activities';
 import type { Choice, Intake } from '../intake';
 import { beatsInOrder, phaseMinutes, type Agreed, type Beat, type Flag, type Kept, type Phase, type Scene } from './model';
 
@@ -92,6 +92,21 @@ export function activityOf(ctx: RuleContext, id: string | null): Activity | unde
 }
 
 /** The rule context for a design made from an agreed proposal: only those activities, minus "Not this time" gear. */
+/**
+ * For a design with no roles declared: every activity can be used, nobody's
+ * limits apply yet. The person it's shared with ticks their own no and maybe
+ * items before it becomes a scene (Michael, Nov 16).
+ */
+export function openContext(ctx: RuleContext): RuleContext {
+  const all = Object.fromEntries(categories.map((c) => [c.id, { on: true, min: 1, max: 10 }]));
+  return {
+    ...ctx,
+    intake: null,
+    intakeOf: 'none',
+    top: { ...ctx.top, offerings: { ...ctx.top.offerings, categories: { ...ctx.top.offerings.categories, ...all } }, settings: { ...ctx.top.settings, allowNegotiatedSex: true } }
+  };
+}
+
 export function withAgreed(ctx: RuleContext, agreed: Agreed | undefined): RuleContext {
   if (!agreed) return ctx;
   return { ...ctx, agreed, optedOutGear: [...new Set([...ctx.optedOutGear, ...agreed.notThisTime])] };

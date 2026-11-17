@@ -61,6 +61,8 @@ export interface DesignRequest {
   solo?: boolean;
   /** Impact gear in the order to use it, each as one of the impact picks. */
   impactPlan?: GearStep[];
+  /** A library design with no Top or bottom declared (Nov 16). */
+  noRoles?: boolean;
   /** From an agreed scene proposal (Nov 16). */
   agreed?: Agreed;
 }

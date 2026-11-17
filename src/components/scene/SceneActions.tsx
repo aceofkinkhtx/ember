@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AccountError, cardFor, listConnections, type Connection } from '../../lib/account';
-import { adaptScene } from '../../lib/scene/adapt';
 import type { RequestStatus, Scene } from '../../lib/scene/model';
 import { blocks, validate, type RuleContext } from '../../lib/scene/rules';
-import { saveScene, sendSceneRequest, sentRequestStatuses, withdrawSceneRequest } from '../../lib/scenes';
+import { sendSceneRequest, sentRequestStatuses, withdrawSceneRequest } from '../../lib/scenes';
 import { useAccount } from '../../state/account';
-import { loadSceneData } from '../../state/sceneContext';
 import { useSettings } from '../../state/settings';
 import { displayName } from '../../screens/Connections';
 
@@ -84,53 +82,38 @@ export function RequestCard({ scene, ctx, onChange }: { scene: Scene; ctx: RuleC
   );
 }
 
-/** Pick someone, adapt the design to them, save it as a new scene. */
+/**
+ * Share a design with someone (Michael, Nov 16): it becomes a proposal. They
+ * tick or take off their own no and maybe items, and once you both agree the
+ * Top gets the design, ready to edit and run.
+ */
 export function ReuseSheet({ scene, onClose }: { scene: Scene; onClose: () => void }) {
   const { keys } = useAccount();
   const { settings } = useSettings();
   const navigate = useNavigate();
   const [people, setPeople] = useState<Connection[] | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const busy = false;
+  const error = '';
 
   useEffect(() => {
     if (!keys) return;
     listConnections(keys, cardFor(settings.identity))
-      .then((all) => setPeople(all.filter((c) => c.status === 'active' && c.id !== scene.connectionId)))
+      .then((all) => setPeople(all.filter((c) => c.status === 'active')))
       .catch(() => setPeople([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keys]);
 
-  async function reuse(c: Connection) {
-    if (!keys) return;
-    setBusy(true);
-    setError('');
-    try {
-      const role = c.myRole === 'top' ? 'top' : c.myRole === 'bottom' ? 'bottom' : scene.role;
-      const data = await loadSceneData(keys, settings, c.id, c.otherId, role);
-      const { scene: next, changes } = adaptScene(scene, data.ctx, {
-        connectionId: c.id,
-        partnerId: c.otherId,
-        partnerName: displayName(c),
-        role,
-        intakeVersion: data.intakeVersion
-      }, { title: scene.title.replace(/ with .*$/, '') + ` with ${displayName(c)}`, date: '', startTime: '' });
-      const saved = await saveScene(keys, next);
-      navigate(`/scenes/${saved.id}`, { state: { changes } });
-    } catch (err) {
-      setError(err instanceof AccountError ? err.message : "Ember couldn't copy this design. Please try again.");
-      setBusy(false);
-    }
-  }
+  const reuse = (c: Connection) => navigate(`/connections/${c.id}/propose?design=${scene.id}`);
 
   return (
     <div className="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="reuse-title" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <h2 id="reuse-title" style={{ margin: 0 }}>
-          Use with someone else
+          Share with someone
         </h2>
         <p style={{ margin: 0 }}>
-          Ember makes a new copy for them and checks it against their limits and gear. Anything that doesn't fit is taken out and listed.
+          It goes to them as a proposal. They accept or take off anything that's a no or maybe for them, and can ask to add more. Once you both agree, the Top
+          gets the design, ready to edit and run.
         </p>
         {people === null ? (
           <p className="note">Loading...</p>

@@ -13,8 +13,8 @@ import { moved } from '../../components/scene/useReorder';
 import { AccountError, cardFor, listConnections, type Connection } from '../../lib/account';
 import { customDesign, designOptions, suggestedPicks, type DesignRequest } from '../../lib/scene/designer';
 import type { Pick } from '../../lib/scene/model';
-import { activityOf, blocks, validate, warnings, withAgreed } from '../../lib/scene/rules';
-import { agreedActivityIds, agreedSetup, getNegotiation, liveItems } from '../../lib/negotiations';
+import { activityOf, blocks, openContext, validate, warnings, withAgreed } from '../../lib/scene/rules';
+import { agreedActivityIds, agreedSetup, designFromAgreed, getNegotiation, liveItems } from '../../lib/negotiations';
 import { ProposeLink } from '../../components/ProposeLink';
 import { clearSceneDraft, loadSceneDraft, saveScene, saveSceneDraft } from '../../lib/scenes';
 import { useAccount } from '../../state/account';
@@ -73,7 +73,7 @@ export function SceneNew() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const { data: raw, showTheirGear } = useSceneData(req.connectionId, req.partnerId, req.role);
-  const data = useMemo(() => raw && { ...raw, ctx: withAgreed(raw.ctx, req.agreed) }, [raw, req.agreed]);
+  const data = useMemo(() => raw && { ...raw, ctx: withAgreed(req.noRoles ? openContext(raw.ctx) : raw.ctx, req.agreed) }, [raw, req.agreed, req.noRoles]);
   const negotiationId = params.get('negotiation');
   const wantedConnection = params.get('connection');
   useEffect(() => {
@@ -86,7 +86,7 @@ export function SceneNew() {
   useEffect(() => {
     if (!keys || !negotiationId) return;
     getNegotiation(keys, negotiationId)
-      .then((n) => {
+      .then(async (n) => {
         if (!n || n.status !== 'agreed' || n.body.topId !== keys.userId) {
           setNegError("This proposal isn't agreed yet, or isn't yours to design.");
           return;
@@ -96,10 +96,37 @@ export function SceneNew() {
         const setup = agreedSetup(n.body);
         const at = new Date().toISOString();
         const noAllowed = n.body.noAllowed.map((x) => x.activityId).filter((id) => ids.includes(id));
-        const overrides = [
+        const agreed = { negotiationId: n.id, activityIds: ids, noAllowed, notThisTime: n.body.notThisTime, words, ...setup };
+        const overridesFor = [
           ...noAllowed.map((activityId) => ({ activityId, kind: 'no' as const, confirmedAt: at })),
           ...ids.filter((id) => activities.find((a) => a.id === id)?.negotiatedOnly).map((activityId) => ({ activityId, kind: 'negotiated' as const, confirmedAt: at }))
         ];
+        const overrides = overridesFor;
+        if (n.body.design) {
+          // A shared design: the Top gets it as is, less anything taken off the list.
+          const people = await listConnections(keys, cardFor(settings.identity));
+          const c = people.find((x) => x.id === n.connectionId);
+          const now = new Date().toISOString();
+          const scene = {
+            ...designFromAgreed(n.body.design, agreed),
+            id: crypto.randomUUID(),
+            connectionId: n.connectionId,
+            partnerId: c?.otherId ?? null,
+            partnerName: c ? displayName(c) : '',
+            role: 'top' as const,
+            noRoles: undefined,
+            inLibrary: false,
+            overrides,
+            kept: {},
+            agreed,
+            intakeVersion: null,
+            createdAt: now,
+            updatedAt: now
+          };
+          const saved = await saveScene(keys, scene);
+          navigate(`/scenes/${saved.id}`, { replace: true });
+          return;
+        }
         setReq({
           ...blankRequest(),
           connectionId: n.connectionId,
@@ -108,7 +135,7 @@ export function SceneNew() {
           picks: ids.map((activityId) => ({ activityId, intensity: 6, surprise: false })),
           overrides,
           notes: [n.body.note, words.length ? `To feel and experience, as agreed: ${words.join(', ')}.` : ''].filter(Boolean).join('\n\n'),
-          agreed: { negotiationId: n.id, activityIds: ids, noAllowed, notThisTime: n.body.notThisTime, words, ...setup }
+          agreed
         });
         setPicksReady(true);
       })
@@ -169,7 +196,7 @@ export function SceneNew() {
     setError('');
     try {
       const options = startingDesigns(req, data.ctx);
-      const chosen = { ...options[index], ...(req.agreed ? { agreed: req.agreed } : {}) };
+      const chosen = { ...options[index], ...(req.agreed ? { agreed: req.agreed } : {}), ...(req.noRoles ? { noRoles: true } : {}) };
       const saved = await saveScene(keys, req.solo ? { ...chosen, inLibrary: true } : chosen);
       clearSceneDraft();
       navigate(`/scenes/${saved.id}`, { replace: true });
@@ -209,9 +236,11 @@ export function SceneNew() {
           people={people}
           data={data}
           onNext={() => setStep('picks')}
-          onSolo={(role) => {
+          onSolo={(choice) => {
             setPicksReady(false);
-            set({ agreed: undefined, solo: true, connectionId: null, partnerId: null, partnerName: '', role, title: req.title.startsWith('Scene with') || !req.title ? 'New scene' : req.title, picks: [], overrides: [], gearIds: [] });
+            const noRoles = choice === 'none';
+            const role = noRoles ? 'top' : choice;
+            set({ agreed: undefined, noRoles, solo: true, connectionId: null, partnerId: null, partnerName: '', role, title: req.title.startsWith('Scene with') || !req.title ? 'New scene' : req.title, picks: [], overrides: [], gearIds: [] });
           }}
         />
       )}
@@ -238,7 +267,7 @@ function Basics({
   set: (patch: Partial<DesignRequest>) => void;
   people: Connection[] | null;
   data: SceneData | null | undefined;
-  onSolo: (role: 'top' | 'bottom') => void;
+  onSolo: (role: 'top' | 'bottom' | 'none') => void;
   onNext: () => void;
 }) {
   const { settings } = useSettings();
@@ -264,22 +293,25 @@ function Basics({
             {people.length > 0 && <ProposeLink className="btn btn-outline" style={{ alignSelf: 'flex-start', marginTop: 8 }} />}
           </div>
         )}
-        {req.solo && settings.roles === 'both' && (
+        {req.solo && (
           <Segments
             label="In this scene you are:"
             options={[
-              { id: 'top', label: 'Top' },
-              { id: 'bottom', label: 'bottom' }
+              ...(settings.roles !== 'bottom' ? [{ id: 'top', label: 'Top' }] : []),
+              ...(settings.roles !== 'top' ? [{ id: 'bottom', label: 'bottom' }] : []),
+              { id: 'none', label: 'No roles yet' }
             ]}
-            value={req.role}
-            onChange={onSolo}
+            value={req.noRoles ? 'none' : req.role}
+            onChange={(v) => onSolo(v as 'top' | 'bottom' | 'none')}
           />
         )}
         {req.solo && data && (
           <p className="note" style={{ margin: 0 }}>
-            {req.role === 'bottom'
-              ? `Designing from your own intake${data.ctx.intake ? ` (version ${data.intakeVersion})` : ''}. It goes to your library; send it to a Top later with "Use with someone else".`
-              : 'Designing from your offerings, with no one in mind yet. It goes to your library; use it with someone later and Ember checks it against their limits.'}
+            {req.noRoles
+              ? 'Any activity, no Top or bottom yet. It goes to your library; share it with anyone, and they accept or take off anything that is a no or maybe for them.'
+              : req.role === 'bottom'
+                ? `Designing from your own intake${data.ctx.intake ? ` (version ${data.intakeVersion})` : ''}. It goes to your library; share it with a Top later with "Share with someone".`
+                : 'Designing from your offerings, with no one in mind yet. It goes to your library; share it with someone later with "Share with someone".'}
           </p>
         )}
         {req.agreed && data === undefined && <p className="note">Loading...</p>}

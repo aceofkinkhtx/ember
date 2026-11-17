@@ -142,6 +142,8 @@ export interface Scene {
   inLibrary: boolean;
   /** Made from an agreed scene proposal. */
   agreed?: Agreed;
+  /** A library design with no Top or bottom declared, to share with anyone (Michael, Nov 16). */
+  noRoles?: boolean;
   /** On a design sent to the partner as a request: which one, and its answer. */
   request?: { id: string; sentAt: string; status: RequestStatus };
   /** On a design accepted from a partner's request: who designed it. */

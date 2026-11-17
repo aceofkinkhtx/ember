@@ -13,7 +13,7 @@ import { phaseLabels, type PhaseType } from '../../content/phases';
 import { fixed, shapes } from '../../content/sceneText';
 import { AccountError } from '../../lib/account';
 import { newBeat, newId, newStep, phaseMinutes, type Beat, type Override, type Phase, type Scene, type Step } from '../../lib/scene/model';
-import { activityOf, automaticFlags, withAgreed, blocks, needsNextMorningCheckIn, tryChange, validate, warnings, type Issue, type RuleContext } from '../../lib/scene/rules';
+import { activityOf, automaticFlags, openContext, withAgreed, blocks, needsNextMorningCheckIn, tryChange, validate, warnings, type Issue, type RuleContext } from '../../lib/scene/rules';
 import { copyScene, deleteScene, listScenes, saveScene } from '../../lib/scenes';
 import { shareVibe } from '../../lib/vibes';
 import { useSettings } from '../../state/settings';
@@ -91,7 +91,7 @@ export function SceneEditor() {
       </main>
     );
   }
-  const ctx = withAgreed(data.ctx, scene.agreed);
+  const ctx = withAgreed(scene.noRoles ? openContext(data.ctx) : data.ctx, scene.agreed);
   const current: Scene = scene;
 
   function persist(next: Scene) {
@@ -284,18 +284,18 @@ export function SceneEditor() {
       )}
 
       <div className="stack" style={{ gap: 8 }}>
-        {scene.role === 'top' && (
+        {scene.role === 'top' && !scene.noRoles && (
           <Link to={`/scenes/${scene.id}/live`} className="btn btn-primary btn-block">
             {scene.live && !scene.live.endedAt ? 'Back to the live scene' : scene.live ? 'Scene record' : 'Start the scene'}
           </Link>
         )}
-        {scene.role === 'top' && (
+        {scene.role === 'top' && !scene.noRoles && (
           <Link to={`/scenes/${scene.id}/vibe`} className="btn btn-outline btn-block">
             {scene.share ? 'SceneVibe and plan' : scene.partnerId ? 'Share SceneVibe' : 'Preview SceneVibe'}
           </Link>
         )}
         <button type="button" className="btn btn-outline btn-block" onClick={() => setReusing(true)}>
-          Use with someone else
+          Share with someone
         </button>
         <button
           type="button"

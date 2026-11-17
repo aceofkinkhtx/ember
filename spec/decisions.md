@@ -8,7 +8,13 @@ Decisions Michael made outside the spec tabs, newest first. The spec still wins 
   - A scene with a partner always starts from an agreed proposal. "New scene" makes a library design; the connection page offers "Propose a scene". The bottom no longer designs a whole scene for her Top; proposals replace that.
   - The Top designs using only the agreed activities, positions and furniture, with "Ask to add" for anything else.
   - What a bottom requests or approves counts as her yes for that scene, even if it is a maybe, unanswered, or she has no intake yet. Her own "no" items need one short warning tick, for that scene only.
-  - Still to settle: designs with no Top or bottom declared, shared with anyone, where the person receiving it ticks to accept or deny their own no and maybe items.
+- **Designs with no roles, shared with anyone** (Michael, Nov 16):
+  - A Top or a bottom can make a library design with "No roles yet": any activity, no limits applied yet.
+  - "Share with someone" (on any design) sends it to a connection as a proposal. Roles follow each person's own role; two switches choose who Tops.
+  - The person it was shared with accepts or takes off each item that is a "no" or "maybe" for them (as the Top: anything outside their offerings) with a simple tick. Their "no" items use the one-tick warning. Taking things off still counts as accepting.
+  - If they add anything, it goes back to the person who shared it to approve.
+  - Once agreed, the Top gets the design, ready to edit and run, with anything taken off removed. Edge play still needs the Top's own confirmation in the design.
+  - This replaces "Use with someone else", which copied a design straight to a partner.
 
 - **Scene proposals (negotiation per scene).** Either person in a connection can start one from the connection page. It lists things to do, to feel and to experience. The other person gets a phone alert ("A scene request is waiting in Ember."), then approves it as is or sends it back with items removed or added. Turns pass back and forth until one person approves the other's version.
   - **Agreement counts as the confirmed negotiation** for negotiated-only sex acts in that scene. Edge play still needs the Top's own confirmation in the design as well.
