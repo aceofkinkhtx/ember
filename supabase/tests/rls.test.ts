@@ -645,6 +645,9 @@ describe('scene requests', () => {
     expect(sent.error).toBeNull();
     expect(sent.data).toMatchObject({ from_id: ash.id, status: 'sent' });
     requestId = sent.data!.id;
+    // It queues one scene request alert for the recipient, and none for the sender (Nov 16).
+    expect((await birch.db.from("reminders").select("kind").eq("kind", "negotiation")).data).toHaveLength(1);
+    expect((await ash.db.from("reminders").select("kind").eq("kind", "negotiation")).data).toEqual([]);
   });
 
   it('are seen only by the two people', async () => {
