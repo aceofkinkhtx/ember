@@ -2,6 +2,12 @@
 
 Decisions Michael made outside the spec tabs, newest first. The spec still wins where it is more specific.
 
+## Nov 19, 2026
+
+- **App tour** (Michael, Nov 19): shown once after setup (Home opens it until it is finished or skipped), and replayable from a Help card in Me. Separate Top and bottom tours; an S/switch sees the active role and can replay the other. Discreet mode uses its own words and neutral sample items. The pictures are drawn with the app's own parts and sample data, so they stay current and show no one's real data.
+- **Intensity 8 and up:** when the next-morning check-in is what blocks a beat, the warning offers "Turn on the check-in and save" right there.
+- **Promo** made from the tour: a 25-second vertical video and a 4:5 carousel, kept outside the repo, following the promo brief (no explicit content).
+
 ## Nov 16, 2026
 
 - **Proposals are only a list** (Michael, Nov 16, later): activities, positions, furniture and feelings. No design happens with a partner until both agree.
