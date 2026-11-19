@@ -1,70 +1,24 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import {
-  BeatSheet,
-  GearSheet,
-  MinutesSheet,
-  SetupSheet,
-  StepSheet,
-} from "../../components/scene/EditSheets";
-import { setupLabel } from "../../data/positions";
-import {
-  moveStep,
-  placeBeat,
-  placeStep,
-  playMinutes,
-  setPhaseMinutes,
-  setPlayMinutes,
-  withAftercareFit,
-} from "../../lib/scene/timing";
-import {
-  MiniCurve,
-  PhaseStrip,
-  sceneFacts,
-  usePhaseColor,
-} from "../../components/scene/SceneCurve";
-import { RequestCard, ReuseSheet } from "../../components/scene/SceneActions";
-import { moved, useReorder } from "../../components/scene/useReorder";
-import { useMoveDrag, type DropAt } from "../../components/scene/useMoveDrag";
-import { LimitStrip } from "../../components/intake/IntakeSummary";
-import { SettingSwitch } from "../../components/Switch";
-import { phaseLabels, type PhaseType } from "../../content/phases";
-import { fixed, shapes } from "../../content/sceneText";
-import { AccountError } from "../../lib/account";
-import {
-  newBeat,
-  newId,
-  newStep,
-  phaseMinutes,
-  type Beat,
-  type Override,
-  type Phase,
-  type Scene,
-  type Step,
-} from "../../lib/scene/model";
-import {
-  activityOf,
-  automaticFlags,
-  openContext,
-  withAgreed,
-  blocks,
-  needsNextMorningCheckIn,
-  tryChange,
-  validate,
-  warnings,
-  type Issue,
-  type RuleContext,
-} from "../../lib/scene/rules";
-import {
-  copyScene,
-  deleteScene,
-  listScenes,
-  saveScene,
-} from "../../lib/scenes";
-import { shareVibe } from "../../lib/vibes";
-import { useSettings } from "../../state/settings";
-import { useAccount } from "../../state/account";
-import { useSceneData } from "../../state/sceneContext";
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { BeatSheet, GearSheet, MinutesSheet, SetupSheet, StepSheet } from '../../components/scene/EditSheets';
+import { setupLabel } from '../../data/positions';
+import { moveStep, placeBeat, placeStep, playMinutes, setPhaseMinutes, setPlayMinutes, withAftercareFit } from '../../lib/scene/timing';
+import { MiniCurve, PhaseStrip, sceneFacts, usePhaseColor } from '../../components/scene/SceneCurve';
+import { RequestCard, ReuseSheet } from '../../components/scene/SceneActions';
+import { moved, useReorder } from '../../components/scene/useReorder';
+import { useMoveDrag, type DropAt } from '../../components/scene/useMoveDrag';
+import { LimitStrip } from '../../components/intake/IntakeSummary';
+import { SettingSwitch } from '../../components/Switch';
+import { phaseLabels, type PhaseType } from '../../content/phases';
+import { fixed, shapes } from '../../content/sceneText';
+import { AccountError } from '../../lib/account';
+import { newBeat, newId, newStep, phaseMinutes, type Beat, type Override, type Phase, type Scene, type Step } from '../../lib/scene/model';
+import { activityOf, automaticFlags, openContext, withAgreed, blocks, needsNextMorningCheckIn, tryChange, validate, warnings, type Issue, type RuleContext } from '../../lib/scene/rules';
+import { copyScene, deleteScene, listScenes, saveScene } from '../../lib/scenes';
+import { shareVibe } from '../../lib/vibes';
+import { useSettings } from '../../state/settings';
+import { useAccount } from '../../state/account';
+import { useSceneData } from '../../state/sceneContext';
 
 // S5: the scene editor. Phases are collapsible color bands, beats are cards
 // inside them, steps sit inside beats; every level has a drag handle. Every
@@ -74,42 +28,32 @@ import { useSceneData } from "../../state/sceneContext";
 // aftercare grows to match and a note says by how much.
 
 type Editing =
-  | { kind: "beat"; phaseId: string; beatId: string }
-  | { kind: "step"; beatId: string; stepId: string }
-  | { kind: "gear"; beatId: string }
-  | { kind: "phase-time"; phaseId: string }
-  | { kind: "phase-setup"; phaseId: string }
-  | { kind: "play-time" }
+  | { kind: 'beat'; phaseId: string; beatId: string }
+  | { kind: 'step'; beatId: string; stepId: string }
+  | { kind: 'gear'; beatId: string }
+  | { kind: 'phase-time'; phaseId: string }
+  | { kind: 'phase-setup'; phaseId: string }
+  | { kind: 'play-time' }
   | null;
 
 export function SceneEditor() {
-  const { id = "" } = useParams();
+  const { id = '' } = useParams();
   const navigate = useNavigate();
   const { keys } = useAccount();
   const { settings } = useSettings();
   const [scene, setScene] = useState<Scene | null | undefined>(undefined);
-  const [saved, setSaved] = useState<"saved" | "saving" | "error">("saved");
-  const [toast, setToast] = useState<{ text: string; info?: boolean } | null>(
-    null,
-  );
+  const [saved, setSaved] = useState<'saved' | 'saving' | 'error'>('saved');
+  const [toast, setToast] = useState<{ text: string; info?: boolean } | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [reusing, setReusing] = useState(false);
-  const changes =
-    (useLocation().state as { changes?: string[] } | null)?.changes ?? [];
-  const { data, showTheirGear } = useSceneData(
-    scene?.connectionId ?? null,
-    scene?.partnerId ?? null,
-    scene?.role ?? "top",
-  );
+  const changes = (useLocation().state as { changes?: string[] } | null)?.changes ?? [];
+  const { data, showTheirGear } = useSceneData(scene?.connectionId ?? null, scene?.partnerId ?? null, scene?.role ?? 'top');
   const timer = useRef<number | undefined>(undefined);
   // Drops land through the latest scene, set once it has loaded.
-  const drop = useRef<{
-    beat: (id: string, to: DropAt) => void;
-    step: (id: string, to: DropAt) => void;
-  }>({ beat: () => {}, step: () => {} });
-  const beatDrag = useMoveDrag("beat", (id, to) => drop.current.beat(id, to));
-  const stepDrag = useMoveDrag("step", (id, to) => drop.current.step(id, to));
+  const drop = useRef<{ beat: (id: string, to: DropAt) => void; step: (id: string, to: DropAt) => void }>({ beat: () => {}, step: () => {} });
+  const beatDrag = useMoveDrag('beat', (id, to) => drop.current.beat(id, to));
+  const stepDrag = useMoveDrag('step', (id, to) => drop.current.step(id, to));
 
   useEffect(() => {
     if (!keys) return;
@@ -119,18 +63,7 @@ export function SceneEditor() {
   }, [keys, id]);
 
   // Gear from the partner's collection shows by name once their shared gear is loaded.
-  const usesTheirGear = Boolean(
-    scene &&
-    data &&
-    !data.theirGearShown &&
-    scene.phases.some((p) =>
-      p.beats.some((b) =>
-        b.steps.some(
-          (st) => st.gearId && !data.gear.some((g) => g.id === st.gearId),
-        ),
-      ),
-    ),
-  );
+  const usesTheirGear = Boolean(scene && data && !data.theirGearShown && scene.phases.some((p) => p.beats.some((b) => b.steps.some((st) => st.gearId && !data.gear.some((g) => g.id === st.gearId)))));
   useEffect(() => {
     if (usesTheirGear) void showTheirGear();
   }, [usesTheirGear, showTheirGear]);
@@ -151,190 +84,94 @@ export function SceneEditor() {
   if (!scene || !data) {
     return (
       <main className="screen">
-        <Link
-          to="/scenes"
-          className="btn btn-quiet"
-          style={{ alignSelf: "flex-start" }}
-        >
+        <Link to="/scenes" className="btn btn-quiet" style={{ alignSelf: 'flex-start' }}>
           ‹ Scenes
         </Link>
         <p className="card">That scene isn't available.</p>
       </main>
     );
   }
-  const ctx = withAgreed(
-    scene.noRoles ? openContext(data.ctx) : data.ctx,
-    scene.agreed,
-  );
+  const ctx = withAgreed(scene.noRoles ? openContext(data.ctx) : data.ctx, scene.agreed);
   const current: Scene = scene;
 
   function persist(next: Scene) {
     if (!keys) return;
-    setSaved("saving");
+    setSaved('saving');
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       saveScene(keys, next)
         // A shared SceneVibe follows the design.
-        .then((s) =>
-          s.share ? shareVibe(keys, s, settings.top.settings.phaseColors) : s,
-        )
-        .then(() => setSaved("saved"))
-        .catch(() => setSaved("error"));
+        .then((s) => (s.share ? shareVibe(keys, s, settings.top.settings.phaseColors) : s))
+        .then(() => setSaved('saved'))
+        .catch(() => setSaved('error'));
     }, 600);
   }
 
   /** Applies an edit if the rules allow it; returns the reason if not. */
   function apply(edit: Scene): string | null {
-    const { scene: next, grewBy } = withAftercareFit(
-      current,
-      edit,
-      ctx.top.settings,
-    );
+    const { scene: next, grewBy } = withAftercareFit(current, edit, ctx.top.settings);
     const result = tryChange(current, next, ctx);
     if (!result.ok) {
       setToast({ text: result.reason });
       return result.reason;
     }
     // The next-morning check-in turns on by itself when the scene needs it.
-    const fixedUp = needsNextMorningCheckIn(next, ctx)
-      ? { ...next, nextMorningCheckIn: true }
-      : next;
+    const fixedUp = needsNextMorningCheckIn(next, ctx) ? { ...next, nextMorningCheckIn: true } : next;
     setScene(fixedUp);
     persist(fixedUp);
-    if (grewBy > 0)
-      setToast({
-        text: `Aftercare extended by ${grewBy} min to match the longer scene.`,
-        info: true,
-      });
+    if (grewBy > 0) setToast({ text: `Aftercare extended by ${grewBy} min to match the longer scene.`, info: true });
     return null;
   }
 
   drop.current = {
-    beat: (beatId, to) =>
-      apply(placeBeat(current, beatId, to.container, to.index)),
-    step: (stepId, to) =>
-      apply(placeStep(current, stepId, to.container, to.index)),
+    beat: (beatId, to) => apply(placeBeat(current, beatId, to.container, to.index)),
+    step: (stepId, to) => apply(placeStep(current, stepId, to.container, to.index))
   };
 
-  const mapPhases = (fn: (p: Phase) => Phase) => ({
-    ...current,
-    phases: current.phases.map(fn),
-  });
-  const beatById = (beatId: string) =>
-    current.phases.flatMap((p) => p.beats).find((b) => b.id === beatId);
+  const mapPhases = (fn: (p: Phase) => Phase) => ({ ...current, phases: current.phases.map(fn) });
+  const beatById = (beatId: string) => current.phases.flatMap((p) => p.beats).find((b) => b.id === beatId);
 
   function withBeat(phaseId: string, beat: Beat, toPhase: string): Scene {
-    if (toPhase === phaseId)
-      return mapPhases((p) =>
-        p.id === phaseId
-          ? { ...p, beats: p.beats.map((b) => (b.id === beat.id ? beat : b)) }
-          : p,
-      );
+    if (toPhase === phaseId) return mapPhases((p) => (p.id === phaseId ? { ...p, beats: p.beats.map((b) => (b.id === beat.id ? beat : b)) } : p));
     return mapPhases((p) => {
-      if (p.id === phaseId)
-        return { ...p, beats: p.beats.filter((b) => b.id !== beat.id) };
+      if (p.id === phaseId) return { ...p, beats: p.beats.filter((b) => b.id !== beat.id) };
       if (p.id === toPhase) return { ...p, beats: [...p.beats, beat] };
       return p;
     });
   }
 
   /** What an edit would look like, aftercare included, for the live map. */
-  const preview = (edit: Scene) =>
-    withAftercareFit(current, edit, ctx.top.settings).scene;
+  const preview = (edit: Scene) => withAftercareFit(current, edit, ctx.top.settings).scene;
 
-  function saveStep(
-    beatId: string,
-    step: Step,
-    overrides: Override[],
-    toBeatId: string,
-  ): string | null {
-    const next = mapPhases((p) => ({
-      ...p,
-      beats: p.beats.map((b) =>
-        b.id === beatId
-          ? { ...b, steps: b.steps.map((s) => (s.id === step.id ? step : s)) }
-          : b,
-      ),
-    }));
+  function saveStep(beatId: string, step: Step, overrides: Override[], toBeatId: string): string | null {
+    const next = mapPhases((p) => ({ ...p, beats: p.beats.map((b) => (b.id === beatId ? { ...b, steps: b.steps.map((s) => (s.id === step.id ? step : s)) } : b)) }));
     const placed = toBeatId === beatId ? next : moveStep(next, step, toBeatId);
-    return apply({
-      ...placed,
-      overrides: [...current.overrides, ...overrides],
-    });
+    return apply({ ...placed, overrides: [...current.overrides, ...overrides] });
   }
 
   function addPhase(type: PhaseType) {
     const beat =
-      type === "recovery"
-        ? newBeat({
-            kind: "recovery",
-            title: fixed.recovery.title,
-            minutes: 5,
-            intensity: 2,
-            steps: [
-              newStep({ do: fixed.recovery.do, say: fixed.recovery.say }),
-            ],
-          })
-        : type === "ritual"
-          ? newBeat({
-              kind: "ritual",
-              title: "Opening ritual",
-              minutes: 5,
-              intensity: 2,
-              steps: [
-                newStep({
-                  do: "Posture, clothing and objects.",
-                  say: "The words you say together.",
-                }),
-              ],
-            })
-          : newBeat({
-              title: phaseLabels[type],
-              minutes: 10,
-              intensity: type === "peak" ? 6 : 4,
-              steps: [newStep()],
-            });
-    const phase: Phase = { id: newId("p"), type, beats: [beat] };
+      type === 'recovery'
+        ? newBeat({ kind: 'recovery', title: fixed.recovery.title, minutes: 5, intensity: 2, steps: [newStep({ do: fixed.recovery.do, say: fixed.recovery.say })] })
+        : type === 'ritual'
+          ? newBeat({ kind: 'ritual', title: 'Opening ritual', minutes: 5, intensity: 2, steps: [newStep({ do: 'Posture, clothing and objects.', say: 'The words you say together.' })] })
+          : newBeat({ title: phaseLabels[type], minutes: 10, intensity: type === 'peak' ? 6 : 4, steps: [newStep()] });
+    const phase: Phase = { id: newId('p'), type, beats: [beat] };
     // New phases go before the descent; a ritual goes right after arrival.
-    const at =
-      type === "ritual"
-        ? 1
-        : Math.max(
-            1,
-            current.phases.findIndex((p) => p.type === "descent"),
-          );
+    const at = type === 'ritual' ? 1 : Math.max(1, current.phases.findIndex((p) => p.type === 'descent'));
     const phases = [...current.phases];
     phases.splice(at < 0 ? phases.length - 1 : at, 0, phase);
     apply({ ...current, phases });
   }
 
   // While a beat is dragged, the map shows where it would land.
-  const shown = beatDrag.dragging
-    ? preview(
-        placeBeat(
-          scene,
-          beatDrag.dragging.id,
-          beatDrag.dragging.to.container,
-          beatDrag.dragging.to.index,
-        ),
-      )
-    : scene;
+  const shown = beatDrag.dragging ? preview(placeBeat(scene, beatDrag.dragging.id, beatDrag.dragging.to.container, beatDrag.dragging.to.index)) : scene;
   const issues = validate(scene, ctx);
   const auto = automaticFlags(scene, ctx);
-  const editingBeat =
-    editing?.kind === "beat" ? beatById(editing.beatId) : undefined;
-  const setupPhase =
-    editing?.kind === "phase-setup"
-      ? scene.phases.find((p) => p.id === editing.phaseId)
-      : undefined;
-  const editingPhase =
-    editing?.kind === "phase-time"
-      ? scene.phases.find((p) => p.id === editing.phaseId)
-      : undefined;
-  const editingStep =
-    editing?.kind === "step"
-      ? beatById(editing.beatId)?.steps.find((s) => s.id === editing.stepId)
-      : undefined;
+  const editingBeat = editing?.kind === 'beat' ? beatById(editing.beatId) : undefined;
+  const setupPhase = editing?.kind === 'phase-setup' ? scene.phases.find((p) => p.id === editing.phaseId) : undefined;
+  const editingPhase = editing?.kind === 'phase-time' ? scene.phases.find((p) => p.id === editing.phaseId) : undefined;
+  const editingStep = editing?.kind === 'step' ? beatById(editing.beatId)?.steps.find((s) => s.id === editing.stepId) : undefined;
 
   return (
     <main className="screen">
@@ -343,33 +180,26 @@ export function SceneEditor() {
           ‹ Scenes
         </Link>
         <span className="note" aria-live="polite">
-          {saved === "saving"
-            ? "Saving..."
-            : saved === "error"
-              ? "Couldn't save. Check your connection."
-              : "Saved"}
+          {saved === 'saving' ? 'Saving...' : saved === 'error' ? "Couldn't save. Check your connection." : 'Saved'}
         </span>
       </div>
       <div>
         <h1 style={{ marginBottom: 4 }}>{scene.title}</h1>
         <p className="note" style={{ margin: 0 }}>
-          {scene.partnerName ? `With ${scene.partnerName}. ` : ""}
+          {scene.partnerName ? `With ${scene.partnerName}. ` : ''}
           {shapes[scene.shape].label}, {sceneFacts(scene)}
-          {scene.intense ? ", intense" : ""}.
+          {scene.intense ? ', intense' : ''}.
         </p>
       </div>
       {scene.fromRequest && (
         <p className="box box-info">
-          {scene.fromRequest.by} designed this for you (
-          {new Date(scene.fromRequest.at).toLocaleDateString()}). It was built
-          from their own answers; your offerings and settings now apply, so
-          check anything flagged.
+          {scene.fromRequest.by} designed this for you ({new Date(scene.fromRequest.at).toLocaleDateString()}). It was built from their own answers; your offerings and settings now apply, so check anything flagged.
         </p>
       )}
       {changes.length > 0 && (
         <div className="box box-info">
           <strong>Changed for {scene.partnerName}:</strong>
-          <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+          <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
             {changes.map((c, i) => (
               <li key={i}>{c}</li>
             ))}
@@ -382,35 +212,15 @@ export function SceneEditor() {
       </div>
       <div className="person">
         <span className="note">
-          Play time {playMinutes(scene)} min, then aftercare{" "}
-          {scene.phases
-            .filter((p) => p.type === "aftercare")
-            .reduce((n, p) => n + phaseMinutes(p), 0)}{" "}
-          min
+          Play time {playMinutes(scene)} min, then aftercare {scene.phases.filter((p) => p.type === 'aftercare').reduce((n, p) => n + phaseMinutes(p), 0)} min
         </span>
-        <button
-          type="button"
-          className="btn btn-quiet"
-          onClick={() => setEditing({ kind: "play-time" })}
-        >
+        <button type="button" className="btn btn-quiet" onClick={() => setEditing({ kind: 'play-time' })}>
           Change length
         </button>
       </div>
       {ctx.intake && <LimitStrip intake={ctx.intake} />}
 
-      <IssueList
-        scene={scene}
-        issues={issues}
-        onKeep={(key, reason) =>
-          apply({
-            ...scene,
-            kept: {
-              ...scene.kept,
-              [key]: { reason, at: new Date().toISOString() },
-            },
-          })
-        }
-      />
+      <IssueList scene={scene} issues={issues} onKeep={(key, reason) => apply({ ...scene, kept: { ...scene.kept, [key]: { reason, at: new Date().toISOString() } } })} />
 
       <Phases
         scene={scene}
@@ -420,54 +230,28 @@ export function SceneEditor() {
         onApply={apply}
         beatDrag={beatDrag}
         stepDrag={stepDrag}
-        onEditBeat={(phaseId, beatId) =>
-          setEditing({ kind: "beat", phaseId, beatId })
-        }
-        onEditStep={(beatId, stepId) =>
-          setEditing({ kind: "step", beatId, stepId })
-        }
-        onAddGear={(beatId) => setEditing({ kind: "gear", beatId })}
-        onEditPhaseTime={(phaseId) =>
-          setEditing({ kind: "phase-time", phaseId })
-        }
-        onEditSetup={(phaseId) => setEditing({ kind: "phase-setup", phaseId })}
+        onEditBeat={(phaseId, beatId) => setEditing({ kind: 'beat', phaseId, beatId })}
+        onEditStep={(beatId, stepId) => setEditing({ kind: 'step', beatId, stepId })}
+        onAddGear={(beatId) => setEditing({ kind: 'gear', beatId })}
+        onEditPhaseTime={(phaseId) => setEditing({ kind: 'phase-time', phaseId })}
+        onEditSetup={(phaseId) => setEditing({ kind: 'phase-setup', phaseId })}
       />
 
-      <section
-        className="card stack"
-        style={{ gap: 10 }}
-        aria-label="Add a phase"
-      >
+      <section className="card stack" style={{ gap: 10 }} aria-label="Add a phase">
         <span className="field-label" style={{ fontSize: 16 }}>
           Add to the arc
         </span>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => addPhase("ritual")}
-          >
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" className="btn btn-outline" onClick={() => addPhase('ritual')}>
             Ritual
           </button>
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => addPhase("build")}
-          >
+          <button type="button" className="btn btn-outline" onClick={() => addPhase('build')}>
             Build
           </button>
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => addPhase("recovery")}
-          >
+          <button type="button" className="btn btn-outline" onClick={() => addPhase('recovery')}>
             Recovery
           </button>
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => addPhase("peak")}
-          >
+          <button type="button" className="btn btn-outline" onClick={() => addPhase('peak')}>
             Peak
           </button>
         </div>
@@ -479,65 +263,38 @@ export function SceneEditor() {
       <section className="card stack" style={{ gap: 12 }}>
         <SettingSwitch
           label="Next-morning check-in"
-          description={
-            needsNextMorningCheckIn(scene, ctx)
-              ? "Required: this scene may reach subspace or release."
-              : "A check-in with them the morning after."
-          }
+          description={needsNextMorningCheckIn(scene, ctx) ? 'Required: this scene may reach subspace or release.' : 'A check-in with them the morning after.'}
           checked={scene.nextMorningCheckIn}
           onChange={(on) => apply({ ...scene, nextMorningCheckIn: on })}
         />
-        <SettingSwitch
-          label="Keep in my library"
-          description="Saved designs can be reused and changed."
-          checked={scene.inLibrary}
-          onChange={(inLibrary) => apply({ ...scene, inLibrary })}
-        />
+        <SettingSwitch label="Keep in my library" description="Saved designs can be reused and changed." checked={scene.inLibrary} onChange={(inLibrary) => apply({ ...scene, inLibrary })} />
       </section>
 
       <Record scene={scene} ctx={ctx} />
 
-      {scene.role === "bottom" && scene.partnerId && (
+      {scene.role === 'bottom' && scene.partnerId && (
         <RequestCard
           scene={scene}
           ctx={ctx}
           onChange={(next) => {
             setScene(next);
-            setSaved("saved");
+            setSaved('saved');
           }}
         />
       )}
 
       <div className="stack" style={{ gap: 8 }}>
-        {scene.role === "top" && !scene.noRoles && (
-          <Link
-            to={`/scenes/${scene.id}/live`}
-            className="btn btn-primary btn-block"
-          >
-            {scene.live && !scene.live.endedAt
-              ? "Back to the live scene"
-              : scene.live
-                ? "Scene record"
-                : "Start the scene"}
+        {scene.role === 'top' && !scene.noRoles && (
+          <Link to={`/scenes/${scene.id}/live`} className="btn btn-primary btn-block">
+            {scene.live && !scene.live.endedAt ? 'Back to the live scene' : scene.live ? 'Scene record' : 'Start the scene'}
           </Link>
         )}
-        {scene.role === "top" && !scene.noRoles && (
-          <Link
-            to={`/scenes/${scene.id}/vibe`}
-            className="btn btn-outline btn-block"
-          >
-            {scene.share
-              ? "SceneVibe and plan"
-              : scene.partnerId
-                ? "Share SceneVibe"
-                : "Preview SceneVibe"}
+        {scene.role === 'top' && !scene.noRoles && (
+          <Link to={`/scenes/${scene.id}/vibe`} className="btn btn-outline btn-block">
+            {scene.share ? 'SceneVibe and plan' : scene.partnerId ? 'Share SceneVibe' : 'Preview SceneVibe'}
           </Link>
         )}
-        <button
-          type="button"
-          className="btn btn-outline btn-block"
-          onClick={() => setReusing(true)}
-        >
+        <button type="button" className="btn btn-outline btn-block" onClick={() => setReusing(true)}>
           Share with someone
         </button>
         <button
@@ -548,26 +305,18 @@ export function SceneEditor() {
             const copy = copyScene(scene);
             saveScene(keys, copy)
               .then((s) => navigate(`/scenes/${s.id}`))
-              .catch(() =>
-                setToast({ text: "Ember couldn't copy this scene." }),
-              );
+              .catch(() => setToast({ text: "Ember couldn't copy this scene." }));
           }}
         >
           Duplicate
         </button>
-        <button
-          type="button"
-          className="btn btn-quiet btn-block"
-          onClick={() => setConfirmDelete(true)}
-        >
+        <button type="button" className="btn btn-quiet btn-block" onClick={() => setConfirmDelete(true)}>
           Delete scene
         </button>
       </div>
 
-      {reusing && (
-        <ReuseSheet scene={scene} onClose={() => setReusing(false)} />
-      )}
-      {editing?.kind === "play-time" && (
+      {reusing && <ReuseSheet scene={scene} onClose={() => setReusing(false)} />}
+      {editing?.kind === 'play-time' && (
         <MinutesSheet
           title="Scene length"
           hint="Every section keeps its share of the time. Aftercare comes after this, and grows if the new length needs more."
@@ -579,14 +328,10 @@ export function SceneEditor() {
           onClose={() => setEditing(null)}
         />
       )}
-      {editing?.kind === "phase-time" && editingPhase && (
+      {editing?.kind === 'phase-time' && editingPhase && (
         <MinutesSheet
           title={`${phaseLabels[editingPhase.type]} length`}
-          hint={
-            editingPhase.type === "aftercare"
-              ? "Its beats keep their share of the time. It can grow, but not below your setting."
-              : "Its beats keep their share of the time. Aftercare grows if it needs to."
-          }
+          hint={editingPhase.type === 'aftercare' ? 'Its beats keep their share of the time. It can grow, but not below your setting.' : 'Its beats keep their share of the time. Aftercare grows if it needs to.'}
           value={phaseMinutes(editingPhase)}
           min={Math.max(1, editingPhase.beats.length)}
           max={480}
@@ -598,49 +343,28 @@ export function SceneEditor() {
           onClose={() => setEditing(null)}
         />
       )}
-      {editing?.kind === "phase-setup" && setupPhase && (
+      {editing?.kind === 'phase-setup' && setupPhase && (
         <SetupSheet
           phase={setupPhase}
-          allowed={
-            scene.agreed && {
-              positions: scene.agreed.positions,
-              furniture: scene.agreed.furniture,
-            }
-          }
-          onSave={(setup) =>
-            apply(
-              mapPhases((p) => (p.id === setupPhase.id ? { ...p, setup } : p)),
-            )
-          }
+          allowed={scene.agreed && { positions: scene.agreed.positions, furniture: scene.agreed.furniture }}
+          onSave={(setup) => apply(mapPhases((p) => (p.id === setupPhase.id ? { ...p, setup } : p)))}
           onClose={() => setEditing(null)}
         />
       )}
-      {editing?.kind === "beat" && editingBeat && (
+      {editing?.kind === 'beat' && editingBeat && (
         <BeatSheet
           beat={editingBeat}
           phaseId={editing.phaseId}
           phases={scene.phases}
           automatic={auto.get(editingBeat.id) ?? []}
           onSave={(b, to) => apply(withBeat(editing.phaseId, b, to))}
-          onSaveWithCheckIn={(b, to) =>
-            apply({
-              ...withBeat(editing.phaseId, b, to),
-              nextMorningCheckIn: true,
-            })
-          }
+          onSaveWithCheckIn={(b, to) => apply({ ...withBeat(editing.phaseId, b, to), nextMorningCheckIn: true })}
           preview={(b, to) => preview(withBeat(editing.phaseId, b, to))}
-          onDelete={() =>
-            apply(
-              mapPhases((p) => ({
-                ...p,
-                beats: p.beats.filter((b) => b.id !== editingBeat.id),
-              })),
-            )
-          }
+          onDelete={() => apply(mapPhases((p) => ({ ...p, beats: p.beats.filter((b) => b.id !== editingBeat.id) })))}
           onClose={() => setEditing(null)}
         />
       )}
-      {editing?.kind === "step" && editingStep && (
+      {editing?.kind === 'step' && editingStep && (
         <StepSheet
           step={editingStep}
           beatId={editing.beatId}
@@ -648,59 +372,28 @@ export function SceneEditor() {
           ctx={ctx}
           gear={data.gear}
           onSave={(s, o, to) => saveStep(editing.beatId, s, o, to)}
-          onDelete={() =>
-            apply(
-              mapPhases((p) => ({
-                ...p,
-                beats: p.beats.map((b) =>
-                  b.id === editing.beatId
-                    ? {
-                        ...b,
-                        steps: b.steps.filter((s) => s.id !== editingStep.id),
-                      }
-                    : b,
-                ),
-              })),
-            )
-          }
+          onDelete={() => apply(mapPhases((p) => ({ ...p, beats: p.beats.map((b) => (b.id === editing.beatId ? { ...b, steps: b.steps.filter((s) => s.id !== editingStep.id) } : b)) })))}
           onClose={() => setEditing(null)}
         />
       )}
-      {editing?.kind === "gear" && beatById(editing.beatId) && (
+      {editing?.kind === 'gear' && beatById(editing.beatId) && (
         <GearSheet
           gear={data.gear.filter((g) => !ctx.optedOutGear.includes(g.id))}
-          partnerName={
-            scene.partnerId && !data.theirGearShown ? scene.partnerName : ""
-          }
+          partnerName={scene.partnerId && !data.theirGearShown ? scene.partnerName : ''}
           onShowTheirGear={showTheirGear}
           onPick={(g) => {
             const beatId = editing.beatId;
-            const step = newStep({
-              gearId: g.id,
-              do: `Use the ${g.name.toLowerCase()}.`,
-            });
-            const reason = apply(
-              mapPhases((p) => ({
-                ...p,
-                beats: p.beats.map((b) =>
-                  b.id === beatId ? { ...b, steps: [...b.steps, step] } : b,
-                ),
-              })),
-            );
+            const step = newStep({ gearId: g.id, do: `Use the ${g.name.toLowerCase()}.` });
+            const reason = apply(mapPhases((p) => ({ ...p, beats: p.beats.map((b) => (b.id === beatId ? { ...b, steps: [...b.steps, step] } : b)) })));
             if (reason) return reason;
-            setEditing({ kind: "step", beatId, stepId: step.id });
+            setEditing({ kind: 'step', beatId, stepId: step.id });
             return null;
           }}
           onClose={() => setEditing(null)}
         />
       )}
       {confirmDelete && (
-        <div
-          className="sheet-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="scene-delete-title"
-        >
+        <div className="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="scene-delete-title">
           <div className="sheet">
             <h2 id="scene-delete-title">Delete {scene.title}?</h2>
             <p>The design and its record are removed. This can't be undone.</p>
@@ -709,24 +402,13 @@ export function SceneEditor() {
               className="btn btn-danger btn-block"
               onClick={() =>
                 deleteScene(scene.id)
-                  .then(() => navigate("/scenes", { replace: true }))
-                  .catch((err) =>
-                    setToast({
-                      text:
-                        err instanceof AccountError
-                          ? err.message
-                          : "Ember couldn't delete this scene.",
-                    }),
-                  )
+                  .then(() => navigate('/scenes', { replace: true }))
+                  .catch((err) => setToast({ text: err instanceof AccountError ? err.message : "Ember couldn't delete this scene." }))
               }
             >
               Delete
             </button>
-            <button
-              type="button"
-              className="btn btn-secondary btn-block"
-              onClick={() => setConfirmDelete(false)}
-            >
+            <button type="button" className="btn btn-secondary btn-block" onClick={() => setConfirmDelete(false)}>
               Cancel
             </button>
           </div>
@@ -735,10 +417,7 @@ export function SceneEditor() {
       {beatDrag.overlay}
       {stepDrag.overlay}
       {toast && (
-        <div
-          className={toast.info ? "toast toast-info" : "toast"}
-          role={toast.info ? "status" : "alert"}
-        >
+        <div className={toast.info ? 'toast toast-info' : 'toast'} role={toast.info ? 'status' : 'alert'}>
           {toast.text}
         </div>
       )}
@@ -748,46 +427,22 @@ export function SceneEditor() {
 
 type Drag = ReturnType<typeof useMoveDrag>;
 
-function IssueList({
-  scene,
-  issues,
-  onKeep,
-}: {
-  scene: Scene;
-  issues: Issue[];
-  onKeep: (key: string, reason: string) => void;
-}) {
+function IssueList({ scene, issues, onKeep }: { scene: Scene; issues: Issue[]; onKeep: (key: string, reason: string) => void }) {
   const [keeping, setKeeping] = useState<string | null>(null);
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState('');
   const open = [...blocks(issues), ...warnings(issues).filter((w) => !w.kept)];
   if (!open.length) return null;
   return (
-    <section
-      className="stack"
-      style={{ gap: 6 }}
-      aria-label="Things to look at"
-    >
+    <section className="stack" style={{ gap: 6 }} aria-label="Things to look at">
       {open.map((i) => (
-        <div
-          key={i.key}
-          className={`box ${i.level === "block" ? "box-block" : "box-warn"}`}
-        >
+        <div key={i.key} className={`box ${i.level === 'block' ? 'box-block' : 'box-warn'}`}>
           {i.message}
-          {i.level === "warn" && (
-            <KeepControl
-              id={i.key}
-              keeping={keeping}
-              reason={reason}
-              setKeeping={setKeeping}
-              setReason={setReason}
-              onKeep={onKeep}
-            />
+          {i.level === 'warn' && (
+            <KeepControl id={i.key} keeping={keeping} reason={reason} setKeeping={setKeeping} setReason={setReason} onKeep={onKeep} />
           )}
         </div>
       ))}
-      {scene.phases.length === 0 && (
-        <p className="note">This design is empty.</p>
-      )}
+      {scene.phases.length === 0 && <p className="note">This design is empty.</p>}
     </section>
   );
 }
@@ -798,7 +453,7 @@ function KeepControl({
   reason,
   setKeeping,
   setReason,
-  onKeep,
+  onKeep
 }: {
   id: string;
   keeping: string | null;
@@ -809,39 +464,15 @@ function KeepControl({
 }) {
   if (keeping !== id) {
     return (
-      <button
-        type="button"
-        className="btn btn-quiet"
-        style={{ minHeight: 32, padding: "2px 6px", marginLeft: 6 }}
-        onClick={() => {
-          setKeeping(id);
-          setReason("");
-        }}
-      >
+      <button type="button" className="btn btn-quiet" style={{ minHeight: 32, padding: '2px 6px', marginLeft: 6 }} onClick={() => { setKeeping(id); setReason(''); }}>
         Keep anyway
       </button>
     );
   }
   return (
-    <span style={{ display: "flex", gap: 6, marginTop: 6 }}>
-      <input
-        className="input"
-        aria-label="Your reason"
-        placeholder="Your reason"
-        maxLength={160}
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-        style={{ flex: 1, minHeight: 40, padding: "6px 10px" }}
-      />
-      <button
-        type="button"
-        className="btn btn-secondary"
-        disabled={!reason.trim()}
-        onClick={() => {
-          onKeep(id, reason.trim());
-          setKeeping(null);
-        }}
-      >
+    <span style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+      <input className="input" aria-label="Your reason" placeholder="Your reason" maxLength={160} value={reason} onChange={(e) => setReason(e.target.value)} style={{ flex: 1, minHeight: 40, padding: '6px 10px' }} />
+      <button type="button" className="btn btn-secondary" disabled={!reason.trim()} onClick={() => { onKeep(id, reason.trim()); setKeeping(null); }}>
         Keep
       </button>
     </span>
@@ -860,7 +491,7 @@ function Phases({
   onEditStep,
   onAddGear,
   onEditPhaseTime,
-  onEditSetup,
+  onEditSetup
 }: {
   scene: Scene;
   ctx: RuleContext;
@@ -876,46 +507,16 @@ function Phases({
   onEditSetup: (phaseId: string) => void;
 }) {
   const colorOf = usePhaseColor();
-  const reorder = useReorder(scene.phases.length, (from, to) =>
-    onApply({ ...scene, phases: moved(scene.phases, from, to) }),
-  );
+  const reorder = useReorder(scene.phases.length, (from, to) => onApply({ ...scene, phases: moved(scene.phases, from, to) }));
   return (
     <div className="stack" style={{ gap: 12 }}>
       {scene.phases.map((phase, i) => {
         const color = colorOf(scene, phase);
         const item = reorder.item(i);
         return (
-          <details
-            key={phase.id}
-            open
-            ref={item.ref}
-            className={item.className}
-            style={{
-              ...item.style,
-              borderRadius: 16,
-              background: "var(--surface)",
-              border: `2px solid ${color}`,
-            }}
-          >
-            <summary
-              style={{
-                listStyle: "none",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "4px 8px 4px 4px",
-                background: color,
-                color: "#fff",
-                borderRadius: "12px 12px 0 0",
-                cursor: "pointer",
-              }}
-            >
-              <button
-                type="button"
-                className="drag-handle"
-                style={{ color: "#fff" }}
-                {...reorder.handle(i, `${phaseLabels[phase.type]} phase`)}
-              >
+          <details key={phase.id} open ref={item.ref} className={item.className} style={{ ...item.style, borderRadius: 16, background: 'var(--surface)', border: `2px solid ${color}` }}>
+            <summary style={{ listStyle: 'none', display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 4px 4px', background: color, color: '#fff', borderRadius: '12px 12px 0 0', cursor: 'pointer' }}>
+              <button type="button" className="drag-handle" style={{ color: '#fff' }} {...reorder.handle(i, `${phaseLabels[phase.type]} phase`)}>
                 ⠿
               </button>
               <strong style={{ flex: 1 }}>{phaseLabels[phase.type]}</strong>
@@ -927,16 +528,7 @@ function Phases({
                   e.stopPropagation();
                   onEditPhaseTime(phase.id);
                 }}
-                style={{
-                  background: "rgba(255,255,255,0.18)",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 999,
-                  padding: "4px 10px",
-                  minHeight: 36,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
+                style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none', borderRadius: 999, padding: '4px 10px', minHeight: 36, fontWeight: 600, cursor: 'pointer' }}
               >
                 {phaseMinutes(phase)} min ✎
               </button>
@@ -944,35 +536,13 @@ function Phases({
             <button
               type="button"
               className="btn btn-quiet"
-              style={{
-                width: "100%",
-                justifyContent: "flex-start",
-                textAlign: "left",
-                padding: "6px 12px",
-                minHeight: "var(--touch)",
-              }}
-              aria-label={`${phaseLabels[phase.type]} position and furniture: ${setupLabel(phase.setup) ?? "not set"}. Change`}
+              style={{ width: '100%', justifyContent: 'flex-start', textAlign: 'left', padding: '6px 12px', minHeight: 'var(--touch)' }}
+              aria-label={`${phaseLabels[phase.type]} position and furniture: ${setupLabel(phase.setup) ?? 'not set'}. Change`}
               onClick={() => onEditSetup(phase.id)}
             >
-              {setupLabel(phase.setup) ? (
-                <>📍 {setupLabel(phase.setup)} ✎</>
-              ) : (
-                "+ Position and furniture"
-              )}
+              {setupLabel(phase.setup) ? <>📍 {setupLabel(phase.setup)} ✎</> : '+ Position and furniture'}
             </button>
-            <Beats
-              scene={scene}
-              phase={phase}
-              ctx={ctx}
-              issues={issues}
-              auto={auto}
-              onApply={onApply}
-              beatDrag={beatDrag}
-              stepDrag={stepDrag}
-              onEditBeat={onEditBeat}
-              onEditStep={onEditStep}
-              onAddGear={onAddGear}
-            />
+            <Beats scene={scene} phase={phase} ctx={ctx} issues={issues} auto={auto} onApply={onApply} beatDrag={beatDrag} stepDrag={stepDrag} onEditBeat={onEditBeat} onEditStep={onEditStep} onAddGear={onAddGear} />
           </details>
         );
       })}
@@ -991,7 +561,7 @@ function Beats({
   stepDrag,
   onEditBeat,
   onEditStep,
-  onAddGear,
+  onAddGear
 }: {
   scene: Scene;
   phase: Phase;
@@ -1005,113 +575,58 @@ function Beats({
   onEditStep: (beatId: string, stepId: string) => void;
   onAddGear: (beatId: string) => void;
 }) {
-  const withBeats = (beats: Beat[]) => ({
-    ...scene,
-    phases: scene.phases.map((p) => (p.id === phase.id ? { ...p, beats } : p)),
-  });
+  const withBeats = (beats: Beat[]) => ({ ...scene, phases: scene.phases.map((p) => (p.id === phase.id ? { ...p, beats } : p)) });
   return (
     <div className="stack" style={{ gap: 10, padding: 10 }}>
-      <div
-        className="stack"
-        style={{ gap: 10, minHeight: 24 }}
-        {...beatDrag.container(phase.id)}
-      >
-        {phase.beats.map((beat) => {
-          const item = beatDrag.item(beat.id);
-          const mine = issues.filter(
-            (x) => x.beatId === beat.id && !(x.level === "warn" && x.kept),
-          );
-          return (
-            <article
-              key={beat.id}
-              {...item}
-              className={["card", "stack", item.className]
-                .filter(Boolean)
-                .join(" ")}
-              style={{ ...item.style, gap: 8, padding: 12 }}
-              aria-label={beat.title || "Beat"}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button
-                  type="button"
-                  className="drag-handle"
-                  {...beatDrag.handle(beat.id, beat.title || "beat")}
-                >
-                  ⠿
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onEditBeat(phase.id, beat.id)}
-                  style={{
-                    flex: 1,
-                    textAlign: "left",
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    minHeight: "var(--touch)",
-                    cursor: "pointer",
-                  }}
-                >
-                  <span style={{ fontWeight: 700, display: "block" }}>
-                    {beat.title || "Untitled beat"}
-                  </span>
-                  <span className="note">
-                    {beat.minutes} min, intensity {beat.intensity}
-                    {beat.areas.length
-                      ? `, ${beat.areas.length} ${beat.areas.length === 1 ? "area" : "areas"}`
-                      : ""}
-                  </span>
-                </button>
-              </div>
-              {mine.map((x) => (
-                <p
-                  key={x.key}
-                  className={`box ${x.level === "block" ? "box-block" : "box-warn"}`}
-                >
-                  {x.message}
-                </p>
-              ))}
-              {(auto.get(beat.id) ?? [])
-                .filter((f) => f.kind === "warning")
-                .map((f, k) => (
-                  <p key={`a${k}`} className="box box-warning">
-                    {f.text}
-                  </p>
-                ))}
-              {beat.flags.map((f, k) => (
-                <p key={`f${k}`} className={`box box-${f.kind}`}>
-                  {f.text}
-                </p>
-              ))}
-              <Steps
-                scene={scene}
-                beat={beat}
-                ctx={ctx}
-                onApply={onApply}
-                stepDrag={stepDrag}
-                onEditStep={onEditStep}
-                onAddGear={onAddGear}
-              />
-            </article>
-          );
-        })}
+      <div className="stack" style={{ gap: 10, minHeight: 24 }} {...beatDrag.container(phase.id)}>
+      {phase.beats.map((beat) => {
+        const item = beatDrag.item(beat.id);
+        const mine = issues.filter((x) => x.beatId === beat.id && !(x.level === 'warn' && x.kept));
+        return (
+          <article
+            key={beat.id}
+            {...item}
+            className={['card', 'stack', item.className].filter(Boolean).join(' ')}
+            style={{ ...item.style, gap: 8, padding: 12 }}
+            aria-label={beat.title || 'Beat'}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button type="button" className="drag-handle" {...beatDrag.handle(beat.id, beat.title || 'beat')}>
+                ⠿
+              </button>
+              <button type="button" onClick={() => onEditBeat(phase.id, beat.id)} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', padding: 0, minHeight: 'var(--touch)', cursor: 'pointer' }}>
+                <span style={{ fontWeight: 700, display: 'block' }}>{beat.title || 'Untitled beat'}</span>
+                <span className="note">
+                  {beat.minutes} min, intensity {beat.intensity}
+                  {beat.areas.length ? `, ${beat.areas.length} ${beat.areas.length === 1 ? 'area' : 'areas'}` : ''}
+                </span>
+              </button>
+            </div>
+            {mine.map((x) => (
+              <p key={x.key} className={`box ${x.level === 'block' ? 'box-block' : 'box-warn'}`}>
+                {x.message}
+              </p>
+            ))}
+            {(auto.get(beat.id) ?? []).filter((f) => f.kind === 'warning').map((f, k) => (
+              <p key={`a${k}`} className="box box-warning">
+                {f.text}
+              </p>
+            ))}
+            {beat.flags.map((f, k) => (
+              <p key={`f${k}`} className={`box box-${f.kind}`}>
+                {f.text}
+              </p>
+            ))}
+            <Steps scene={scene} beat={beat} ctx={ctx} onApply={onApply} stepDrag={stepDrag} onEditStep={onEditStep} onAddGear={onAddGear} />
+          </article>
+        );
+      })}
       </div>
       <button
         type="button"
         className="btn btn-quiet"
-        style={{ alignSelf: "flex-start" }}
-        onClick={() =>
-          onApply(
-            withBeats([
-              ...phase.beats,
-              newBeat({
-                title: "New beat",
-                intensity: Math.min(4, phase.beats.at(-1)?.intensity ?? 3),
-                steps: [newStep()],
-              }),
-            ]),
-          )
-        }
+        style={{ alignSelf: 'flex-start' }}
+        onClick={() => onApply(withBeats([...phase.beats, newBeat({ title: 'New beat', intensity: Math.min(4, phase.beats.at(-1)?.intensity ?? 3), steps: [newStep()] })]))}
       >
         + Add beat
       </button>
@@ -1126,7 +641,7 @@ function Steps({
   onApply,
   stepDrag,
   onEditStep,
-  onAddGear,
+  onAddGear
 }: {
   scene: Scene;
   beat: Beat;
@@ -1136,86 +651,36 @@ function Steps({
   onEditStep: (beatId: string, stepId: string) => void;
   onAddGear: (beatId: string) => void;
 }) {
-  const withSteps = (steps: Step[]) => ({
-    ...scene,
-    phases: scene.phases.map((p) => ({
-      ...p,
-      beats: p.beats.map((b) => (b.id === beat.id ? { ...b, steps } : b)),
-    })),
-  });
+  const withSteps = (steps: Step[]) => ({ ...scene, phases: scene.phases.map((p) => ({ ...p, beats: p.beats.map((b) => (b.id === beat.id ? { ...b, steps } : b)) })) });
   const label = (s: Step) => {
-    const gear = s.gearId
-      ? ctx.gear.find((g) => g.id === s.gearId)?.name
-      : undefined;
-    const what =
-      activityOf(ctx, s.activityId)?.label ?? (s.do.split(".")[0] || "Step");
-    return gear && !what.toLowerCase().includes(gear.toLowerCase())
-      ? `${what} (${gear})`
-      : what;
+    const gear = s.gearId ? ctx.gear.find((g) => g.id === s.gearId)?.name : undefined;
+    const what = activityOf(ctx, s.activityId)?.label ?? (s.do.split('.')[0] || 'Step');
+    return gear && !what.toLowerCase().includes(gear.toLowerCase()) ? `${what} (${gear})` : what;
   };
   return (
-    <ol
-      className="stack"
-      style={{ gap: 4, margin: 0, padding: 0, listStyle: "none" }}
-      {...stepDrag.container(beat.id)}
-    >
+    <ol className="stack" style={{ gap: 4, margin: 0, padding: 0, listStyle: 'none' }} {...stepDrag.container(beat.id)}>
       {beat.steps.map((s) => {
         const item = stepDrag.item(s.id);
         return (
-          <li
-            key={s.id}
-            {...item}
-            style={{
-              ...item.style,
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              background: "var(--ground)",
-              borderRadius: 10,
-            }}
-          >
-            <button
-              type="button"
-              className="drag-handle"
-              {...stepDrag.handle(s.id, label(s))}
-            >
+          <li key={s.id} {...item} style={{ ...item.style, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--ground)', borderRadius: 10 }}>
+            <button type="button" className="drag-handle" {...stepDrag.handle(s.id, label(s))}>
               ⠿
             </button>
-            <button
-              type="button"
-              onClick={() => onEditStep(beat.id, s.id)}
-              style={{
-                flex: 1,
-                textAlign: "left",
-                background: "none",
-                border: "none",
-                padding: "6px 0",
-                minHeight: "var(--touch)",
-                cursor: "pointer",
-              }}
-            >
-              <span style={{ display: "block", fontWeight: 600 }}>
+            <button type="button" onClick={() => onEditStep(beat.id, s.id)} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', padding: '6px 0', minHeight: 'var(--touch)', cursor: 'pointer' }}>
+              <span style={{ display: 'block', fontWeight: 600 }}>
                 {label(s)}
-                {s.surprise ? " (surprise)" : ""}
+                {s.surprise ? ' (surprise)' : ''}
               </span>
               {s.say && <span className="note">SAY: {s.say}</span>}
             </button>
           </li>
         );
       })}
-      <li style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-        <button
-          type="button"
-          className="btn btn-quiet"
-          onClick={() => onApply(withSteps([...beat.steps, newStep()]))}
-        >
+      <li style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        <button type="button" className="btn btn-quiet" onClick={() => onApply(withSteps([...beat.steps, newStep()]))}>
           + Add step
         </button>
-        <button
-          type="button"
-          className="btn btn-quiet"
-          onClick={() => onAddGear(beat.id)}
-        >
+        <button type="button" className="btn btn-quiet" onClick={() => onAddGear(beat.id)}>
           + Add gear
         </button>
       </li>
@@ -1227,20 +692,16 @@ function Record({ scene, ctx }: { scene: Scene; ctx: RuleContext }) {
   const entries = [
     ...scene.overrides.map((o) => ({
       at: o.confirmedAt,
-      text: `${activityOf(ctx, o.activityId)?.label ?? o.activityId}: ${o.kind === "no" ? "they said no; you confirmed you talked and agreed" : o.kind === "edge" ? "edge play, negotiation confirmed" : "negotiated for this scene"}`,
+      text: `${activityOf(ctx, o.activityId)?.label ?? o.activityId}: ${o.kind === 'no' ? 'they said no; you confirmed you talked and agreed' : o.kind === 'edge' ? 'edge play, negotiation confirmed' : 'negotiated for this scene'}`
     })),
-    ...Object.entries(scene.kept).map(([key, k]) => ({
-      at: k.at,
-      text: `Kept a warning (${key.split(":")[0]}): ${k.reason}`,
-    })),
+    ...Object.entries(scene.kept).map(([key, k]) => ({ at: k.at, text: `Kept a warning (${key.split(':')[0]}): ${k.reason}` }))
   ].sort((a, b) => a.at.localeCompare(b.at));
   if (!entries.length) return null;
   return (
     <section className="card stack" style={{ gap: 6 }} aria-label="Record">
       <div className="eyebrow">Record</div>
       <p className="note" style={{ margin: 0 }}>
-        Every override and kept warning, dated. Designed from intake version{" "}
-        {scene.intakeVersion ?? "none"}.
+        Every override and kept warning, dated. Designed from intake version {scene.intakeVersion ?? 'none'}.
       </p>
       <ul style={{ margin: 0, paddingLeft: 18 }}>
         {entries.map((e, i) => (

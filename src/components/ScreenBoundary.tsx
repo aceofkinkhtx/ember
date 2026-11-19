@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from "react";
+import { Component, type ReactNode } from 'react';
 
 /**
  * If one screen fails, show a plain message instead of a blank app. The tab
@@ -27,7 +27,7 @@ export class ScreenBoundary extends Component<
           <button
             type="button"
             className="btn btn-primary"
-            style={{ alignSelf: "flex-start" }}
+            style={{ alignSelf: 'flex-start' }}
             onClick={() => window.location.reload()}
           >
             Try again
