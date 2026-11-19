@@ -1133,3 +1133,113 @@ select {
   outline: 2px solid rgba(255, 250, 244, 0.9);
   pointer-events: none;
 }
+
+/* The app tour (Nov 19): full screen, one card at a time. */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: calc(12px + env(safe-area-inset-top)) var(--gutter) calc(18px + env(safe-area-inset-bottom));
+  background: var(--ground);
+  overflow-y: auto;
+}
+
+.tour-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tour-shot {
+  flex: 1 1 auto;
+  min-height: 240px;
+  max-height: 46vh;
+  overflow: hidden;
+  padding: 14px;
+  border-radius: var(--radius-card);
+  background: var(--surface-sunk);
+  pointer-events: none;
+  animation: tour-in 280ms ease-out;
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent);
+}
+
+.tour-words h1 {
+  margin: 0 0 6px;
+}
+
+.tour-words .lede {
+  margin: 0;
+}
+
+.tour-dots {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tour-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+.tour-dots span.on {
+  background: var(--ink);
+  width: 22px;
+  border-radius: 4px;
+}
+
+.tour-nav {
+  display: flex;
+  gap: 10px;
+}
+
+.tour-seg button {
+  min-height: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.tour-dark {
+  height: 100%;
+  min-height: 220px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #141012;
+  color: #f5ede3;
+}
+
+.tour-big {
+  flex: 1;
+  display: block;
+  padding: 14px;
+  border-radius: 12px;
+  background: #2a2226;
+  text-align: center;
+  font-weight: 600;
+}
+
+.tour-big.tour-stop {
+  flex: none;
+  background: #b3261e;
+  color: #ffffff;
+}
+
+@keyframes tour-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-shot {
+    animation: none;
+  }
+}

@@ -7,6 +7,7 @@ import { defaultSettings, type Settings } from '../../state/settings';
 const bottom: Settings = {
   ...defaultSettings,
   onboarding: 'done',
+  tourSeenAt: '2026-11-01T00:00:00Z',
   roles: 'bottom',
   activeRole: 'bottom',
   ageConfirmedAt: '2026-11-01T00:00:00Z',

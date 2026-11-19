@@ -7,10 +7,14 @@ import { defaultSettings, loadSettings, nextStep, SETTINGS_KEY, type Settings } 
 const done = (patch: Partial<Settings>): Settings => ({
   ...defaultSettings,
   onboarding: 'done',
+  tourSeenAt: '2026-11-01T00:00:00Z',
   ageConfirmedAt: '2026-11-01T00:00:00Z',
   safetyFloorAcknowledgedAt: new Date().toISOString(),
   ...patch
 });
+
+// Each test starts on Home; the tour and other screens change the address.
+beforeEach(() => window.history.replaceState(null, '', '/'));
 
 describe('onboarding', () => {
   it('will not continue until a role is chosen and 18+ is confirmed', async () => {
@@ -63,6 +67,9 @@ describe('onboarding', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(safetyFloor.length);
     await user.click(screen.getByRole('button', { name: 'I understand' }));
 
+    // The tour comes first, once.
+    expect(screen.getByRole('heading', { name: 'Welcome to Ember' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Skip' }));
     expect(screen.getByRole('heading', { name: 'What needs you today' })).toBeInTheDocument();
     const saved = loadSettings();
     expect(saved.discreet).toBe(true);
@@ -170,5 +177,26 @@ describe('PIN lock', () => {
     expect(await screen.findByText(/didn't match/)).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument();
     expect(window.localStorage.getItem(SETTINGS_KEY)).not.toContain('246810');
+  });
+});
+
+describe('the app tour', () => {
+  it('opens once after setup, and Skip goes to Home for good', async () => {
+    const user = userEvent.setup();
+    render(<App initialSettings={done({ roles: 'top', activeRole: 'top', tourSeenAt: null })} />);
+    expect(screen.getByRole('heading', { name: 'Welcome to Ember' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('heading', { name: 'Home: what needs you today' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Skip' }));
+    expect(screen.getByRole('heading', { name: 'What needs you today' })).toBeInTheDocument();
+    expect(window.localStorage.getItem(SETTINGS_KEY)).toContain('tourSeenAt');
+  });
+
+  it('shows the bottom tour in the bottom view, in discreet words', async () => {
+    render(<App initialSettings={done({ roles: 'bottom', activeRole: 'bottom', discreet: true, tourSeenAt: null })} />);
+    expect(screen.getByRole('heading', { name: 'Welcome to Ember' })).toBeInTheDocument();
+    expect(screen.getByText(/Plans designed together/)).toBeInTheDocument();
+    expect(screen.getByText('1 of 8')).toBeInTheDocument();
   });
 });

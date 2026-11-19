@@ -8,6 +8,7 @@ import { ConnectionDetail } from './screens/ConnectionDetail';
 import { Connections } from './screens/Connections';
 import { Guest } from './screens/Guest';
 import { Home } from './screens/Home';
+import { Tour } from './screens/Tour';
 import { JoinInvite } from './screens/JoinInvite';
 import { Me } from './screens/Me';
 import { Onboarding } from './screens/onboarding/Onboarding';
@@ -49,12 +50,14 @@ function Shell() {
   const tabs = tabsByRole[settings.activeRole];
   // Live Scene Mode fills the screen: no tab bar to tap by accident.
   const { pathname } = useLocation();
-  const live = /\/(live|check)$/.test(pathname);
+  // Live Scene Mode and the tour fill the screen.
+  const live = /\/(live|check)$/.test(pathname) || pathname === '/tour';
   return (
     <div className="app">
       <ScreenBoundary key={pathname}>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={settings.tourSeenAt ? <Home /> : <Navigate to="/tour" replace />} />
+        <Route path="/tour" element={<Tour />} />
         <Route path="/me" element={<Me />} />
         <Route path="/connections" element={<Connections />} />
         <Route path="/connections/:id" element={<ConnectionDetail />} />

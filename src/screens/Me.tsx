@@ -195,6 +195,21 @@ export function Me() {
         </p>
       </section>
 
+      <section className="card" aria-label="Help">
+        <div className="eyebrow">Help</div>
+        <p className="setting-desc">A quick look at how Ember works.</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Link to="/tour" className="btn btn-outline">
+            Replay the tour
+          </Link>
+          {settings.roles === 'both' && (
+            <Link to={`/tour?role=${settings.activeRole === 'top' ? 'bottom' : 'top'}`} className="btn btn-outline">
+              The {roleLabel(settings.activeRole === 'top' ? 'bottom' : 'top', settings.discreet)} tour
+            </Link>
+          )}
+        </div>
+      </section>
+
       <section className="card" aria-label="Support Ember">
         <div className="eyebrow">Support Ember</div>
         <p className="setting-desc">Ember is free and runs on donations. Any amount helps keep it that way.</p>

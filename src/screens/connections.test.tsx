@@ -20,6 +20,7 @@ vi.mock('../lib/account', async (original) => {
 const done = (patch: Partial<Settings> = {}): Settings => ({
   ...defaultSettings,
   onboarding: 'done',
+  tourSeenAt: '2026-11-01T00:00:00Z',
   roles: 'top',
   activeRole: 'top',
   ageConfirmedAt: '2026-11-01T00:00:00Z',

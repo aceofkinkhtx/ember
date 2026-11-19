@@ -28,6 +28,8 @@ export interface Settings {
   donationPromptedAt: string | null;
   /** The day (YYYY-MM-DD, local) daily tips were first shown on this phone (M8). */
   tipsStartedOn: string | null;
+  /** When the app tour was finished or skipped on this phone (Nov 19); until then Home opens the tour. */
+  tourSeenAt: string | null;
   /** A Top's offerings and settings (M3). Kept for switches in the bottom view too. */
   top: TopSetup;
 }
@@ -48,6 +50,7 @@ export const defaultSettings: Settings = {
   notifications: { dailyTips: true, tipTime: '09:00', checkIns: true, messages: true },
   donationPromptedAt: null,
   tipsStartedOn: null,
+  tourSeenAt: null,
   top: emptyTopSetup()
 };
 
