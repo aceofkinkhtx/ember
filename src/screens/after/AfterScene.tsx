@@ -293,12 +293,21 @@ function TopDebriefForm({ acts, name, onSave }: { acts: ActivityRef[]; name: str
 /** "Send the real design afterward" (Nov 3): the full plan, surprises included. */
 function SendDesign({ scene, name }: { scene: Scene; name: string }) {
   const [state, setState] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle');
+  // Scene notes stay private unless the Top chooses to send them (Michael, Nov 23).
+  const hasNotes = Boolean(scene.notes.trim()) || scene.phases.some((p) => p.beats.some((b) => b.steps.some((s) => s.notes.trim())));
+  const [withNotes, setWithNotes] = useState(false);
   return (
     <section className="card stack" style={{ gap: 8 }} aria-label="Send the design">
       <div className="eyebrow">Send the real design</div>
       <p className="setting-desc" style={{ margin: 0 }}>
-        Let {name} see what happened, surprises included. Your private notes and records stay with you.
+        Let {name} see what happened, surprises included. Your records stay with you{hasNotes ? ', and so do your notes unless you include them' : ''}.
       </p>
+      {hasNotes && state !== 'sent' && (
+        <label className="check" style={{ minHeight: 0 }}>
+          <input type="checkbox" checked={withNotes} onChange={(e) => setWithNotes(e.target.checked)} />
+          Include my scene notes
+        </label>
+      )}
       {state === 'sent' ? (
         <p className="note">Sent.</p>
       ) : (
@@ -309,7 +318,7 @@ function SendDesign({ scene, name }: { scene: Scene; name: string }) {
           disabled={state === 'busy'}
           onClick={() => {
             setState('busy');
-            sendPlan(scene, true).then(
+            sendPlan(scene, true, withNotes).then(
               () => setState('sent'),
               () => setState('error')
             );

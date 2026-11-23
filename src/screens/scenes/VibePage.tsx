@@ -219,6 +219,12 @@ export function PlanPage() {
       </Link>
       <h1>{plan.title}</h1>
       <p className="lede">The plan {name} shared with you. It can still change as you both check in on the day.</p>
+      {plan.notes?.trim() && (
+        <section className="card stack" style={{ gap: 6 }} aria-label={`Notes from ${name}`}>
+          <div className="eyebrow">Notes from {name}</div>
+          <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{plan.notes}</p>
+        </section>
+      )}
       {plan.phases.map((p) => (
         <section key={p.id} className="card stack" style={{ gap: 10 }} aria-label={phaseLabels[p.type]}>
           <div className="eyebrow">
@@ -236,6 +242,7 @@ export function PlanPage() {
                     {label(s.activityId) && !s.do.toLowerCase().startsWith(label(s.activityId)!.toLowerCase()) ? <strong>{label(s.activityId)}: </strong> : null}
                     {s.do}
                     {s.say && <span className="note" style={{ display: 'block' }}>"{s.say}"</span>}
+                    {s.notes?.trim() && <span className="note" style={{ display: 'block' }}>Note: {s.notes}</span>}
                   </li>
                 ))}
               </ul>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Scene } from '../../lib/scene/model';
 import { listScenes } from '../../lib/scenes';
+import { sceneDay } from '../../lib/sceneDay';
 import { listSharedVibes, type SharedVibe } from '../../lib/vibes';
 import { useAccount } from '../../state/account';
 import { MiniCurve } from './SceneCurve';
@@ -10,11 +11,12 @@ import { VibeCurve } from './VibeView';
 // Home's next-scene card (H1 and BH1), with a countdown. A Top sees their next
 // dated design; a bottom sees the next SceneVibe a Top shared with them.
 
-const today = () => new Date().toISOString().slice(0, 10);
+// A scene stays "today" until 3am the next day, on the phone's own clock.
+const today = () => sceneDay();
 
 /** "Today", "Tomorrow" or "In 5 days". */
 export function countdown(date: string, now = new Date()): string {
-  const days = Math.round((new Date(`${date}T12:00`).getTime() - new Date(`${now.toISOString().slice(0, 10)}T12:00`).getTime()) / 86_400_000);
+  const days = Math.round((new Date(`${date}T12:00`).getTime() - new Date(`${sceneDay(now)}T12:00`).getTime()) / 86_400_000);
   return days <= 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`;
 }
 

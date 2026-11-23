@@ -28,7 +28,8 @@ export function topDebrief(discreet = false): DebriefScale[] {
 export const topReactions = [
   { id: 'loved', label: 'They loved it' },
   { id: 'more-care', label: 'Needs more care next time' },
-  { id: 'not-for-them', label: "Didn't seem right for them" }
+  { id: 'not-for-them', label: "Didn't seem right for them" },
+  { id: 'skipped', label: "Didn't get to it" }
 ] as const;
 export type TopReaction = (typeof topReactions)[number]['id'];
 
@@ -46,7 +47,8 @@ export const bottomReplies = [
   { id: 'again', label: 'Loved that, again please' },
   { id: 'another-way', label: 'Yes to this, but another way' },
   { id: 'no-now', label: "That's a no for me now" },
-  { id: 'talk', label: "Something felt off, let's talk" }
+  { id: 'talk', label: "Something felt off, let's talk" },
+  { id: 'skipped', label: "We didn't get to it" }
 ] as const;
 export type BottomReply = (typeof bottomReplies)[number]['id'];
 

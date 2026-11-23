@@ -8,13 +8,15 @@ import { tabLabel } from '../../content/copy';
 import type { Scene } from '../../lib/scene/model';
 import { listScenes } from '../../lib/scenes';
 import { useAccount } from '../../state/account';
+import { sceneDay } from '../../lib/sceneDay';
 import { useSettings } from '../../state/settings';
 
 // B1: every scene, past and planned, and the library of saved designs.
 
 type Tab = 'upcoming' | 'past' | 'library';
 
-const today = () => new Date().toISOString().slice(0, 10);
+// A scene stays upcoming until 3am the next day, on the phone's own clock.
+const today = () => sceneDay();
 
 export function sceneTab(scene: Scene): Exclude<Tab, 'library'> {
   return scene.date && scene.date < today() ? 'past' : 'upcoming';

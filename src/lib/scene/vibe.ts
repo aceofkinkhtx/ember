@@ -116,18 +116,19 @@ export function sceneVibe(scene: Scene, colors: Partial<Record<PhaseType, string
  * The plan as sent to the bottom, when the Top chooses to send it. Surprises
  * stay hidden unless the Top chooses to reveal them.
  */
-export function planToSend(scene: Scene, revealSurprises: boolean): Scene {
+/** includeNotes: the Top chose to send their scene and step notes too (Michael, Nov 23). */
+export function planToSend(scene: Scene, revealSurprises: boolean, includeNotes = false): Scene {
   const copy: Scene = structuredClone(scene);
   // The Top's own records stay with the Top.
   copy.kept = {};
   copy.overrides = [];
   copy.picks = revealSurprises ? copy.picks : copy.picks.filter((p) => !p.surprise);
   copy.gearIds = [];
-  copy.notes = '';
+  if (!includeNotes) copy.notes = '';
   copy.request = undefined;
   copy.share = undefined;
   // Step notes are the Top's own; everything else in a step is the plan itself.
-  for (const phase of copy.phases) for (const beat of phase.beats) beat.steps = beat.steps.map((s) => ({ ...s, notes: '' }));
+  if (!includeNotes) for (const phase of copy.phases) for (const beat of phase.beats) beat.steps = beat.steps.map((s) => ({ ...s, notes: '' }));
   if (!revealSurprises) {
     for (const phase of copy.phases)
       for (const beat of phase.beats)

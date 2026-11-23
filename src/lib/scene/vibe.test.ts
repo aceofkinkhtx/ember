@@ -86,4 +86,15 @@ describe('the plan as sent', () => {
     expect(text).toContain('A surprise. Your Top has something planned here.');
     expect(JSON.stringify(planToSend(s, true))).toContain('wax');
   });
+
+  it('sends the scene and step notes only when the Top includes them', () => {
+    const s = scene();
+    const withNotes = JSON.stringify(planToSend(s, true, true));
+    expect(withNotes).toContain('Private planning note');
+    expect(withNotes).toContain('Only for me');
+    expect(planToSend(s, true, true).kept).toEqual({});
+    // An unrevealed surprise keeps its note hidden even then.
+    const hidden = planToSend(s, false, true);
+    expect(JSON.stringify(hidden)).not.toContain('wax');
+  });
 });

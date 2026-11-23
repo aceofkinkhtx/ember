@@ -60,9 +60,9 @@ export async function vibePlanState(scene: Scene): Promise<PlanState | null> {
 }
 
 /** Sends the full plan. Surprises stay hidden unless the Top reveals them. */
-export async function sendPlan(scene: Scene, revealSurprises: boolean): Promise<void> {
+export async function sendPlan(scene: Scene, revealSurprises: boolean, includeNotes = false): Promise<void> {
   if (!scene.share || !scene.partnerId) throw new AccountError('Share the SceneVibe first.');
-  const sealed = await sealFor(JSON.stringify(planToSend(scene, revealSurprises)), await partnerKey(scene.partnerId));
+  const sealed = await sealFor(JSON.stringify(planToSend(scene, revealSurprises, includeNotes)), await partnerKey(scene.partnerId));
   const { error } = await db.from('scene_vibes').update({ sealed_plan: sealed, plan_declined_at: null }).eq('id', scene.share.id);
   if (error) throw new AccountError("Ember couldn't send the plan. Please try again.");
 }
