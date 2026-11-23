@@ -49,7 +49,7 @@ describe('offerings', () => {
     expect(isOffered(setup, byId('knife-play'))).toBe(false);
     setup.offerings.activities = { 'knife-play': true };
     expect(isOffered(setup, byId('knife-play'))).toBe(true);
-    expect(isOffered(setup, byId('electricity'))).toBe(true);
+    expect(isOffered(setup, byId('tickling'))).toBe(true);
   });
 
   it('keep penile and oral sex out unless the Top allows it, and even then until chosen', () => {
@@ -119,5 +119,28 @@ describe('phase colors', () => {
   it('flag colors too light for white text', () => {
     expect(whiteTextContrast('#FFD966')).toBeLessThan(4.5);
     expect(whiteTextContrast('#000000')).toBeCloseTo(21, 0);
+  });
+});
+
+describe('categories that moved (Nov 23)', () => {
+  it('keep what a Top already offered, in the new category, and turn nothing new on', () => {
+    const setup = defaultTopSetupFrom({
+      offerings: { categories: { bondage: { on: true, min: 2, max: 7 }, sensation: { on: true, min: 1, max: 5 } }, activities: { wax: false }, renames: {}, custom: [], setAt: null }
+    } as never);
+    expect(setup.offerings.categories.rope).toEqual({ on: true, min: 2, max: 7 });
+    expect(isOffered(setup, byId('rope'))).toBe(true);
+    expect(isOffered(setup, byId('rope-harness'))).toBe(false);
+    expect(setup.offerings.categories.fire?.on).toBe(false);
+    expect(isOffered(setup, byId('electricity'))).toBe(true);
+    expect(isOffered(setup, byId('violet-wand'))).toBe(false);
+  });
+
+  it('keep suspension and fire play off until the Top says they are trained', () => {
+    const setup = emptyTopSetup();
+    setup.offerings.categories = { fire: { on: true, min: 1, max: 10 } };
+    setup.offerings.activities = { 'fire-play': true };
+    expect(isOffered(setup, byId('fire-play'))).toBe(false);
+    setup.offerings.trained = { 'fire-play': '2026-11-23' };
+    expect(isOffered(setup, byId('fire-play'))).toBe(true);
   });
 });

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BottomCheckForm } from '../../components/live/BottomCheckForm';
 import { Chips } from '../../components/intake/Bits';
 import { circulationCheck, firstAid, redSteps, toolkit } from '../../content/live';
+import { ropeHandCheck } from '../../content/playSafety';
 import { phaseColors, phaseLabels, secondPeakColor } from '../../content/phases';
 import {
   aloudList,
@@ -21,7 +22,8 @@ import {
   removeActivities,
   restraint,
   resume,
-  safetyKit,
+  kitFor,
+  isRope,
   spaceSet,
   startLive,
   type BottomCheck,
@@ -202,6 +204,7 @@ function PreCheck({ scene, ctx, loading, onStart, onChange }: { scene: Scene; ct
   }
 
   const items = aloudList(scene, ctx.intake);
+  const kit = kitFor(scene, ctx);
   const answerOf = (m: MaybeItem) => answer?.maybes[m.activityId] ?? null;
   const toTalk = maybes.filter((m) => answerOf(m) === 'talk' && !talked[m.activityId]);
   const removed = maybes.filter((m) => answerOf(m) === 'no' || (answerOf(m) === 'talk' && talked[m.activityId] === 'remove')).map((m) => m.activityId);
@@ -209,7 +212,7 @@ function PreCheck({ scene, ctx, loading, onStart, onChange }: { scene: Scene; ct
     !answer && `${name}'s part`,
     toTalk.length && `talking through ${toTalk.length === 1 ? 'one maybe' : `${toTalk.length} maybes`}`,
     !top.capacity && 'your capacity today',
-    top.kit.length < safetyKit.length && 'the safety kit',
+    kit.some((k) => !top.kit.includes(k)) && 'the safety kit',
     aloud.length < items.length && 'the list to say aloud'
   ].filter(Boolean) as string[];
 
@@ -309,7 +312,7 @@ function PreCheck({ scene, ctx, loading, onStart, onChange }: { scene: Scene; ct
             Low capacity today. A shorter or gentler scene is a good call, and so is another day.
           </p>
         )}
-        <Chips legend="Safety kit ready" hint="All four, within reach." options={safetyKit.map((k) => ({ id: k, label: k }))} value={top.kit} onChange={(kit) => setTop({ ...top, kit })} />
+        <Chips legend="Safety kit ready" hint={`All ${kit.length === 4 ? 'four' : kit.length}, within reach.`} options={kit.map((k) => ({ id: k, label: k }))} value={top.kit} onChange={(kit) => setTop({ ...top, kit })} />
         <Chips legend="Space set" hint="Whatever this scene needs." options={spaceSet.map((k) => ({ id: k, label: k }))} value={top.space} onChange={(space) => setTop({ ...top, space })} />
       </section>
 
@@ -523,7 +526,7 @@ function Guide({ scene, ctx, onChange, gearLabel }: { scene: Scene; ctx: RuleCon
 
         {bound && (
           <div className={`box ${bound.checkDue ? 'box-warn' : 'box-info'}`} role={bound.checkDue ? 'alert' : undefined} style={{ margin: 0 }}>
-            <strong>Restrained {clock(bound.ms)}.</strong> {bound.checkDue ? circulationCheck : 'Never leave them alone.'}
+            <strong>Restrained {clock(bound.ms)}.</strong> {bound.checkDue ? (isRope(ctx, here.beat) ? ropeHandCheck : circulationCheck) : 'Never leave them alone.'}
             {bound.checkDue && (
               <button type="button" className="btn btn-secondary" style={{ display: 'block', marginTop: 8 }} onClick={() => set(checkCirculation(live, Date.now()))}>
                 Checked

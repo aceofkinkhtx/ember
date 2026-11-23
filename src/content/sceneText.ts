@@ -42,6 +42,16 @@ export function doText(category: CategoryId, label: string, stage: Stage, restra
       return `${label}, unhurried and attentive.`;
     case 'penetration':
       return `${label}: plenty of lube, go at their pace and check in before more.`;
+    case 'rope':
+      return `${label}. Unhurried wraps, one finger under each, then a hand check.`;
+    case 'fire':
+      return stage === 'peak' ? `${label}, fuller now, with pauses so it lands.` : `${label}, briefly at first, watching how their skin and breath respond.`;
+    case 'electricity':
+      return `${label}, starting at the lowest setting and raising it slowly, below the waist only.`;
+    case 'mind':
+      return stage === 'warmup' ? `Set the frame: ${what}. Say clearly how it begins.` : `${label}, reading them closely. Stay clear of their off-limits words.`;
+    case 'control':
+      return `${label}: build slowly, and watch for their "too much" sign.`;
   }
 }
 

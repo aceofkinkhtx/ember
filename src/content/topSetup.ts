@@ -37,6 +37,8 @@ export interface Offerings {
   renames: Record<string, string>;
   /** The Top's own activities. They behave exactly like built-in ones. */
   custom: Activity[];
+  /** When the Top said they've had hands-on training, by activity id (suspension, fire play). */
+  trained?: Record<string, string>;
   /** When the Top last saved this step; null until they do. */
   setAt: string | null;
 }
@@ -131,6 +133,8 @@ export function allTopActivities(offerings: Offerings): Activity[] {
 export function isOffered(setup: TopSetup, a: Activity): boolean {
   const cat = setup.offerings.categories[a.category];
   if (!cat?.on || !available(a, setup.settings)) return false;
+  // Suspension and fire play need the Top's own word that they're trained.
+  if (a.trained && !setup.offerings.trained?.[a.id]) return false;
   return setup.offerings.activities[a.id] ?? (a.custom ? true : onByDefault(a));
 }
 
@@ -179,10 +183,33 @@ function upgradeCategories(saved: Record<string, unknown> | undefined): Offering
   return out;
 }
 
+/**
+ * Nov 23: rope, wax and electricity moved into their own categories. A Top
+ * who offered them before keeps offering just those items, in the new
+ * category, with the same range. Nothing new is turned on for them.
+ */
+const MOVED: { to: CategoryId; from: CategoryId; ids: string[] }[] = [
+  { to: 'rope', from: 'bondage', ids: ['rope'] },
+  { to: 'fire', from: 'sensation', ids: ['wax'] },
+  { to: 'electricity', from: 'sensation', ids: ['electricity'] }
+];
+
+function moveCategories(o: Offerings): Offerings {
+  const out = { ...o, categories: { ...o.categories }, activities: { ...o.activities } };
+  for (const m of MOVED) {
+    const old = out.categories[m.from];
+    if (out.categories[m.to] || !old) continue;
+    const kept = m.ids.filter((id) => old.on && out.activities[id] !== false);
+    out.categories[m.to] = { on: kept.length > 0, min: old.min, max: old.max };
+    for (const a of activities.filter((x) => x.category === m.to)) if (!(a.id in out.activities)) out.activities[a.id] = kept.includes(a.id);
+  }
+  return out;
+}
+
 /** Fills in anything missing from a saved setup, for older saves. */
 export function defaultTopSetupFrom(saved: Partial<TopSetup> | undefined): TopSetup {
   return {
-    offerings: { ...emptyOfferings(), ...saved?.offerings, categories: upgradeCategories(saved?.offerings?.categories) },
+    offerings: moveCategories({ ...emptyOfferings(), ...saved?.offerings, categories: upgradeCategories(saved?.offerings?.categories) }),
     settings: { ...defaultTopSettings(), ...saved?.settings }
   };
 }

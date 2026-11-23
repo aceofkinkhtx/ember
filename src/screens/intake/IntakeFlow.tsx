@@ -4,6 +4,8 @@ import { Chips, OneOf, Section, Segments, TextArea, TextInput } from '../../comp
 import { IntakeSummary } from '../../components/intake/IntakeSummary';
 import { MapPicker } from '../../components/intake/MapPicker';
 import { positions } from '../../data/positions';
+import { categorySafety, HEART_QUESTION } from '../../content/playSafety';
+import { useSettings } from '../../state/settings';
 import {
   aftercareMap,
   contactAwareness,
@@ -20,6 +22,7 @@ import {
 import {
   aftercareExtras,
   categories,
+  categoryLabel,
   experienceLevels,
   feels,
   impactAreas,
@@ -243,6 +246,10 @@ function StepBody({
             onChange={(hardPositions) => setE({ hardPositions })}
           />
           <TextInput label="Allergies" value={e.body.allergies} onChange={(allergies) => setE({ body: { ...e.body, allergies } })} max={200} />
+          <label className="check" style={{ minHeight: 0 }}>
+            <input type="checkbox" checked={Boolean(e.body.heart)} onChange={(ev) => setE({ body: { ...e.body, heart: ev.target.checked } })} />
+            {HEART_QUESTION}. (Ember keeps electricity out of your scenes.)
+          </label>
           <div className="stack" style={{ gap: 4 }}>
             <Segments label="Marks/bruises" options={markOptions} value={e.marks ?? intake.detailed?.impact.marks ?? null} onChange={(marks) => setE({ marks })} />
             <p className="note" style={{ margin: 0 }}>
@@ -592,14 +599,18 @@ function CategoryStep({
   onChange,
   stamp
 }: {
-  category: { id: CategoryId; label: string };
+  category: { id: CategoryId; label: string; discreet?: string };
   intake: Intake;
   onChange: (next: Intake) => void;
   stamp: (section: keyof Intake['updated']) => Intake['updated'];
 }) {
   const d = intake.detailed ?? emptyDetailed();
   const [adding, setAdding] = useState('');
+  const { settings } = useSettings();
+  const label = categoryLabel(category, settings.discreet);
+  const safety = categorySafety[category.id];
   const items = allActivities(d, intake.myBody).filter((a) => a.category === category.id);
+  const wantsWords = items.some((a) => a.offLimitsWords && d.answers[a.id] && d.answers[a.id].choice !== 'no');
   const setAnswer = (id: string, next: { choice: Choice; intensity?: number } | null) => {
     const answers = { ...d.answers };
     if (next) answers[id] = next;
@@ -610,8 +621,18 @@ function CategoryStep({
   return (
     <>
       <div className="eyebrow">Detailed</div>
-      <h1>{category.label}</h1>
+      <h1>{label}</h1>
       <p className="lede">Yes, maybe or no for each. Anything you leave blank is never read as a yes.</p>
+      {safety?.bottom && (
+        <section className="box box-info" aria-label="Before you say yes" style={{ margin: 0 }}>
+          <strong>Before you say yes.</strong> {safety.bottom}
+        </section>
+      )}
+      {category.id === 'electricity' && intake.essentials.body.heart && (
+        <p className="box box-warn" style={{ margin: 0 }}>
+          You said you have an implant, a heart condition or epilepsy, or might be pregnant. Ember keeps electricity out of your scenes.
+        </p>
+      )}
       <ul className="person-list">
         {items.map((a: Activity) => {
           const ans = d.answers[a.id];
@@ -654,18 +675,29 @@ function CategoryStep({
           );
         })}
       </ul>
+      {wantsWords && (
+        <section className="card stack" style={{ gap: 8 }} aria-label="Off-limits">
+          <TextArea
+            label="Words, names and topics that are off-limits"
+            hint="Your Top sees these on every beat with this kind of play."
+            value={d.words.offLimits}
+            onChange={(offLimits) => onChange({ ...intake, detailed: { ...d, words: { ...d.words, offLimits } }, updated: stamp('detailed') })}
+            rows={2}
+          />
+        </section>
+      )}
       <form
         className="card stack"
         onSubmit={(e) => {
           e.preventDefault();
-          const label = adding.trim();
-          if (!label) return;
-          const custom: Activity = { id: `custom-${Date.now().toString(36)}`, label, category: category.id, custom: true };
+          const name = adding.trim();
+          if (!name) return;
+          const custom: Activity = { id: `custom-${Date.now().toString(36)}`, label: name, category: category.id, custom: true };
           onChange({ ...intake, detailed: { ...d, custom: [...d.custom, custom] }, updated: stamp('detailed') });
           setAdding('');
         }}
       >
-        <TextInput label={`Add your own to ${category.label.toLowerCase()}`} value={adding} onChange={setAdding} max={60} />
+        <TextInput label={`Add your own to ${label.toLowerCase()}`} value={adding} onChange={setAdding} max={60} />
         <button type="submit" className="btn btn-secondary" disabled={!adding.trim()}>
           Add
         </button>

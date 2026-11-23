@@ -1,3 +1,4 @@
+import { categorySafety, CNC_SIGNALS } from '../../content/playSafety';
 import { bodyAreas } from '../../content/intake';
 import { choiceLabel, furniture, positions } from '../../data/positions';
 import { allTopActivities, type TopSetup } from '../../content/topSetup';
@@ -52,6 +53,9 @@ export type RuleId =
   | 'negotiated'
   | 'aftercare'
   | 'check-in'
+  | 'health'
+  | 'fire-spark'
+  | 'trained'
   // Warn
   | 'close-named'
   | 'close-order'
@@ -143,8 +147,12 @@ const AREA_TO_BODY: Record<string, string> = {
 /** Subspace or cathartic release is likely: a very intense beat, or a bottom who seeks release or losing themselves. */
 export const CHECK_IN_NEEDED = 'This scene may reach subspace or release, so it needs a next-morning check-in.';
 
+/** Play that goes deep into the head always gets a next-morning check-in (Nov 23). */
+const DEEP_HEADSPACE = ['cnc', 'fear-play'];
+
 export function needsNextMorningCheckIn(scene: Scene, ctx: RuleContext): boolean {
   if (scene.phases.some((p) => p.beats.some((b) => b.intensity >= 8))) return true;
+  if (scene.phases.some((p) => p.beats.some((b) => b.steps.some((s) => s.activityId && DEEP_HEADSPACE.includes(s.activityId))))) return true;
   const decoder = Object.values(ctx.intake?.quick?.decoder ?? {}).flat();
   return decoder.includes('release') || decoder.includes('sensation');
 }
@@ -195,6 +203,17 @@ export function automaticFlags(scene: Scene, ctx: RuleContext): Map<string, Flag
       if (triggers?.notes.trim() && phase.type === 'peak') flags.push({ kind: 'warning', text: `Trigger noted: ${triggers.notes.trim()}` });
       if (phase.type === 'build' || phase.type === 'peak') flags.push({ kind: 'watch', text: CORE_WATCH });
       if (phase.type === 'peak') flags.push({ kind: 'info', text: CRYING_GUIDANCE });
+      // Safety for the kinds of play in this beat (Nov 23).
+      const used = stepsOf(beat)
+        .map((s) => activityOf(ctx, s.activityId))
+        .filter((a): a is Activity => Boolean(a));
+      for (const cat of new Set(used.map((a) => a.category))) {
+        const watch = categorySafety[cat]?.watch;
+        if (watch) flags.push({ kind: 'watch', text: watch });
+      }
+      const offLimits = ctx.intake?.detailed?.words.offLimits.trim();
+      if (offLimits && used.some((a) => a.offLimitsWords)) flags.push({ kind: 'warning', text: `Off-limits: ${offLimits}` });
+      if (used.some((a) => a.id === 'cnc')) flags.push({ kind: 'info', text: CNC_SIGNALS });
       if (flags.length) out.set(beat.id, flags);
     }
   }
@@ -333,6 +352,8 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
       } else if (choice === 'maybe') add('maybe', 'warn', `${a.label} is a maybe for them. Discussed together?`, where);
       else if (choice === null) add('unanswered', 'warn', `${a.label} isn't in their answers. Discussed together?`, where);
 
+      if (a.trained && !ctx.top.offerings.trained?.[a.id])
+        add('trained', 'block', `${a.label} needs hands-on training. Turn it on in your offerings first.`, where);
       if (a.edge && !confirmed(a.id, 'edge'))
         add('edge', 'block', `${a.label} is edge play: it needs a confirmed negotiation.`, where);
       if (a.negotiatedOnly && (!ctx.top.settings.allowNegotiatedSex || !confirmed(a.id, 'negotiated')))
@@ -359,6 +380,15 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
     const have = after.reduce((n, p) => n + p.beats.reduce((m, b) => m + b.minutes, 0), 0);
     if (have < need) add('aftercare', 'block', `Aftercare needs at least ${need} minutes for this scene.`);
   }
+
+  // Electricity and fire (Nov 23)
+  const usedIds = new Set(ordered.flatMap(({ beat }) => beat.steps.map((s) => activityOf(ctx, s.activityId)).filter((a): a is Activity => Boolean(a))).map((a) => a.id));
+  const usesCat = (cat: string) => ordered.find(({ beat }) => beat.steps.some((s) => activityOf(ctx, s.activityId)?.category === cat));
+  const electric = usesCat('electricity');
+  if (electric && ctx.intake?.essentials.body.heart)
+    add('health', 'block', ctx.intakeOf === 'self' ? 'You noted an implant, a heart condition or epilepsy, or a possible pregnancy: electricity is not safe for you.' : 'They noted an implant, a heart condition or epilepsy, or a possible pregnancy: electricity is not safe for them.', { beatId: electric.beat.id });
+  if (usedIds.has('violet-wand') && (usedIds.has('fire-play') || usedIds.has('fire-cupping')))
+    add('fire-spark', 'block', "A Violet wand can spark, so it can't share a scene with fire play.", { beatId: usesCat('fire')?.beat.id });
 
   if (needsNextMorningCheckIn(scene, ctx) && !scene.nextMorningCheckIn) add('check-in', 'block', CHECK_IN_NEEDED);
 

@@ -2,6 +2,31 @@
 
 Decisions Michael made outside the spec tabs, newest first. The spec still wins where it is more specific.
 
+## Nov 23, 2026
+
+- **Debrief: "Didn't get to it."** Both debriefs have it as an answer per activity. It never suggests a profile change.
+- **Scene notes to the bottom.** When sending the real design after a scene, the Top can tick "Include my scene notes" (off by default). The bottom then sees the scene notes and step notes on the plan.
+- **"Today" for scenes runs until 3am,** on the phone's own clock, on Home and in Upcoming. (Ember had been using UTC, so evening scenes vanished at 6pm in Houston.)
+- **New play categories** (Michael approved PLAY-CATEGORIES-DRAFT.md):
+  - Rope: its own category (rope ties, harness, arms behind the back, partial and full suspension).
+  - Fire and temperature: wax moved here; ice, heat, fire play and fire cupping.
+  - Electricity: its own category (electro pads, Violet wand).
+  - Power and mind play: protocol, service, praise, humiliation, degradation, objectification, pet play, primal, role play, medical play, interrogation, fear play, CNC.
+  - Control and denial: edging, denial, forced orgasms, chastity during the scene.
+  - Added: tickle torture, clamps, cupping (Sensation); sleepsack, spreader bar, hoods (Bondage).
+  - Edge play: suspension, fire play, fire cupping, hoods, fear play, CNC.
+  - Tops who offered rope, wax or electricity keep offering just those, in the new category, with the same range.
+- **Safety for the new categories:**
+  - A "Before you say yes" card in the intake, and safety points in the offerings.
+  - Suspension and fire play turn on only after the Top ticks "I've had hands-on training in this."
+  - A health question with the body notes (implant, heart condition, epilepsy, possible pregnancy) blocks electricity.
+  - A Violet wand can't share a scene with fire play.
+  - CNC and fear play need the next-morning check-in.
+  - Off-limits words show on every beat with humiliation, degradation, objectification, interrogation, fear play or CNC; CNC beats also say "Signals always work."
+  - Live Scene Mode asks for a damp towel and a Class B extinguisher before fire, and swaps the circulation check for a hand check on rope beats.
+- **Discreet names:** Rope is "Ties", Fire and temperature is "Temperature", Power and mind play is "Roles", Control and denial is "Timing". These show in the intake and offerings.
+- **Left out:** more breath play, more blood play, age play, watersports and scat.
+
 ## Nov 19, 2026
 
 - **App tour** (Michael, Nov 19): shown once after setup (Home opens it until it is finished or skipped), and replayable from a Help card in Me. Separate Top and bottom tours; an S/switch sees the active role and can replay the other. Discreet mode uses its own words and neutral sample items. The pictures are drawn with the app's own parts and sample data, so they stay current and show no one's real data.

@@ -1,3 +1,4 @@
+import { activities, categories } from '../data/activities';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { emptyTopSetup, type TopSetup } from '../content/topSetup';
 import type { StoredKeys } from '../lib/account';
@@ -28,7 +29,9 @@ export interface SceneData {
 /** Every category open, sex acts allowed to be proposed: the Top decides on accepting. */
 export function openSetup(): TopSetup {
   const top = emptyTopSetup();
-  for (const c of ['bondage', 'sensation', 'impact', 'touch', 'penetration'] as const) top.offerings.categories[c] = { on: true, min: 1, max: 10 };
+  for (const c of categories) top.offerings.categories[c.id] = { on: true, min: 1, max: 10 };
+  // Proposals can name anything; the Top's own training is checked when they design.
+  top.offerings.trained = Object.fromEntries(activities.filter((a) => a.trained).map((a) => [a.id, 'proposal']));
   top.settings.allowNegotiatedSex = true;
   return top;
 }

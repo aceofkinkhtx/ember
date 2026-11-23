@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
-import { activities as builtIn, categories, type Activity, type CategoryId } from '../../data/activities';
+import { activities as builtIn, categories, categoryLabel, type Activity, type CategoryId } from '../../data/activities';
+import { categorySafety, TRAINED_CONFIRM } from '../../content/playSafety';
+import { useSettings } from '../../state/settings';
 import {
   DEGREE_RANGE,
   allTopActivities,
@@ -24,8 +26,13 @@ import { SettingSwitch } from '../Switch';
 // in their settings.
 
 const intro: Record<CategoryId, string> = {
-  bondage: 'Restraint, from blindfolds and cuffs to rope and furniture.',
-  sensation: 'Wax, biting, tickling, scratching, electricity and more.',
+  bondage: 'Restraint, from blindfolds and cuffs to furniture, wraps and hoods.',
+  rope: 'Ties, harnesses and suspension.',
+  sensation: 'Biting, tickling, scratching, clamps and more.',
+  fire: 'Wax, ice, heat and fire play.',
+  electricity: 'Electro pads and the Violet wand.',
+  mind: 'Protocol, service, role play, humiliation, primal, fear play and CNC.',
+  control: 'Edging, denial, forced orgasms and chastity.',
   impact: 'Hands, paddles, floggers, canes and whips.',
   touch: 'Cuddling, kissing and intimate touch.',
   penetration: 'Fingers, toys, and penis or strap-on.'
@@ -37,10 +44,11 @@ type Change = (change: (o: Offerings) => Offerings) => void;
 
 export function OfferingsEditor({ setup, onChange }: { setup: TopSetup; onChange: Change }) {
   const [renaming, setRenaming] = useState<Activity | null>(null);
+  const { settings } = useSettings();
   return (
     <div className="stack" style={{ gap: 14 }}>
       {categories.map((c) => (
-        <CategoryCard key={c.id} id={c.id} label={c.label} setup={setup} onChange={onChange} onRename={setRenaming} />
+        <CategoryCard key={c.id} id={c.id} label={categoryLabel(c, settings.discreet)} setup={setup} onChange={onChange} onRename={setRenaming} />
       ))}
       {renaming && <RenameSheet activity={renaming} onChange={onChange} onClose={() => setRenaming(null)} />}
     </div>
@@ -70,8 +78,24 @@ function CategoryCard({
   const setCategory = (patch: Partial<CategoryOffering>) =>
     onChange((o) => ({ ...o, categories: { ...o.categories, [id]: { on, ...range, ...o.categories[id], ...patch } } }));
 
-  const toggleActivity = (a: Activity) =>
+  const [confirming, setConfirming] = useState<Activity | null>(null);
+  const [trainedTick, setTrainedTick] = useState(false);
+  const safety = categorySafety[id];
+
+  const toggleActivity = (a: Activity) => {
+    // Suspension and fire play: the Top says they're trained before it turns on.
+    if (a.trained && !isOffered(setup, a) && !setup.offerings.trained?.[a.id]) {
+      setTrainedTick(false);
+      setConfirming(a);
+      return;
+    }
     onChange((o) => ({ ...o, activities: { ...o.activities, [a.id]: !isOffered({ ...setup, offerings: o }, a) } }));
+  };
+
+  const confirmTrained = (a: Activity) => {
+    onChange((o) => ({ ...o, activities: { ...o.activities, [a.id]: true }, trained: { ...o.trained, [a.id]: new Date().toISOString() } }));
+    setConfirming(null);
+  };
 
   function addOwn() {
     const label = adding.trim();
@@ -136,6 +160,37 @@ function CategoryCard({
               {renameMode ? 'Done renaming' : 'Rename activities'}
             </button>
           </fieldset>
+          {confirming && (
+            <div className="box box-warn stack" style={{ gap: 8, margin: 0 }} role="group" aria-label={`Turn on ${confirming.label}`}>
+              <span>
+                <strong>{confirming.label}</strong> needs hands-on training. It stays edge play, so it's never added to a design without a confirmed negotiation.
+              </span>
+              <label className="check" style={{ minHeight: 0 }}>
+                <input type="checkbox" checked={trainedTick} onChange={(e) => setTrainedTick(e.target.checked)} />
+                {TRAINED_CONFIRM}
+              </label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" className="btn btn-primary" disabled={!trainedTick} onClick={() => confirmTrained(confirming)}>
+                  Turn it on
+                </button>
+                <button type="button" className="btn btn-quiet" onClick={() => setConfirming(null)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+          {safety?.top && (
+            <details>
+              <summary className="field-label" style={{ fontSize: 16, cursor: 'pointer' }}>
+                Safety for {label.toLowerCase()}
+              </summary>
+              <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
+                {safety.top.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            </details>
+          )}
           {items.some((a) => a.edge) && (
             <p className="note" style={{ margin: 0 }}>
               Edge play is never added to a design automatically and always needs explicit negotiation.
@@ -236,6 +291,7 @@ function ActivityChip({ activity: a, pressed, onTap, onHold }: { activity: Activ
     >
       {a.label}
       {a.edge ? ' (edge)' : ''}
+      {a.trained ? ' (training)' : ''}
       {a.negotiatedOnly ? ' (negotiated)' : ''}
     </button>
   );

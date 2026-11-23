@@ -7,6 +7,8 @@ import {
   elapsedMs,
   emptyBottomCheck,
   goToBeat,
+  isRope,
+  kitFor,
   maybesIn,
   pause,
   progressShare,
@@ -104,5 +106,15 @@ describe('the running scene', () => {
     expect(progressShare(20, share, at(40))).toBe(1);
     // After a jump to aftercare, the wave follows the guide, not the clock.
     expect(progressShare(20, { ...share, beatStart: 15, beatMinutes: 5, beatAt: 2 * 60000 }, at(3))).toBe(0.8);
+  });
+});
+
+describe('what to have within reach (Nov 23)', () => {
+  it('adds a damp towel and an extinguisher for fire, and a hand check for rope', () => {
+    const { ctx, scene } = setup();
+    expect(kitFor(scene, ctx)).toEqual(['Safety shears', 'Water', 'First aid kit', 'Phone charged and nearby', 'Damp towel', 'Fire extinguisher (Class B)']);
+    expect(isRope(ctx, scene.phases[0].beats[0])).toBe(false);
+    scene.phases[0].beats[0].steps.push(newStep({ activityId: 'rope' }));
+    expect(isRope(ctx, scene.phases[0].beats[0])).toBe(true);
   });
 });

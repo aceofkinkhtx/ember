@@ -1,3 +1,4 @@
+import { categories } from '../../data/activities';
 import { emptyTopSetup } from '../../content/topSetup';
 import { emptyAftercare, emptyDetailed, emptyIntake, type Intake } from '../intake';
 import { customDesign, designOptions, shapeOrder, suggestedPicks, type DesignRequest } from './designer';
@@ -18,7 +19,7 @@ function intake(answers: Record<string, 'yes' | 'maybe' | 'no'>, marks = 'week')
 
 function context(answers: Record<string, 'yes' | 'maybe' | 'no'>, patch: Partial<RuleContext> = {}): RuleContext {
   const top = emptyTopSetup();
-  for (const c of ['impact', 'bondage', 'sensation', 'touch', 'penetration'] as const) top.offerings.categories[c] = { on: true, min: 1, max: 9 };
+  for (const c of categories) top.offerings.categories[c.id] = { on: true, min: 1, max: 9 };
   return { intake: intake(answers), top, optedOutGear: [], gear: [], ...patch };
 }
 

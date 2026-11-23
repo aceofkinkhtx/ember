@@ -423,3 +423,54 @@ describe('designing from an agreed proposal (Nov 16)', () => {
     expect(warnings(validate({ ...s, agreed: undefined }, context())).map((i) => i.rule)).toContain('maybe');
   });
 });
+
+describe('new play categories (Nov 23)', () => {
+  const edgeOk = (s: Scene, id: string) => s.overrides.push({ activityId: id, kind: 'edge', confirmedAt: '2026-11-23' });
+
+  it('blocks electricity when they noted an implant, heart condition, epilepsy or pregnancy', () => {
+    const s = goodScene();
+    beat(s, 'build').steps.push(newStep({ activityId: 'electricity' }));
+    const ctx = context();
+    ctx.intake!.detailed!.answers.electricity = { choice: 'yes' };
+    expect(blockRules(s, ctx)).not.toContain('health');
+    ctx.intake!.essentials.body.heart = true;
+    expect(blockRules(s, ctx)).toContain('health');
+  });
+
+  it("won't put a Violet wand in the same scene as fire play", () => {
+    const s = goodScene();
+    beat(s, 'build').steps.push(newStep({ activityId: 'violet-wand' }));
+    beat(s, 'peak').steps.push(newStep({ activityId: 'fire-play' }));
+    expect(blockRules(s)).toContain('fire-spark');
+  });
+
+  it('needs the Top to say they are trained before suspension or fire play', () => {
+    const s = goodScene();
+    beat(s, 'peak').steps.push(newStep({ activityId: 'fire-play' }));
+    edgeOk(s, 'fire-play');
+    const ctx = context();
+    expect(blockRules(s, ctx)).toContain('trained');
+    ctx.top.offerings.trained = { 'fire-play': '2026-11-23' };
+    expect(blockRules(s, ctx)).not.toContain('trained');
+  });
+
+  it('turns on the next-morning check-in for CNC and fear play', () => {
+    const s = goodScene();
+    expect(needsNextMorningCheckIn(s, context())).toBe(false);
+    beat(s, 'peak').steps.push(newStep({ activityId: 'cnc' }));
+    expect(needsNextMorningCheckIn(s, context())).toBe(true);
+  });
+
+  it('shows rope safety, their off-limits words, and that signals always work in CNC', () => {
+    const s = goodScene();
+    beat(s, 'warm').steps.push(newStep({ activityId: 'rope' }));
+    beat(s, 'peak').steps.push(newStep({ activityId: 'cnc' }), newStep({ activityId: 'humiliation' }));
+    const ctx = context();
+    ctx.intake!.detailed!.words.offLimits = 'my family';
+    const flags = automaticFlags(s, ctx);
+    expect(flags.get('warm')!.some((f) => f.text.startsWith('Rope:'))).toBe(true);
+    const peak = flags.get('peak')!.map((f) => f.text);
+    expect(peak).toContain('Off-limits: my family');
+    expect(peak.some((t) => t.startsWith('Signals always work, even in CNC'))).toBe(true);
+  });
+});

@@ -80,7 +80,7 @@ describe('intake', () => {
     // Blindfolds: no. It goes straight to the limit strip.
     await userEvent.click(screen.getAllByRole('radio', { name: 'No' })[0]);
     expect(loadDraft()?.intake.detailed?.answers.blindfold).toEqual({ choice: 'no' });
-    for (let i = 0; i < 4; i++) await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    for (let i = 0; i < 9; i++) await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(screen.getByRole('heading', { name: 'Penetration' })).toBeInTheDocument();
     expect(screen.queryByText('Fingers in vagina or front hole')).not.toBeInTheDocument();
     expect(screen.getByText('Fingers in anus')).toBeInTheDocument();

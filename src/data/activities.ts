@@ -11,7 +11,7 @@
 // Custom activities use the same shape with `custom: true` and behave exactly
 // like these built-in ones, including every design rule.
 
-export type CategoryId = 'bondage' | 'sensation' | 'impact' | 'touch' | 'penetration';
+export type CategoryId = 'bondage' | 'rope' | 'sensation' | 'fire' | 'electricity' | 'impact' | 'touch' | 'mind' | 'control' | 'penetration';
 
 export interface Activity {
   id: string;
@@ -31,18 +31,38 @@ export interface Activity {
   restraint?: boolean;
   /** Impact implements, in escalation order (bare hand first). */
   impactLevel?: 1 | 2 | 3 | 4;
+  /** Turned on only after the Top says they've had hands-on training (Michael, Nov 23). */
+  trained?: boolean;
+  /** Play that goes into the head: Ember asks for off-limits words and topics, and shows them to the Top. */
+  offLimitsWords?: boolean;
   custom?: boolean;
   /** Shown only to people who said this fits their body in "My body" (or who skipped it). */
   anatomy?: 'front-hole';
 }
 
-export const categories: { id: CategoryId; label: string }[] = [
+export interface Category {
+  id: CategoryId;
+  label: string;
+  /** The neutral name in discreet mode, where there is one. */
+  discreet?: string;
+}
+
+export const categories: Category[] = [
   { id: 'bondage', label: 'Bondage' },
+  { id: 'rope', label: 'Rope', discreet: 'Ties' },
   { id: 'sensation', label: 'Sensation' },
+  { id: 'fire', label: 'Fire and temperature', discreet: 'Temperature' },
+  { id: 'electricity', label: 'Electricity' },
   { id: 'impact', label: 'Impact' },
   { id: 'touch', label: 'Touch and intimacy' },
+  { id: 'mind', label: 'Power and mind play', discreet: 'Roles' },
+  { id: 'control', label: 'Control and denial', discreet: 'Timing' },
   { id: 'penetration', label: 'Penetration' }
 ];
+
+export function categoryLabel(c: Category, discreet: boolean): string {
+  return discreet && c.discreet ? c.discreet : c.label;
+}
 
 const a = (category: CategoryId, id: string, label: string, extra: Partial<Activity> = {}): Activity => ({
   id,
@@ -58,7 +78,6 @@ export const activities: Activity[] = [
   a('bondage', 'soft-cuffs', 'Soft cuffs', { restraint: true }),
   a('bondage', 'metal-cuffs', 'Metal cuffs', { restraint: true }),
   a('bondage', 'gag', 'Gags'),
-  a('bondage', 'rope', 'Rope', { restraint: true }),
   a('bondage', 'floor-bondage', 'Floor bondage', { restraint: true }),
   a('bondage', 'cross', 'Cross', { restraint: true }),
   a('bondage', 'bench', 'Bench', { restraint: true }),
@@ -67,10 +86,19 @@ export const activities: Activity[] = [
   a('bondage', 'restrictive-bondage', 'Restrictive bondage', { restraint: true }),
   a('bondage', 'mental-bondage', 'Mental bondage'),
   a('bondage', 'mummification', 'Plastic wrap mummification', { restraint: true, edge: true }),
+  a('bondage', 'sleepsack', 'Sleepsack or bodybag', { restraint: true }),
+  a('bondage', 'spreader-bar', 'Spreader bar', { restraint: true }),
+  a('bondage', 'hood', 'Hoods', { edge: true }),
+
+  // Rope (its own category from Nov 23; "rope" keeps its id so answers carry over)
+  a('rope', 'rope', 'Rope ties (wrists, ankles, body)', { restraint: true }),
+  a('rope', 'rope-harness', 'Decorative rope harness', { restraint: true }),
+  a('rope', 'rope-arms-back', 'Arms tied behind the back', { restraint: true }),
+  a('rope', 'partial-suspension', 'Partial suspension', { restraint: true, edge: true, trained: true }),
+  a('rope', 'full-suspension', 'Full suspension', { restraint: true, edge: true, trained: true }),
 
   // Sensation
   a('sensation', 'biting', 'Biting'),
-  a('sensation', 'electricity', 'Electricity'),
   a('sensation', 'hair-pulling', 'Hair pulling'),
   a('sensation', 'knife-play', 'Knife play', { edge: true }),
   a('sensation', 'ass-worship', 'Ass worship'),
@@ -81,9 +109,22 @@ export const activities: Activity[] = [
   a('sensation', 'sensory-deprivation', 'Sensory deprivation'),
   a('sensation', 'sharps', 'Sharps', { edge: true }),
   a('sensation', 'tickling', 'Tickling'),
-  a('sensation', 'wax', 'Wax play'),
+  a('sensation', 'tickle-torture', 'Tickle torture'),
+  a('sensation', 'clamps', 'Clamps and clothespins'),
+  a('sensation', 'cupping', 'Cupping (suction)'),
   a('sensation', 'choking', 'Choking', { edge: true }),
   a('sensation', 'erotic-massage', 'Erotic massage'),
+
+  // Fire and temperature (wax moved here, same id)
+  a('fire', 'wax', 'Wax play'),
+  a('fire', 'ice', 'Ice and cold'),
+  a('fire', 'heat', 'Warm stones and heat'),
+  a('fire', 'fire-play', 'Fire play (flash on the skin)', { edge: true, trained: true }),
+  a('fire', 'fire-cupping', 'Fire cupping', { edge: true, trained: true }),
+
+  // Electricity ("electricity" keeps its id: the pads)
+  a('electricity', 'electricity', 'Electro pads (TENS or EMS)'),
+  a('electricity', 'violet-wand', 'Violet wand'),
 
   // Impact (feel, areas, positions, intensity and marks are asked separately)
   a('impact', 'bare-hand', 'Bare hand spanking', { impactLevel: 1 }),
@@ -106,6 +147,27 @@ export const activities: Activity[] = [
   a('touch', 'giving-oral', 'Giving oral sex', { stiCheck: 'always', negotiatedOnly: true }),
   a('touch', 'receiving-oral', 'Receiving oral sex', { stiCheck: 'always', negotiatedOnly: true }),
   a('touch', 'receiving-anal-licking', 'Receiving anal licking', { stiCheck: 'always', negotiatedOnly: true }),
+
+  // Power and mind play
+  a('mind', 'protocol', 'Orders and protocol'),
+  a('mind', 'service', 'Service'),
+  a('mind', 'praise', 'Praise'),
+  a('mind', 'humiliation', 'Verbal humiliation', { offLimitsWords: true }),
+  a('mind', 'degradation', 'Degradation', { offLimitsWords: true }),
+  a('mind', 'objectification', 'Objectification', { offLimitsWords: true }),
+  a('mind', 'pet-play', 'Pet play'),
+  a('mind', 'primal', 'Primal play'),
+  a('mind', 'role-play', 'Role play'),
+  a('mind', 'medical', 'Medical play'),
+  a('mind', 'interrogation', 'Interrogation scenes', { offLimitsWords: true }),
+  a('mind', 'fear-play', 'Fear play', { edge: true, offLimitsWords: true }),
+  a('mind', 'cnc', 'Consensual non-consent (CNC)', { edge: true, offLimitsWords: true }),
+
+  // Control and denial
+  a('control', 'edging', 'Edging'),
+  a('control', 'denial', 'Orgasm denial'),
+  a('control', 'forced-orgasms', 'Forced orgasms'),
+  a('control', 'chastity', 'Chastity (during the scene)'),
 
   // Penetration
   a('penetration', 'fingers-mouth', 'Fingers in mouth'),

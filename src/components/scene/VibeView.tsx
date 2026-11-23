@@ -14,6 +14,7 @@ export const kindLabels: Record<VibeKind, string> = {
   touch: 'Touch',
   digital: 'Fingers',
   penetration: 'Penetration',
+  mind: 'Headspace',
   surprise: 'A surprise'
 };
 
@@ -24,6 +25,7 @@ const kindColors: Record<VibeKind, string> = {
   touch: '#B5446E',
   digital: '#5A3E9B',
   penetration: '#8E1B3B',
+  mind: '#3A6EA5',
   surprise: '#1E1418'
 };
 
@@ -54,6 +56,8 @@ export function KindShape({ kind, x = 0, y = 0, r = 8 }: { kind: VibeKind; x?: n
       });
       return <polygon points={p.join(' ')} fill={fill} />;
     }
+    case 'mind':
+      return <circle cx={x} cy={y} r={r * 0.7} fill="none" stroke={fill} strokeWidth={r * 0.35} />;
     case 'surprise':
       return (
         <g>

@@ -83,7 +83,9 @@ const plans: Record<ArcShape, [PhaseType, number][]> = {
 /** Where an activity sits in the arc: early, middle or at the peak. */
 function stageOf(a: Activity): Stage {
   if (a.impactLevel) return a.impactLevel === 1 ? 'warmup' : a.impactLevel === 2 ? 'build' : 'peak';
-  if (a.restraint || a.category === 'touch' || a.category === 'bondage') return 'warmup';
+  if (a.restraint || a.category === 'touch' || a.category === 'bondage' || a.category === 'rope') return 'warmup';
+  if (['protocol', 'service', 'praise', 'role-play', 'pet-play', 'ice', 'heat'].includes(a.id)) return 'warmup';
+  if (['fire-play', 'fire-cupping', 'cnc', 'fear-play', 'forced-orgasms', 'violet-wand'].includes(a.id)) return 'peak';
   if (a.category === 'penetration') return 'build';
   if (['electricity', 'wax', 'hair-pulling', 'biting', 'scratching'].includes(a.id)) return 'peak';
   return 'build';
@@ -107,7 +109,7 @@ export function design(shape: ArcShape, req: DesignRequest, ctx: RuleContext): S
   const strongest = Math.max(5, ...picked.map((x) => x.pick.intensity));
 
   // Gear: when chosen, each step gets a piece that suits its kind of play.
-  const kindFor: Record<string, string> = { impact: 'impact', bondage: 'bondage', sensation: 'sensation', penetration: 'insertable' };
+  const kindFor: Record<string, string> = { impact: 'impact', bondage: 'bondage', rope: 'bondage', sensation: 'sensation', fire: 'sensation', electricity: 'sensation', penetration: 'insertable' };
   const gear = ctx.gear.filter((g) => req.useSpecificGear && req.gearIds.includes(g.id) && !ctx.optedOutGear.includes(g.id));
   const liked = ctx.intake?.detailed?.impact.feel ?? [];
   const gearFor = (a: Activity) => {

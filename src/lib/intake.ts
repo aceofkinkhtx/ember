@@ -15,7 +15,8 @@ export interface Essentials {
   signals: { green: string; yellow: string; red: string; handSign: string; custom: string };
   experience: string | null;
   speakUp: string | null;
-  body: { areas: string[]; notes: string; allergies: string };
+  /** heart: pacemaker or implant, heart condition, epilepsy or possible pregnancy. Blocks electricity (Nov 23). */
+  body: { areas: string[]; notes: string; allergies: string; heart?: boolean };
   triggers: { chips: string[]; notes: string };
   overwhelm: { chips: string[]; notes: string };
   emergency: { kind: 'person'; name: string; phone: string; aware: 'yes' | 'some' | 'no' | null } | { kind: '911' } | null;

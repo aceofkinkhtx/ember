@@ -1,3 +1,4 @@
+import { categorySafety } from '../../content/playSafety';
 import { limitsOf, type Intake } from '../intake';
 import { beatsInOrder, type Beat, type Scene } from './model';
 import { activityOf, choiceOf, type RuleContext } from './rules';
@@ -107,6 +108,18 @@ export interface TopCheck {
 }
 
 export const safetyKit = ['Safety shears', 'Water', 'First aid kit', 'Phone charged and nearby'];
+/** The safety kit, plus what this scene's kinds of play need within reach (Nov 23). */
+export function kitFor(scene: Scene, ctx: RuleContext): string[] {
+  const cats = new Set(scene.phases.flatMap((p) => p.beats.flatMap((b) => b.steps.map((s) => activityOf(ctx, s.activityId)?.category))));
+  const extra = [...cats].flatMap((c) => (c ? (categorySafety[c]?.reach ?? []) : []));
+  return [...safetyKit, ...extra.filter((k, i) => extra.indexOf(k) === i && !safetyKit.includes(k))];
+}
+
+/** Whether a beat ties someone with rope: the hand check replaces the general circulation check. */
+export function isRope(ctx: RuleContext, beat: Beat): boolean {
+  return beat.steps.some((s) => activityOf(ctx, s.activityId)?.category === 'rope');
+}
+
 export const spaceSet = ['Phones silenced', 'Lighting set', 'Music ready', 'Supplies laid out'];
 
 /** Said back to each other, aloud, with a tick for each. */

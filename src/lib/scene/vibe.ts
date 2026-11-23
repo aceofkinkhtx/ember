@@ -9,7 +9,7 @@ import type { Scene, Step } from './model';
 // full plan reaches the bottom only if the Top chooses to send it.
 
 /** The kinds of play a SceneVibe can show. Fingers count as "touch inside" (digital). */
-export type VibeKind = 'impact' | 'sensation' | 'bondage' | 'touch' | 'digital' | 'penetration' | 'surprise';
+export type VibeKind = 'impact' | 'sensation' | 'bondage' | 'touch' | 'digital' | 'penetration' | 'mind' | 'surprise';
 
 export interface VibeMarker {
   /** Minutes from the start. */
@@ -51,10 +51,23 @@ export interface SceneVibe {
   updatedAt: string;
 }
 
+/** The newer categories show as the closest kind of play (Nov 23). */
+const vibeKindOf: Record<Exclude<CategoryId, 'penetration'>, Exclude<VibeKind, 'surprise' | 'digital' | 'penetration'>> = {
+  bondage: 'bondage',
+  rope: 'bondage',
+  sensation: 'sensation',
+  fire: 'sensation',
+  electricity: 'sensation',
+  impact: 'impact',
+  touch: 'touch',
+  mind: 'mind',
+  control: 'touch'
+};
+
 function kindOf(a: Activity | undefined): Exclude<VibeKind, 'surprise'> | null {
   if (!a) return null;
   if (a.category === 'penetration') return a.id.startsWith('fingers-') ? 'digital' : 'penetration';
-  return a.category as Exclude<CategoryId, 'penetration'>;
+  return vibeKindOf[a.category];
 }
 
 /**
