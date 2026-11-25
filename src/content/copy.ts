@@ -52,7 +52,7 @@ export const safetyFloor: { title: string; detail: string }[] = [
   },
   {
     title: 'Aftercare, every time',
-    detail: 'Every scene has an aftercare phase, with more time available whenever it is needed.'
+    detail: 'Every scene has an Aftercare moment, with more time available whenever it is needed.'
   },
   {
     title: 'Sub drop is planned for',

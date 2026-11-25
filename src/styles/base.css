@@ -1243,3 +1243,10 @@ select {
     animation: none;
   }
 }
+
+/* A smaller button that still reads as a button (Michael, Nov 25). */
+.btn.btn-sm {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 15px;
+}

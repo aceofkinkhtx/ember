@@ -27,7 +27,7 @@ export function TopSettingsEditor({ value, onChange }: { value: TopSettings; onC
 
   function setColor(phase: PhaseType, color: string) {
     if (whiteTextContrast(color) < 4.5) {
-      setColorError(`That color is too light for white text on the ${phaseLabels[phase]} phase. Try a darker one.`);
+      setColorError(`That color is too light for white text on the ${phaseLabels[phase]} moment. Try a darker one.`);
       return;
     }
     setColorError('');

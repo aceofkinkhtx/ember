@@ -110,7 +110,7 @@ function topCards(w: Words): Card[] {
     {
       id: 'home',
       title: 'Home: what needs you today',
-      text: `Check-ins that are due, proposals waiting for your answer, and a countdown to your next ${w.scene}.`,
+      text: `Check-ins that are due, scene requests waiting for your answer, and a countdown to your next ${w.scene}.`,
       shot: <HomeShot w={w} />
     },
     {
@@ -145,11 +145,11 @@ function topCards(w: Words): Card[] {
     {
       id: 'design',
       title: `Design the ${w.scene}`,
-      text: `Ember builds a draft from the agreed list. You shape the curve, the beats and the intensity. Anything outside the agreement or past a limit is blocked. Aftercare always stays last.`,
+      text: `Ember builds a draft from the agreed list. You shape the curve, the moments and the intensity. Anything outside the agreement or past a limit is blocked. Aftercare always stays last.`,
       shot: (
         <Mock eyebrow="Slow burn · 60 min" title="Your design">
           <MiniCurve scene={sample} height={64} />
-          <div className="box">Build · Intensity 6 of 10</div>
+          <div className="box">Build-up · Intensity 6 of 10</div>
           <div className="box box-block">Outside what you agreed. Blocked.</div>
         </Mock>
       )
@@ -166,7 +166,7 @@ function topCards(w: Words): Card[] {
       text: `Live ${w.Scene} Mode: dark screen, big buttons, one hand. It follows your design and keeps the signals in reach.`,
       shot: (
         <div className="tour-dark stack" style={{ gap: 10 }}>
-          <span className="eyebrow">Build · 12 min left</span>
+          <span className="eyebrow">Build-up · 12 min left</span>
           <strong style={{ fontSize: 20 }}>Slow strokes, then wait.</strong>
           <span>Say: "Breathe with me."</span>
           <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
@@ -198,7 +198,7 @@ function bottomCards(w: Words): Card[] {
     {
       id: 'home',
       title: 'Your space',
-      text: `Proposals waiting for you, check-ins that are due, and your next ${w.scene}.`,
+      text: `Scene requests waiting for you, check-ins that are due, and your next ${w.scene}.`,
       shot: <HomeShot w={w} />
     },
     {
@@ -237,7 +237,7 @@ function bottomCards(w: Words): Card[] {
     {
       id: 'propose',
       title: "Say what you'd like",
-      text: `Propose a ${w.scene}: what to do, how it should feel, and how far. Your own requests count as your yes. Your ${w.Top} keeps, takes off or adds, and nothing is designed until you both agree.`,
+      text: `Request a ${w.scene}: what to do, how it should feel, and how far. Your own requests count as your yes. Your ${w.Top} keeps, takes off or adds, and nothing is designed until you both agree.`,
       shot: <AgreeShot w={w} />
     },
     {
@@ -286,7 +286,7 @@ function HomeShot({ w }: { w: Words }) {
           Your follow-up · Day 3
         </div>
       </div>
-      <Mock eyebrow="Your turn" title={`A ${w.scene} proposal is waiting for you`} />
+      <Mock eyebrow="Your turn" title={`A ${w.scene} request is waiting for you`} />
       <div className="card stack" style={{ gap: 6 }}>
         <div className="person">
           <span className="eyebrow">Next {w.scene}</span>

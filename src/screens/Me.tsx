@@ -174,8 +174,8 @@ export function Me() {
           onChange={(checkIns) => setNotes({ checkIns })}
         />
         <SettingSwitch
-          label="Messages and scene proposals"
-          description="When someone you're connected to sends a message or a scene proposal, or answers yours."
+          label="Messages and scene requests"
+          description="When someone you're connected to sends a message or a scene request, or answers yours."
           checked={settings.notifications.messages}
           onChange={(messages) => setNotes({ messages })}
         />

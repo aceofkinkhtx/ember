@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { localDay, tipFor } from '../lib/tips';
 import { listNegotiations, type Negotiation } from '../lib/negotiations';
-import { listIncomingRequests, type IncomingRequest } from '../lib/scenes';
+import { listIncomingRequests, listScenes, type IncomingRequest } from '../lib/scenes';
+import { cardFor, listConnections } from '../lib/account';
+import { displayName } from './Connections';
 import { ProposeLink } from '../components/ProposeLink';
 import { useAccount } from '../state/account';
 import { EmberMark } from '../components/EmberMark';
 import { DonationPrompt } from '../components/DonationPrompt';
 import { RoleToggle } from '../components/RoleToggle';
 import { NextScene } from '../components/scene/NextScene';
+import { NewSceneButton } from '../components/scene/NewSceneButton';
 import { DueCheckIns } from './after/AfterScene';
 import { useSettings } from '../state/settings';
 
@@ -47,12 +50,11 @@ export function Home() {
           )}
           <DueCheckIns word={scene} />
           <ProposalsWaiting />
+          <SentRequests />
           <NextScene role="top" word={scene} empty={`Give a design a date and it shows up here, with a countdown.`} />
           <TipCard />
           <div style={{ display: 'flex', gap: 10 }}>
-            <Link to="/scenes" className="btn btn-primary" style={{ flex: 1 }}>
-              New {scene}
-            </Link>
+            <NewSceneButton style={{ flex: 1 }} />
             <Link to="/connections" className="btn btn-outline" style={{ flex: 1 }}>
               Invite
             </Link>
@@ -64,6 +66,7 @@ export function Home() {
           <p className="lede">Share what you want, own your limits, and see what's coming.</p>
           <DueCheckIns word={scene} />
           <ProposalsWaiting />
+          <SentRequests />
           <div className="card">
             <div className="eyebrow">Your profile</div>
             <div className="card-title">Tell your partner what you want</div>
@@ -110,7 +113,7 @@ function TipCard() {
   );
 }
 
-/** Scene proposals and designs waiting for your answer (Michael, Nov 16). */
+/** Scene requests and designs waiting for your answer (Michael, Nov 16). */
 function ProposalsWaiting() {
   const { keys } = useAccount();
   const [waiting, setWaiting] = useState<Negotiation[]>([]);
@@ -130,7 +133,7 @@ function ProposalsWaiting() {
     count > 1
       ? `${count} scenes are waiting for your answer`
       : waiting.length
-        ? 'A scene proposal is waiting for you'
+        ? 'A scene request is waiting for you'
         : 'A scene design is waiting for you';
   return (
     <section className="card stack" style={{ gap: 8 }} aria-label="Waiting for your answer">
@@ -138,12 +141,61 @@ function ProposalsWaiting() {
       <div className="card-title">{title}</div>
       {waiting.map((n) => (
         <Link key={n.id} to={`/negotiations/${n.id}`} className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
-          Open the proposal{n.body.when ? ` "${n.body.when}"` : ''}
+          Open the request{n.body.when ? ` "${n.body.when}"` : ''}
         </Link>
       ))}
       {designs.map((d) => (
         <Link key={d.id} to="/scenes" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
           See the design "{d.scene.title}"
+        </Link>
+      ))}
+    </section>
+  );
+}
+
+/**
+ * Requests you've sent that are waiting on the other person, and who has them
+ * (Michael, Nov 25): scene requests, and designs sent to a Top.
+ */
+function SentRequests() {
+  const { keys } = useAccount();
+  const { settings } = useSettings();
+  const [rows, setRows] = useState<{ id: string; to: string; what: string; href: string }[]>([]);
+  useEffect(() => {
+    if (!keys) return;
+    let live = true;
+    Promise.all([
+      listNegotiations(keys).catch(() => [] as Negotiation[]),
+      listScenes(keys).catch(() => []),
+      listConnections(keys, cardFor(settings.identity)).catch(() => [])
+    ]).then(([negs, scenes, people]) => {
+      if (!live) return;
+      const nameOf = (connectionId: string | null) => {
+        const c = people.find((x) => x.id === connectionId);
+        return c ? displayName(c) : 'your connection';
+      };
+      setRows([
+        ...negs
+          .filter((n) => n.status === 'open' && n.turnId && n.turnId !== keys.userId)
+          .map((n) => ({ id: n.id, to: nameOf(n.connectionId), what: n.body.when ? `Scene request "${n.body.when}"` : 'Scene request', href: `/negotiations/${n.id}` })),
+        ...scenes
+          .filter((s) => s.request?.status === 'sent')
+          .map((s) => ({ id: s.id, to: s.partnerName || nameOf(s.connectionId), what: `Design "${s.title}"`, href: `/scenes/${s.id}` }))
+      ]);
+    });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keys]);
+  if (!rows.length) return null;
+  return (
+    <section className="card stack" style={{ gap: 8 }} aria-label="Waiting on them">
+      <div className="eyebrow">Sent, waiting for an answer</div>
+      {rows.map((r) => (
+        <Link key={r.id} to={r.href} className="person" style={{ textDecoration: 'none', color: 'inherit', minHeight: 'var(--touch)' }}>
+          <span>{r.what}</span>
+          <span className="note">To {r.to}</span>
         </Link>
       ))}
     </section>

@@ -133,7 +133,7 @@ export function vibeSummary(vibe: SceneVibe): string {
   const peaks = new Set(vibe.segments.filter((s) => s.phase === 'peak').map((s) => s.peakNo)).size;
   const kinds = [...new Set(vibe.markers.filter((m) => m.kind !== 'surprise').map((m) => kindLabels[m.kind].toLowerCase()))];
   return [
-    `A ${vibe.minutes} minute scene with ${peaks} ${peaks === 1 ? 'peak' : 'peaks'}`,
+    `A ${vibe.minutes} minute scene with ${peaks} ${peaks === 1 ? 'Peak Moment' : 'Peak Moments'}`,
     kinds.length ? `including ${kinds.join(', ')}` : '',
     vibe.surprises ? `and ${vibe.surprises === 1 ? 'a surprise' : `${vibe.surprises} surprises`}` : ''
   ]

@@ -53,7 +53,7 @@ export function adaptScene(source: Scene, ctx: RuleContext, target: Target, patc
           return false;
         }
         if (check.confirm.length) {
-          changes.push(`Took out ${a.label}: it needs your own confirmation. Add it back from a step to confirm.`);
+          changes.push(`Took out ${a.label}: it needs your own confirmation. Add it back from an activity to confirm.`);
           return false;
         }
         return true;
@@ -61,7 +61,7 @@ export function adaptScene(source: Scene, ctx: RuleContext, target: Target, patc
       for (const step of beat.steps) {
         if (step.gearId && ctx.optedOutGear.includes(step.gearId)) {
           step.gearId = null;
-          changes.push(`Took gear off a step in "${beat.title}": it's kept out of scenes with ${target.partnerName}.`);
+          changes.push(`Took gear off an activity in "${beat.title}": it's kept out of scenes with ${target.partnerName}.`);
         }
       }
     }

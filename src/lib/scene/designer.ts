@@ -285,7 +285,7 @@ export function customDesign(req: DesignRequest, ctx: RuleContext): Scene {
   const empty: Record<string, Partial<Beat>> = {
     arrival: { title: 'Arrival', intensity: 2 },
     build: { kind: 'warmup', title: 'Warm-up', intensity: 3 },
-    peak: { title: 'Peak', intensity: 6 },
+    peak: { title: 'Peak Moment', intensity: 6 },
     descent: { kind: 'landing', title: fixed.descent.title, intensity: 3, steps: [newStep({ do: fixed.descent.do, say: fixed.descent.say })] },
     close: { kind: 'named', title: 'Close', intensity: 1 }
   };

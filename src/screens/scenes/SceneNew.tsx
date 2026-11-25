@@ -88,7 +88,7 @@ export function SceneNew() {
     getNegotiation(keys, negotiationId)
       .then(async (n) => {
         if (!n || n.status !== 'agreed' || n.body.topId !== keys.userId) {
-          setNegError("This proposal isn't agreed yet, or isn't yours to design.");
+          setNegError("This scene request isn't agreed yet, or isn't yours to design.");
           return;
         }
         const ids = agreedActivityIds(n.body);
@@ -139,7 +139,7 @@ export function SceneNew() {
         });
         setPicksReady(true);
       })
-      .catch(() => setNegError("Ember couldn't load the proposal."));
+      .catch(() => setNegError("Ember couldn't load the scene request."));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keys, negotiationId]);
 
@@ -222,10 +222,10 @@ export function SceneNew() {
       )}
       {req.agreed && (
         <div className="card card-teal" style={{ gap: 6 }}>
-          <div className="eyebrow">From your agreed proposal</div>
-          <p style={{ margin: 0 }}>This design uses only what you agreed together. To add anything new, ask first in the proposal.</p>
+          <div className="eyebrow">From your agreed scene request</div>
+          <p style={{ margin: 0 }}>This design uses only what you agreed together. To add anything new, ask first in the request.</p>
           <Link to={`/negotiations/${req.agreed.negotiationId}`} className="btn btn-quiet" style={{ alignSelf: 'flex-start' }}>
-            Open the proposal
+            Open the request
           </Link>
         </div>
       )}
@@ -283,12 +283,12 @@ function Basics({
       <section className="card stack" style={{ gap: 14 }}>
         {req.agreed ? (
           <p style={{ margin: 0 }}>
-            <strong>With {req.partnerName || 'your partner'}</strong>, from the proposal you both agreed.
+            <strong>With {req.partnerName || 'your partner'}</strong>, from the scene request you both agreed.
           </p>
         ) : (
           <div className="box" style={{ margin: 0 }}>
             <p style={{ margin: 0 }}>
-              This design goes to your library, with no one in mind yet. A scene with someone starts from a proposal you both agree on.
+              This design goes to your library, with no one in mind yet. A scene with someone starts from a scene request you both agree on.
             </p>
             {people.length > 0 && <ProposeLink className="btn btn-outline" style={{ alignSelf: 'flex-start', marginTop: 8 }} />}
           </div>
@@ -493,7 +493,7 @@ function Picks({
       <button type="button" className="btn btn-primary btn-block" onClick={onNext}>
         {req.picks.length ? 'See designs' : 'Build your own'}
       </button>
-      {!req.picks.length && <p className="note" style={{ margin: 0, textAlign: 'center' }}>With nothing chosen, you start from empty sections.</p>}
+      {!req.picks.length && <p className="note" style={{ margin: 0, textAlign: 'center' }}>With nothing chosen, you start from empty moments.</p>}
       <button type="button" className="btn btn-quiet btn-block" onClick={onBack}>
         Back
       </button>
@@ -519,7 +519,7 @@ function Options({
   return (
     <>
       <h1>Pick a starting design</h1>
-      <p className="lede">{options.length > 1 ? 'Each is a different shape, or build your own from empty sections. Everything stays editable.' : 'Start from empty sections and fill them with your own actions.'}</p>
+      <p className="lede">{options.length > 1 ? 'Each is a different shape, or build your own from empty moments. Everything stays editable.' : 'Start from empty moments and fill them with your own activities.'}</p>
       {options.map((scene, i) => {
         const issues = validate(scene, data.ctx);
         const warn = warnings(issues).length;
@@ -608,7 +608,7 @@ function GearPlan({ req, set, ctx, gear, onShowTheirGear }: { req: DesignRequest
     <section className="card stack" style={{ gap: 10 }} aria-label="Gear, in order">
       <div className="card-title">Gear, in order</div>
       <p className="setting-desc" style={{ margin: 0 }}>
-        Plan the progression: list your impact gear in the order you want to use it. Ember spreads it from the warm-up to the peaks. You can also add gear to any section later, in the editor.
+        Plan the progression: list your impact gear in the order you want to use it. Ember spreads it from the warm-up to the peaks. You can also add gear to any moment later, in the editor.
       </p>
       {onShowTheirGear && (
         <button type="button" className="btn btn-quiet" style={{ alignSelf: 'flex-start' }} onClick={onShowTheirGear}>

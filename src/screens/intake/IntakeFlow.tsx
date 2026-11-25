@@ -679,7 +679,7 @@ function CategoryStep({
         <section className="card stack" style={{ gap: 8 }} aria-label="Off-limits">
           <TextArea
             label="Words, names and topics that are off-limits"
-            hint="Your Top sees these on every beat with this kind of play."
+            hint="Your Top sees these on every moment with this kind of play."
             value={d.words.offLimits}
             onChange={(offLimits) => onChange({ ...intake, detailed: { ...d, words: { ...d.words, offLimits } }, updated: stamp('detailed') })}
             rows={2}

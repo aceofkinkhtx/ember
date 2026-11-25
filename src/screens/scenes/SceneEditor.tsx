@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { BeatSheet, GearSheet, MinutesSheet, SetupSheet, StepSheet } from '../../components/scene/EditSheets';
+import { AddActivitySheet, BeatSheet, GearSheet, MinutesSheet, SetupSheet, StepSheet } from '../../components/scene/EditSheets';
 import { setupLabel } from '../../data/positions';
 import { moveStep, placeBeat, placeStep, playMinutes, setPhaseMinutes, setPlayMinutes, withAftercareFit } from '../../lib/scene/timing';
 import { MiniCurve, PhaseStrip, sceneFacts, usePhaseColor } from '../../components/scene/SceneCurve';
@@ -8,8 +8,9 @@ import { RequestCard, ReuseSheet } from '../../components/scene/SceneActions';
 import { moved, useReorder } from '../../components/scene/useReorder';
 import { useMoveDrag, type DropAt } from '../../components/scene/useMoveDrag';
 import { LimitStrip } from '../../components/intake/IntakeSummary';
+import { IntakeReminder } from '../../components/IntakeReminder';
 import { SettingSwitch } from '../../components/Switch';
-import { phaseLabels, type PhaseType } from '../../content/phases';
+import { momentName, phaseLabels, type PhaseType } from '../../content/phases';
 import { fixed, shapes } from '../../content/sceneText';
 import { AccountError } from '../../lib/account';
 import { newBeat, newId, newStep, phaseMinutes, type Beat, type Override, type Phase, type Scene, type Step } from '../../lib/scene/model';
@@ -21,7 +22,9 @@ import { useAccount } from '../../state/account';
 import { useSceneData } from '../../state/sceneContext';
 
 // S5: the scene editor. Phases are collapsible color bands, beats are cards
-// inside them, steps sit inside beats; every level has a drag handle. Every
+// inside them, steps sit inside beats; every level has a drag handle. On
+// screen, phases and beats are both "moments" and steps are "activities"
+// (Michael, Nov 25). Every
 // edit goes through the rules: a change that breaks a block rule is refused
 // with a one-line reason, and warnings show inline in amber. Steps drag into
 // any beat and beats into any section. When an edit makes play longer,
@@ -31,6 +34,7 @@ type Editing =
   | { kind: 'beat'; phaseId: string; beatId: string }
   | { kind: 'step'; beatId: string; stepId: string }
   | { kind: 'gear'; beatId: string }
+  | { kind: 'add-activity'; beatId: string }
   | { kind: 'phase-time'; phaseId: string }
   | { kind: 'phase-setup'; phaseId: string }
   | { kind: 'play-time' }
@@ -46,6 +50,7 @@ export function SceneEditor() {
   const [toast, setToast] = useState<{ text: string; info?: boolean } | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState<{ phaseId: string; beatId?: string } | null>(null);
   const [reusing, setReusing] = useState(false);
   const changes = (useLocation().state as { changes?: string[] } | null)?.changes ?? [];
   const { data, showTheirGear } = useSceneData(scene?.connectionId ?? null, scene?.partnerId ?? null, scene?.role ?? 'top');
@@ -155,9 +160,9 @@ export function SceneEditor() {
         ? newBeat({ kind: 'recovery', title: fixed.recovery.title, minutes: 5, intensity: 2, steps: [newStep({ do: fixed.recovery.do, say: fixed.recovery.say })] })
         : type === 'ritual'
           ? newBeat({ kind: 'ritual', title: 'Opening ritual', minutes: 5, intensity: 2, steps: [newStep({ do: 'Posture, clothing and objects.', say: 'The words you say together.' })] })
-          : newBeat({ title: phaseLabels[type], minutes: 10, intensity: type === 'peak' ? 6 : 4, steps: [newStep()] });
+          : newBeat({ title: phaseLabels[type], minutes: 10, intensity: type === 'peak' ? 6 : 4 });
     const phase: Phase = { id: newId('p'), type, beats: [beat] };
-    // New phases go before the descent; a ritual goes right after arrival.
+    // New moments go before the descent; a ritual goes right after arrival.
     const at = type === 'ritual' ? 1 : Math.max(1, current.phases.findIndex((p) => p.type === 'descent'));
     const phases = [...current.phases];
     phases.splice(at < 0 ? phases.length - 1 : at, 0, phase);
@@ -191,6 +196,7 @@ export function SceneEditor() {
           {scene.intense ? ', intense' : ''}.
         </p>
       </div>
+      {!scene.noRoles && <IntakeReminder role={scene.role} />}
       {scene.fromRequest && (
         <p className="box box-info">
           {scene.fromRequest.by} designed this for you ({new Date(scene.fromRequest.at).toLocaleDateString()}). It was built from their own answers; your offerings and settings now apply, so check anything flagged.
@@ -233,27 +239,22 @@ export function SceneEditor() {
         onEditBeat={(phaseId, beatId) => setEditing({ kind: 'beat', phaseId, beatId })}
         onEditStep={(beatId, stepId) => setEditing({ kind: 'step', beatId, stepId })}
         onAddGear={(beatId) => setEditing({ kind: 'gear', beatId })}
+        onAddActivity={(beatId) => setEditing({ kind: 'add-activity', beatId })}
+        onDelete={(phaseId, beatId) => setDeleting({ phaseId, beatId })}
         onEditPhaseTime={(phaseId) => setEditing({ kind: 'phase-time', phaseId })}
         onEditSetup={(phaseId) => setEditing({ kind: 'phase-setup', phaseId })}
       />
 
-      <section className="card stack" style={{ gap: 10 }} aria-label="Add a phase">
+      <section className="card stack" style={{ gap: 10 }} aria-label="Add a moment">
         <span className="field-label" style={{ fontSize: 16 }}>
-          Add to the arc
+          Add a moment
         </span>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-outline" onClick={() => addPhase('ritual')}>
-            Ritual
-          </button>
-          <button type="button" className="btn btn-outline" onClick={() => addPhase('build')}>
-            Build
-          </button>
-          <button type="button" className="btn btn-outline" onClick={() => addPhase('recovery')}>
-            Recovery
-          </button>
-          <button type="button" className="btn btn-outline" onClick={() => addPhase('peak')}>
-            Peak
-          </button>
+          {(['ritual', 'build', 'recovery', 'peak'] as const).map((t) => (
+            <button key={t} type="button" className="btn btn-outline" onClick={() => addPhase(t)}>
+              {phaseLabels[t]}
+            </button>
+          ))}
         </div>
         <p className="note" style={{ margin: 0 }}>
           Aftercare always stays last.
@@ -319,7 +320,7 @@ export function SceneEditor() {
       {editing?.kind === 'play-time' && (
         <MinutesSheet
           title="Scene length"
-          hint="Every section keeps its share of the time. Aftercare comes after this, and grows if the new length needs more."
+          hint="Every moment keeps its share of the time. Aftercare comes after this, and grows if the new length needs more."
           value={playMinutes(scene)}
           min={20}
           max={480}
@@ -331,7 +332,7 @@ export function SceneEditor() {
       {editing?.kind === 'phase-time' && editingPhase && (
         <MinutesSheet
           title={`${phaseLabels[editingPhase.type]} length`}
-          hint={editingPhase.type === 'aftercare' ? 'Its beats keep their share of the time. It can grow, but not below your setting.' : 'Its beats keep their share of the time. Aftercare grows if it needs to.'}
+          hint={editingPhase.type === 'aftercare' ? 'The moments inside keep their share of the time. It can grow, but not below your setting.' : 'The moments inside keep their share of the time. Aftercare grows if it needs to.'}
           value={phaseMinutes(editingPhase)}
           min={Math.max(1, editingPhase.beats.length)}
           max={480}
@@ -360,7 +361,10 @@ export function SceneEditor() {
           onSave={(b, to) => apply(withBeat(editing.phaseId, b, to))}
           onSaveWithCheckIn={(b, to) => apply({ ...withBeat(editing.phaseId, b, to), nextMorningCheckIn: true })}
           preview={(b, to) => preview(withBeat(editing.phaseId, b, to))}
-          onDelete={() => apply(mapPhases((p) => ({ ...p, beats: p.beats.filter((b) => b.id !== editingBeat.id) })))}
+          onDelete={() => {
+            setDeleting({ phaseId: editing.phaseId, beatId: editingBeat.id });
+            return null;
+          }}
           onClose={() => setEditing(null)}
         />
       )}
@@ -390,6 +394,39 @@ export function SceneEditor() {
             return null;
           }}
           onClose={() => setEditing(null)}
+        />
+      )}
+      {editing?.kind === 'add-activity' && beatById(editing.beatId) && (
+        <AddActivitySheet
+          ctx={ctx}
+          onPick={(activityId, overrides) => {
+            const beatId = editing.beatId;
+            const step = newStep({ activityId });
+            const reason = apply({
+              ...mapPhases((p) => ({ ...p, beats: p.beats.map((b) => (b.id === beatId ? { ...b, steps: [...b.steps, step] } : b)) })),
+              overrides: [...current.overrides, ...overrides]
+            });
+            if (reason) return reason;
+            setEditing({ kind: 'step', beatId, stepId: step.id });
+            return null;
+          }}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {deleting && (
+        <DeleteMoment
+          scene={scene}
+          target={deleting}
+          onDelete={() => {
+            const { phaseId, beatId } = deleting;
+            const next = beatId
+              ? mapPhases((p) => (p.id === phaseId ? { ...p, beats: p.beats.filter((b) => b.id !== beatId) } : p))
+              : { ...current, phases: current.phases.filter((p) => p.id !== phaseId) };
+            const reason = apply(next);
+            if (!reason) setDeleting(null);
+            return reason;
+          }}
+          onClose={() => setDeleting(null)}
         />
       )}
       {confirmDelete && (
@@ -491,7 +528,9 @@ function Phases({
   onEditStep,
   onAddGear,
   onEditPhaseTime,
-  onEditSetup
+  onEditSetup,
+  onAddActivity,
+  onDelete
 }: {
   scene: Scene;
   ctx: RuleContext;
@@ -505,6 +544,8 @@ function Phases({
   onAddGear: (beatId: string) => void;
   onEditPhaseTime: (phaseId: string) => void;
   onEditSetup: (phaseId: string) => void;
+  onAddActivity: (beatId: string) => void;
+  onDelete: (phaseId: string, beatId?: string) => void;
 }) {
   const colorOf = usePhaseColor();
   const reorder = useReorder(scene.phases.length, (from, to) => onApply({ ...scene, phases: moved(scene.phases, from, to) }));
@@ -516,7 +557,7 @@ function Phases({
         return (
           <details key={phase.id} open ref={item.ref} className={item.className} style={{ ...item.style, borderRadius: 16, background: 'var(--surface)', border: `2px solid ${color}` }}>
             <summary style={{ listStyle: 'none', display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 4px 4px', background: color, color: '#fff', borderRadius: '12px 12px 0 0', cursor: 'pointer' }}>
-              <button type="button" className="drag-handle" style={{ color: '#fff' }} {...reorder.handle(i, `${phaseLabels[phase.type]} phase`)}>
+              <button type="button" className="drag-handle" style={{ color: '#fff' }} {...reorder.handle(i, momentName(phase.type))}>
                 ⠿
               </button>
               <strong style={{ flex: 1 }}>{phaseLabels[phase.type]}</strong>
@@ -532,6 +573,18 @@ function Phases({
               >
                 {phaseMinutes(phase)} min ✎
               </button>
+              <button
+                type="button"
+                aria-label={`Delete the ${momentName(phase.type)}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete(phase.id);
+                }}
+                style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none', borderRadius: 999, width: 40, height: 40, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <TrashIcon />
+              </button>
             </summary>
             <button
               type="button"
@@ -542,7 +595,7 @@ function Phases({
             >
               {setupLabel(phase.setup) ? <>📍 {setupLabel(phase.setup)} ✎</> : '+ Position and furniture'}
             </button>
-            <Beats scene={scene} phase={phase} ctx={ctx} issues={issues} auto={auto} onApply={onApply} beatDrag={beatDrag} stepDrag={stepDrag} onEditBeat={onEditBeat} onEditStep={onEditStep} onAddGear={onAddGear} />
+            <Beats scene={scene} phase={phase} ctx={ctx} issues={issues} auto={auto} onApply={onApply} beatDrag={beatDrag} stepDrag={stepDrag} onEditBeat={onEditBeat} onEditStep={onEditStep} onAddGear={onAddGear} onAddActivity={onAddActivity} onDelete={(beatId) => onDelete(phase.id, beatId)} />
           </details>
         );
       })}
@@ -561,7 +614,9 @@ function Beats({
   stepDrag,
   onEditBeat,
   onEditStep,
-  onAddGear
+  onAddGear,
+  onAddActivity,
+  onDelete
 }: {
   scene: Scene;
   phase: Phase;
@@ -574,6 +629,8 @@ function Beats({
   onEditBeat: (phaseId: string, beatId: string) => void;
   onEditStep: (beatId: string, stepId: string) => void;
   onAddGear: (beatId: string) => void;
+  onAddActivity: (beatId: string) => void;
+  onDelete: (beatId: string) => void;
 }) {
   const withBeats = (beats: Beat[]) => ({ ...scene, phases: scene.phases.map((p) => (p.id === phase.id ? { ...p, beats } : p)) });
   return (
@@ -588,18 +645,27 @@ function Beats({
             {...item}
             className={['card', 'stack', item.className].filter(Boolean).join(' ')}
             style={{ ...item.style, gap: 8, padding: 12 }}
-            aria-label={beat.title || 'Beat'}
+            aria-label={beat.title || 'Moment'}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button type="button" className="drag-handle" {...beatDrag.handle(beat.id, beat.title || 'beat')}>
+              <button type="button" className="drag-handle" {...beatDrag.handle(beat.id, beat.title || 'moment')}>
                 ⠿
               </button>
               <button type="button" onClick={() => onEditBeat(phase.id, beat.id)} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', padding: 0, minHeight: 'var(--touch)', cursor: 'pointer' }}>
-                <span style={{ fontWeight: 700, display: 'block' }}>{beat.title || 'Untitled beat'}</span>
+                <span style={{ fontWeight: 700, display: 'block' }}>{beat.title || 'Untitled moment'}</span>
                 <span className="note">
                   {beat.minutes} min, intensity {beat.intensity}
                   {beat.areas.length ? `, ${beat.areas.length} ${beat.areas.length === 1 ? 'area' : 'areas'}` : ''}
                 </span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-quiet"
+                aria-label={`Delete ${beat.title || 'this moment'}`}
+                onClick={() => onDelete(beat.id)}
+                style={{ minHeight: 'var(--touch)', minWidth: 'var(--touch)', padding: 0 }}
+              >
+                <TrashIcon />
               </button>
             </div>
             {mine.map((x) => (
@@ -617,7 +683,7 @@ function Beats({
                 {f.text}
               </p>
             ))}
-            <Steps scene={scene} beat={beat} ctx={ctx} onApply={onApply} stepDrag={stepDrag} onEditStep={onEditStep} onAddGear={onAddGear} />
+            <Steps beat={beat} ctx={ctx} stepDrag={stepDrag} onEditStep={onEditStep} onAddGear={onAddGear} onAddActivity={onAddActivity} />
           </article>
         );
       })}
@@ -626,35 +692,32 @@ function Beats({
         type="button"
         className="btn btn-quiet"
         style={{ alignSelf: 'flex-start' }}
-        onClick={() => onApply(withBeats([...phase.beats, newBeat({ title: 'New beat', intensity: Math.min(4, phase.beats.at(-1)?.intensity ?? 3), steps: [newStep()] })]))}
+        onClick={() => onApply(withBeats([...phase.beats, newBeat({ title: 'New moment', intensity: Math.min(4, phase.beats.at(-1)?.intensity ?? 3) })]))}
       >
-        + Add beat
+        + Add a moment inside
       </button>
     </div>
   );
 }
 
 function Steps({
-  scene,
   beat,
   ctx,
-  onApply,
   stepDrag,
   onEditStep,
-  onAddGear
+  onAddGear,
+  onAddActivity
 }: {
-  scene: Scene;
   beat: Beat;
   ctx: RuleContext;
-  onApply: (next: Scene) => string | null;
   stepDrag: Drag;
   onEditStep: (beatId: string, stepId: string) => void;
   onAddGear: (beatId: string) => void;
+  onAddActivity: (beatId: string) => void;
 }) {
-  const withSteps = (steps: Step[]) => ({ ...scene, phases: scene.phases.map((p) => ({ ...p, beats: p.beats.map((b) => (b.id === beat.id ? { ...b, steps } : b)) })) });
   const label = (s: Step) => {
     const gear = s.gearId ? ctx.gear.find((g) => g.id === s.gearId)?.name : undefined;
-    const what = activityOf(ctx, s.activityId)?.label ?? (s.do.split('.')[0] || 'Step');
+    const what = activityOf(ctx, s.activityId)?.label ?? (s.do.split('.')[0] || 'Care or connection');
     return gear && !what.toLowerCase().includes(gear.toLowerCase()) ? `${what} (${gear})` : what;
   };
   return (
@@ -677,8 +740,8 @@ function Steps({
         );
       })}
       <li style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        <button type="button" className="btn btn-quiet" onClick={() => onApply(withSteps([...beat.steps, newStep()]))}>
-          + Add step
+        <button type="button" className="btn btn-quiet" onClick={() => onAddActivity(beat.id)}>
+          + Add activity
         </button>
         <button type="button" className="btn btn-quiet" onClick={() => onAddGear(beat.id)}>
           + Add gear
@@ -711,5 +774,54 @@ function Record({ scene, ctx }: { scene: Scene; ctx: RuleContext }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+/** Confirm before a moment, and everything inside it, is deleted (Michael, Nov 25). */
+function DeleteMoment({ scene, target, onDelete, onClose }: { scene: Scene; target: { phaseId: string; beatId?: string }; onDelete: () => string | null; onClose: () => void }) {
+  const [refused, setRefused] = useState('');
+  const phase = scene.phases.find((p) => p.id === target.phaseId);
+  const beat = target.beatId ? phase?.beats.find((b) => b.id === target.beatId) : undefined;
+  if (!phase || (target.beatId && !beat)) return null;
+  const name = beat ? beat.title || 'this moment' : `the ${momentName(phase.type)}`;
+  const inner = beat ? 0 : phase.beats.length;
+  const acts = beat ? beat.steps.length : phase.beats.reduce((n, b) => n + b.steps.length, 0);
+  const parts = [inner ? `${inner} ${inner === 1 ? 'moment' : 'moments'} inside it` : '', acts ? `${acts} ${acts === 1 ? 'activity' : 'activities'}` : ''].filter(Boolean);
+  return (
+    <div className="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="moment-delete-title">
+      <div className="sheet">
+        <h2 id="moment-delete-title">Delete {name}?</h2>
+        <p>{parts.length ? `This also deletes ${parts.join(' and ')}.` : 'It has nothing in it yet.'}</p>
+        {refused && (
+          <p className="box box-block" role="alert">
+            {refused}
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-danger btn-block"
+          onClick={() => {
+            const reason = onDelete();
+            if (reason) setRefused(reason);
+          }}
+        >
+          Delete
+        </button>
+        <button type="button" className="btn btn-secondary btn-block" onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+    </div>
   );
 }

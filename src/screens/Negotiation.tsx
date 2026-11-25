@@ -54,6 +54,7 @@ import {
 import { useAccount } from "../state/account";
 import { useSettings } from "../state/settings";
 import { displayName } from "./Connections";
+import { IntakeReminder } from "../components/IntakeReminder";
 
 // Scene proposals (Michael, Nov 16). Either person proposes what they want to
 // do, feel or experience in a scene; the other keeps, removes or adds items,
@@ -216,7 +217,7 @@ export function NegotiationPage() {
   if (!keys)
     return (
       <main className="screen">
-        <p className="card">Sign in to propose scenes.</p>
+        <p className="card">Sign in to request scenes.</p>
       </main>
     );
   if (connection === undefined || neg === undefined || (connection && !draft)) {
@@ -237,7 +238,7 @@ export function NegotiationPage() {
           ‹ Connections
         </Link>
         <p className="card">
-          This proposal isn't here anymore. It may have been removed, or the
+          This scene request isn't here anymore. It may have been removed, or the
           connection ended.
         </p>
       </main>
@@ -454,7 +455,7 @@ export function NegotiationPage() {
       >
         ‹ {name}
       </Link>
-      <h1>{isNew ? `Propose a scene with ${name}` : `Scene with ${name}`}</h1>
+      <h1>{isNew ? `Request a scene with ${name}` : `Scene with ${name}`}</h1>
       {status && (
         <p
           className={`card ${agreed ? "card-teal" : ""}`}
@@ -464,6 +465,7 @@ export function NegotiationPage() {
           {status}
         </p>
       )}
+      {!isNew && !myTurn && <IntakeReminder role={iAmTop ? "top" : "bottom"} />}
       {isNew && (
         <p className="lede" style={{ margin: 0 }}>
           Not a design yet: just the activities, positions, furniture and
@@ -874,7 +876,7 @@ export function NegotiationPage() {
           style={{ alignSelf: "center" }}
           onClick={() => setConfirmRemove(true)}
         >
-          Remove this proposal
+          Remove this request
         </button>
       )}
       {confirmRemove && (
@@ -885,7 +887,7 @@ export function NegotiationPage() {
           aria-labelledby="neg-remove-title"
         >
           <div className="sheet">
-            <h2 id="neg-remove-title">Remove this proposal?</h2>
+            <h2 id="neg-remove-title">Remove this request?</h2>
             <p>
               It's removed for both of you. A scene already designed from it
               stays.

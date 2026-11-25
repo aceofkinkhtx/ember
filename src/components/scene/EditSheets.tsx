@@ -10,7 +10,9 @@ import { useAccount } from '../../state/account';
 import { TextArea, TextInput } from '../intake/Bits';
 import { ActivityList, ActivityTag, useAddActivity } from './ActivityPicker';
 
-// The edit sheet (S5): one sheet for a beat, one for a step. Saving runs the
+// The edit sheet (S5): one sheet for a moment (a beat), one for an activity
+// (a step). In the app, the top-level sections are "moments" too (Michael,
+// Nov 25). Saving runs the
 // rules; a change that breaks a block rule is refused with a one-line reason
 // and the sheet stays open.
 
@@ -39,7 +41,7 @@ function Sheet({ title, children, onClose }: { title: string; children: ReactNod
       <div className="sheet" style={{ maxHeight: '88vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
         <div className="person">
           <h2 style={{ margin: 0 }}>{title}</h2>
-          <button type="button" className="btn btn-quiet" onClick={onClose}>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onClose}>
             Close
           </button>
         </div>
@@ -80,7 +82,7 @@ export function BeatSheet({
   const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
 
   return (
-    <Sheet title={beat.title || 'Beat'} onClose={onClose}>
+    <Sheet title={beat.title || 'Moment'} onClose={onClose}>
       {preview && <LiveMap scene={preview(b, toPhase)} />}
       <TextInput label="Goal, in one line" value={b.title} max={80} onChange={(title) => set({ title })} />
       <div style={{ display: 'flex', gap: 10 }}>
@@ -89,7 +91,7 @@ export function BeatSheet({
           <input className="input" type="number" inputMode="numeric" min={1} max={480} value={b.minutes} onChange={(e) => set({ minutes: Math.max(1, Math.min(480, Number(e.target.value) || 1)) })} />
         </label>
         <label className="field" style={{ flex: 1 }}>
-          <span className="field-label">Phase</span>
+          <span className="field-label">Inside</span>
           <select className="input" value={toPhase} onChange={(e) => setToPhase(e.target.value)}>
             {phases.map((p, i) => (
               <option key={p.id} value={p.id}>
@@ -196,7 +198,7 @@ export function BeatSheet({
           else onClose();
         }}
       >
-        Save beat
+        Save moment
       </button>
       <button
         type="button"
@@ -207,7 +209,7 @@ export function BeatSheet({
           else onClose();
         }}
       >
-        Delete beat
+        Delete moment
       </button>
     </Sheet>
   );
@@ -248,17 +250,17 @@ export function StepSheet({
   const usable = gear.filter((g) => !ctx.optedOutGear.includes(g.id) || g.id === s.gearId);
 
   return (
-    <Sheet title={activity?.label ?? 'Step'} onClose={onClose}>
+    <Sheet title={activity?.label ?? 'Activity'} onClose={onClose}>
       <div className="stack" style={{ gap: 6 }}>
         <span className="field-label">Activity</span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700 }}>{activity ? activity.label : 'None (a care or connection step)'}</span>
+          <span style={{ fontWeight: 700 }}>{activity ? activity.label : 'None (care or connection)'}</span>
           {activity && <ActivityTag ctx={ctx} activity={activity} />}
-          <button type="button" className="btn btn-quiet" onClick={() => setChoosing((c) => !c)}>
+          <button type="button" className="btn btn-outline btn-sm" onClick={() => setChoosing((c) => !c)}>
             {choosing ? 'Cancel' : 'Change'}
           </button>
           {activity && (
-            <button type="button" className="btn btn-quiet" onClick={() => set({ activityId: null })}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => set({ activityId: null })}>
               Clear
             </button>
           )}
@@ -285,13 +287,13 @@ export function StepSheet({
         </label>
       )}
       <label className="field">
-        <span className="field-label">In which beat</span>
-        <span className="field-hint">Move this step anywhere in the scene.</span>
+        <span className="field-label">In which moment</span>
+        <span className="field-hint">Move this activity anywhere in the scene.</span>
         <select className="input" value={toBeat} onChange={(e) => setToBeat(e.target.value)}>
           {phases.map((p) =>
             p.beats.map((b) => (
               <option key={b.id} value={b.id}>
-                {phaseLabels[p.type]}: {b.title || 'Untitled beat'}
+                {phaseLabels[p.type]}: {b.title || 'Untitled moment'}
               </option>
             ))
           )}
@@ -320,7 +322,7 @@ export function StepSheet({
           else onClose();
         }}
       >
-        Save step
+        Save activity
       </button>
       <button
         type="button"
@@ -331,14 +333,54 @@ export function StepSheet({
           else onClose();
         }}
       >
-        Delete step
+        Delete activity
       </button>
     </Sheet>
   );
 }
 
 /**
- * Add gear to a beat: pick a piece, and it becomes a new step there, opened
+ * Add an activity to a moment (Michael, Nov 25): the activity list comes first;
+ * once one is chosen (and any required questions answered), the activity's
+ * own sheet opens for the rest. "No activity" is for care or connection.
+ */
+export function AddActivitySheet({
+  ctx,
+  onPick,
+  onClose
+}: {
+  ctx: RuleContext;
+  /** Returns a reason when the rules refuse it. */
+  onPick: (activityId: string | null, overrides: Override[]) => string | null;
+  onClose: () => void;
+}) {
+  const [refused, setRefused] = useState('');
+  const pick = (id: string | null, more: Override[]) => {
+    const reason = onPick(id, more);
+    if (reason) setRefused(reason);
+  };
+  const add = useAddActivity(ctx, (a, more) => pick(a.id, more));
+  return (
+    <Sheet title="Add an activity" onClose={onClose}>
+      <p className="note" style={{ margin: 0 }}>
+        Choose what happens. You can add what to do, say and watch for next.
+      </p>
+      <ActivityList ctx={ctx} exclude={[]} onChoose={add.start} />
+      <button type="button" className="btn btn-outline" style={{ alignSelf: 'flex-start' }} onClick={() => pick(null, [])}>
+        No activity: care or connection
+      </button>
+      {(add.refused || refused) && (
+        <p className="box box-block" role="alert">
+          {add.refused || refused}
+        </p>
+      )}
+      {add.sheet}
+    </Sheet>
+  );
+}
+
+/**
+ * Add gear to a moment: pick a piece, and it becomes a new activity there, opened
  * so you can say what it is for. Gear kept out of scenes with this person
  * isn't offered.
  */
@@ -525,11 +567,11 @@ export function SetupSheet({
   return (
     <Sheet title={`${phaseLabels[phase.type]}: position and furniture`} onClose={onClose}>
       <p className="note" style={{ margin: 0 }}>
-        Where they are for this whole section. Live Scene Mode shows it, and reminds you to help them move between sections.
+        Where they are for this whole moment. Live Scene Mode shows it, and reminds you to help them move between moments.
       </p>
       {allowed && (
         <p className="note" style={{ margin: 0 }}>
-          Only what you agreed together. To use something else, ask to add it in the proposal.
+          Only what you agreed together. To use something else, ask to add it in the scene request.
         </p>
       )}
       {posOptions.length > 0 ? (

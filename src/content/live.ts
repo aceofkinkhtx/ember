@@ -34,7 +34,7 @@ export const toolkit: { id: string; label: string; prompts: { title: string; tex
     prompts: [
       { title: 'Check in', text: 'Ask simply: "Color?" Then: "What do you need right now?"' },
       { title: 'Slow down', text: 'Halve the pace and the intensity. Stay there until things feel steady.' },
-      { title: 'Adjust', text: 'Change what isn\'t working: position, pressure, words, or move to the next beat.' }
+      { title: 'Adjust', text: 'Change what isn\'t working: position, pressure, words, or move to the next moment.' }
     ]
   }
 ];

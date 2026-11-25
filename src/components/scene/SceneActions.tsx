@@ -50,11 +50,11 @@ export function RequestCard({ scene, ctx, onChange }: { scene: Scene; ctx: RuleC
 
   return (
     <section className="card stack" style={{ gap: 10 }} aria-label={`Send to ${scene.partnerName}`}>
-      <div className="eyebrow">A request for {scene.partnerName}</div>
+      <div className="eyebrow">Send this design to {scene.partnerName}</div>
       <p className="setting-desc" style={{ margin: 0 }}>
         {status
           ? statusText[status](scene.partnerName)
-          : `Send this to ${scene.partnerName}. They get it as a request, then accept and shape it with their own offerings and settings, or pass.`}
+          : `Send this to ${scene.partnerName}. They accept it and shape it with their own offerings and settings, or pass.`}
       </p>
       {blocked.length > 0 && <p className="note" style={{ margin: 0 }}>Fix the red items above before sending.</p>}
       {(!status || status === 'declined' || status === 'sent') && (
@@ -112,7 +112,7 @@ export function ReuseSheet({ scene, onClose }: { scene: Scene; onClose: () => vo
           Share with someone
         </h2>
         <p style={{ margin: 0 }}>
-          It goes to them as a proposal. They accept or take off anything that's a no or maybe for them, and can ask to add more. Once you both agree, the Top
+          It goes to them as a scene request. They accept or take off anything that's a no or maybe for them, and can ask to add more. Once you both agree, the Top
           gets the design, ready to edit and run.
         </p>
         {people === null ? (

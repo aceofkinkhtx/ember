@@ -252,7 +252,7 @@ export async function listNegotiations(keys: StoredKeys, connectionId?: string):
   let q = db.from('negotiations').select(COLUMNS).order('updated_at', { ascending: false });
   if (connectionId) q = q.eq('connection_id', connectionId);
   const { data, error } = await q;
-  if (error) throw new AccountError("Ember couldn't load your scene proposals.");
+  if (error) throw new AccountError("Ember couldn't load your scene requests.");
   const out: Negotiation[] = [];
   for (const r of (data ?? []) as Row[]) {
     const n = await open(keys, r);
@@ -263,7 +263,7 @@ export async function listNegotiations(keys: StoredKeys, connectionId?: string):
 
 export async function getNegotiation(keys: StoredKeys, id: string): Promise<Negotiation | null> {
   const { data, error } = await db.from('negotiations').select(COLUMNS).eq('id', id).maybeSingle();
-  if (error) throw new AccountError("Ember couldn't load this scene proposal.");
+  if (error) throw new AccountError("Ember couldn't load this scene request.");
   return data ? open(keys, data as Row) : null;
 }
 

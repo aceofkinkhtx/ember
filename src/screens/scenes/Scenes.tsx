@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SceneRequests } from '../../components/scene/Requests';
-import { ProposeLink } from '../../components/ProposeLink';
+import { NewSceneButton } from '../../components/scene/NewSceneButton';
 import { SharedVibes } from './VibePage';
 import { MiniCurve, sceneFacts } from '../../components/scene/SceneCurve';
 import { tabLabel } from '../../content/copy';
@@ -61,13 +61,8 @@ export function Scenes() {
     <main className="screen">
       <div className="person">
         <h1 style={{ margin: 0 }}>{title}</h1>
-        <Link to="/scenes/new" className="btn btn-primary">
-          New scene
-        </Link>
+        <NewSceneButton />
       </div>
-      <p className="note" style={{ margin: 0 }}>
-        Want to agree on what you'd like first? <ProposeLink className="" />
-      </p>
       <SceneRequests />
       <SharedVibes />
       <div className="segmented" role="tablist" aria-label="Which scenes" style={{ alignSelf: 'flex-start' }}>

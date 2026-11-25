@@ -535,16 +535,16 @@ function Guide({ scene, ctx, onChange, gearLabel }: { scene: Scene; ctx: RuleCon
           </div>
         )}
 
-        <article className="card stack live-beat" style={{ gap: 10, borderTop: `6px solid ${colorOf(live.beat)}` }} aria-label={here.beat.title || 'Beat'}>
+        <article className="card stack live-beat" style={{ gap: 10, borderTop: `6px solid ${colorOf(live.beat)}` }} aria-label={here.beat.title || 'Moment'}>
           <div className="person">
             <span className="eyebrow" style={{ color: 'var(--text-muted)' }}>
-              {phaseLabels[here.phase.type]} · beat {live.beat + 1} of {all.length}
+              {phaseLabels[here.phase.type]} · moment {live.beat + 1} of {all.length}
             </span>
-            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: over ? '#ffb347' : undefined }} aria-label="Time in this beat">
+            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: over ? '#ffb347' : undefined }} aria-label="Time in this moment">
               {clock(beatMs)} / {here.beat.minutes}:00
             </span>
           </div>
-          <h2 style={{ margin: 0 }}>{here.beat.title || 'Untitled beat'}</h2>
+          <h2 style={{ margin: 0 }}>{here.beat.title || 'Untitled moment'}</h2>
           <span className="note">Intensity {here.beat.intensity} of 10</span>
           <SetupLine scene={scene} phase={here.phase} firstBeat={here.phase.beats[0]?.id === here.beat.id} />
           {here.beat.flags.map((f, k) => (
@@ -572,7 +572,7 @@ function Guide({ scene, ctx, onChange, gearLabel }: { scene: Scene; ctx: RuleCon
                 </li>
               );
             })}
-            {!steps.length && <li className="note">No steps in this beat.</li>}
+            {!steps.length && <li className="note">No activities in this moment.</li>}
           </ol>
         </article>
 

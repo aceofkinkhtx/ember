@@ -7,8 +7,8 @@ export type PhaseType = 'arrival' | 'ritual' | 'build' | 'peak' | 'recovery' | '
 export const phaseLabels: Record<PhaseType, string> = {
   arrival: 'Arrival',
   ritual: 'Ritual',
-  build: 'Build',
-  peak: 'Peak',
+  build: 'Build-up',
+  peak: 'Peak Moment',
   recovery: 'Recovery',
   descent: 'Descent',
   close: 'Close',
@@ -34,4 +34,10 @@ export type PhaseColors = Record<PhaseType, string>;
 /** A Top's colors: their overrides on top of the defaults. */
 export function phaseColors(overrides: Partial<PhaseColors> = {}): PhaseColors {
   return { ...defaultPhaseColors, ...overrides };
+}
+
+/** "the Arrival moment", but "the Peak Moment" (Michael, Nov 25). */
+export function momentName(type: PhaseType): string {
+  const label = phaseLabels[type];
+  return label.endsWith('Moment') ? label : `${label} moment`;
 }

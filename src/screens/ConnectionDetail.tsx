@@ -241,8 +241,8 @@ function Proposals({ connection, name }: { connection: Connection; name: string 
   }, [keys, connection.id]);
   const me = keys?.userId;
   return (
-    <section className="card stack" aria-label="Scene proposals">
-      <div className="eyebrow">Scene proposals</div>
+    <section className="card stack" aria-label="Scene requests">
+      <div className="eyebrow">Scene requests</div>
       <p className="setting-desc" style={{ margin: 0 }}>
         Say what you'd like to do, feel or experience this time. {name} keeps, removes or adds, and once you both agree, the Top designs from it.
       </p>
@@ -260,7 +260,7 @@ function Proposals({ connection, name }: { connection: Connection; name: string 
         );
       })}
       <Link to={`/connections/${connection.id}/propose`} className="btn btn-outline" style={{ alignSelf: 'flex-start' }}>
-        Propose a scene
+        Request a scene
       </Link>
     </section>
   );

@@ -1,5 +1,6 @@
 import { categorySafety, CNC_SIGNALS } from '../../content/playSafety';
 import { bodyAreas } from '../../content/intake';
+import { phaseLabels } from '../../content/phases';
 import { choiceLabel, furniture, positions } from '../../data/positions';
 import { allTopActivities, type TopSetup } from '../../content/topSetup';
 import { aftercareMinutes } from '../../content/topDefaults';
@@ -234,7 +235,7 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
 
   // Arc
   const missing = (['arrival', 'peak', 'descent', 'close', 'aftercare'] as const).filter((t) => !types.includes(t));
-  if (missing.length) add('arc', 'block', `Every scene needs ${missing.join(', ')}.`);
+  if (missing.length) add('arc', 'block', `Every scene needs ${missing.map((t) => phaseLabels[t]).join(', ')}.`);
   if ((types.includes('aftercare') && types[types.length - 1] !== 'aftercare') || (types.includes('arrival') && types[0] !== 'arrival'))
     add('arc-order', 'block', 'Arrival comes first and aftercare comes last.');
   const closeAt = types.lastIndexOf('close');
@@ -252,27 +253,27 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
   // Warm-up
   const firstWarm = ordered.findIndex((x) => x.beat.kind === 'warmup');
   const tooSoon = ordered.find((x) => x.beat.intensity > 4 && (firstWarm < 0 || x.index < firstWarm));
-  if (tooSoon) add('warmup', 'block', 'Nothing above intensity 4 before a warm-up beat.', { beatId: tooSoon.beat.id });
+  if (tooSoon) add('warmup', 'block', 'Nothing above intensity 4 before a warm-up moment.', { beatId: tooSoon.beat.id });
 
   // Peaks
   const peakIdx = types.flatMap((t, i) => (t === 'peak' ? [i] : []));
   for (let k = 1; k < peakIdx.length; k++) {
     const between = scene.phases.slice(peakIdx[k - 1] + 1, peakIdx[k]);
     const rests = between.some((p) => (p.type === 'recovery' && p.beats.length > 0) || p.beats.some((b) => b.kind === 'recovery'));
-    if (!rests) add('recovery', 'block', 'Two peaks need a recovery beat between them: water, care, a check-in.', { beatId: scene.phases[peakIdx[k]].beats[0]?.id });
+    if (!rests) add('recovery', 'block', 'Two Peak Moments need a Recovery moment between them: water, care, a check-in.', { beatId: scene.phases[peakIdx[k]].beats[0]?.id });
   }
   if (peakIdx.length > 1) {
     const [a, b] = [scene.phases[peakIdx[0]], scene.phases[peakIdx[1]]];
     const len = (p: Phase) => p.beats.reduce((n, x) => n + x.minutes, 0);
     const top = (p: Phase) => Math.max(0, ...p.beats.map((x) => x.intensity));
-    if (len(a) >= len(b) || top(a) >= top(b)) add('first-peak', 'warn', 'The first peak is usually shorter and lighter than the next.', { beatId: a.beats[0]?.id });
+    if (len(a) >= len(b) || top(a) >= top(b)) add('first-peak', 'warn', 'The first Peak Moment is usually shorter and lighter than the next.', { beatId: a.beats[0]?.id });
   }
 
   // Intensity drops mid-build
   for (const p of scene.phases.filter((x) => x.type === 'build')) {
     for (let k = 1; k < p.beats.length; k++) {
       if (p.beats[k].intensity < p.beats[k - 1].intensity && p.beats[k].kind !== 'recovery')
-        add('build-drop', 'warn', 'Intensity drops in the middle of the build.', { beatId: p.beats[k].id });
+        add('build-drop', 'warn', 'Intensity drops in the middle of the build-up.', { beatId: p.beats[k].id });
     }
   }
 
@@ -314,10 +315,10 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
     if (position === 'standing' && bound && phaseMinutes(phase) > 20)
       add('standing-bound', 'warn', 'Standing bound for over 20 minutes: watch for fainting, and have a way to get them down fast.', where);
     if (scene.agreed?.positions && position && !scene.agreed.positions.includes(position))
-      add('not-agreed', 'block', `${choiceLabel(positions, position)} isn't a position you agreed together. Ask to add it to your proposal first.`, where);
+      add('not-agreed', 'block', `${choiceLabel(positions, position)} isn't a position you agreed together. Ask to add it to your scene request first.`, where);
     const piece = phase.setup?.furniture;
     if (scene.agreed?.furniture && piece && !scene.agreed.furniture.includes(piece))
-      add('not-agreed', 'block', `${choiceLabel(furniture, piece)} isn't furniture you agreed together. Ask to add it to your proposal first.`, where);
+      add('not-agreed', 'block', `${choiceLabel(furniture, piece)} isn't furniture you agreed together. Ask to add it to your scene request first.`, where);
     if (phase.setup?.furniture === 'swing')
       add('swing', 'warn', 'Suspension swing: check its weight rating and anchor first, and have a quick way to release.', where);
   }
@@ -339,7 +340,7 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
       const choice = choiceOf(ctx, a.id);
       const forPartner = (ctx.intakeOf ?? 'partner') === 'partner';
       const inAgreed = Boolean(agreed?.activityIds.includes(a.id));
-      if (agreed && !inAgreed) add('not-agreed', 'block', `${a.label} isn't in what you agreed together. Ask to add it to your proposal first.`, where);
+      if (agreed && !inAgreed) add('not-agreed', 'block', `${a.label} isn't in what you agreed together. Ask to add it to your scene request first.`, where);
       if (choice === 'no' && !forPartner) add('limits', 'block', `You marked ${a.label} as no. Change your intake first if that has changed.`, where);
       else if (!forPartner) {
         // Your own maybes and unanswered items are yours to choose.
@@ -362,7 +363,7 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
       const range = ctx.top.offerings.categories[a.category];
       if (range?.on && beat.intensity > range.max)
         add('top-range', 'warn', `Intensity ${beat.intensity} is above how far you go with ${a.category} (${range.max}).`, { beatId: beat.id });
-      if (phase.type === 'peak' && INSERTABLES.has(a.id)) add('insertable-peak', 'warn', 'Insertables go in during a calm beat, not at a peak.', where);
+      if (phase.type === 'peak' && INSERTABLES.has(a.id)) add('insertable-peak', 'warn', 'Insertables go in during a calm moment, not at a Peak Moment.', where);
 
       const g = s.gearId ? ctx.gear.find((x) => x.id === s.gearId) : undefined;
       const liked = ctx.intake?.detailed?.impact.feel ?? [];
@@ -418,7 +419,7 @@ export interface Confirmation {
 export function confirmationsFor(ctx: RuleContext, a: Activity): { blocked: string } | { confirm: Confirmation[] } {
   const confirm: Confirmation[] = [];
   if (ctx.agreed && !ctx.agreed.activityIds.includes(a.id)) {
-    return { blocked: `${a.label} isn't in what you agreed together. Ask to add it to your proposal first.` };
+    return { blocked: `${a.label} isn't in what you agreed together. Ask to add it to your scene request first.` };
   }
   if (choiceOf(ctx, a.id) === 'no') {
     if ((ctx.intakeOf ?? 'partner') !== 'partner') return { blocked: `You marked ${a.label} as no. Change your intake first if that has changed.` };
@@ -426,7 +427,7 @@ export function confirmationsFor(ctx: RuleContext, a: Activity): { blocked: stri
     if (!ctx.intake?.essentials.allowNoOverride.on && !herException) return { blocked: `They marked ${a.label} as no, and haven't allowed overrides.` };
     confirm.push({
       kind: 'no',
-      question: herException ? 'They marked this as no, then allowed it for this scene in your proposal. Include it?' : 'They marked this as no. Have you talked and agreed to include it?'
+      question: herException ? 'They marked this as no, then allowed it for this scene in your scene request. Include it?' : 'They marked this as no. Have you talked and agreed to include it?'
     });
   }
   if (a.edge) {

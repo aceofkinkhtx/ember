@@ -8,7 +8,7 @@ export const shapes: Record<ArcShape, { label: string; desc: string }> = {
   climb: { label: 'One long climb', desc: 'A patient build to a single peak, then a slow way down.' },
   twin: { label: 'Two peaks', desc: 'A lighter first peak, a real rest, then a fuller second peak.' },
   waves: { label: 'Waves', desc: 'Three smaller peaks, each a little higher, with breaths between.' },
-  custom: { label: 'Build your own', desc: 'Empty sections in the usual order. Add beats, move them, and fill them with your own actions.' }
+  custom: { label: 'Build your own', desc: 'Empty moments in the usual order. Add moments inside them, move them, and fill them with your own activities.' }
 };
 
 /** Which shape fits each Flow word best. */
@@ -68,8 +68,8 @@ export const fixed = {
     say: 'Take a breath with me. We have all the time we planned.'
   },
   warmup: { title: 'Warm up' },
-  build: { title: 'Build' },
-  peak: { title: 'Peak' },
+  build: { title: 'Build-up' },
+  peak: { title: 'Peak Moment' },
   recovery: {
     title: 'Recover',
     do: 'Pause everything. Offer water, check skin and circulation, and stay in contact.',

@@ -68,7 +68,7 @@ export function sceneFacts(scene: Scene): string {
   const minutes = sceneMinutes(scene);
   const peaks = peakCount(scene);
   const time = minutes >= 60 ? `${Math.floor(minutes / 60)} h ${minutes % 60 ? `${minutes % 60} min` : ''}`.trim() : `${minutes} min`;
-  return `${time} with aftercare, ${peaks} ${peaks === 1 ? 'peak' : 'peaks'}`;
+  return `${time} with aftercare, ${peaks} ${peaks === 1 ? 'Peak Moment' : 'Peak Moments'}`;
 }
 
 export { usePhaseColor };

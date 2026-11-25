@@ -2,6 +2,18 @@
 
 Decisions Michael made outside the spec tabs, newest first. The spec still wins where it is more specific.
 
+## Nov 25, 2026
+
+- **Scene words.** On screen, a beat is now a "moment" and a step is an "activity". The Build section is "Build-up" and the Peak is "Peak Moment". (The data inside Ember keeps its old names, so nothing saved changes.)
+- **Moments within moments.** The colored sections (Arrival, Ritual, Build-up, Peak Moment, Recovery, Descent, Close, Aftercare) are the largest kind of moment. Moments can sit inside them, and activities and gear sit inside those.
+- **Deleting moments.** Every moment has a trash button and a confirm that says what else goes with it. The safety rules still apply: Arrival, a Peak Moment, Descent, Close and Aftercare can't be deleted, and the confirm says why.
+- **Adding an activity** opens the activity list first ("No activity: care or connection" is also there), then the activity's own sheet for do, say, watch and notes. A new moment starts empty instead of with a blank "None" step.
+- **"Change" and "Close"** now look like buttons (outlined).
+- **New scene** on Home and in Scenes asks: "Request a Scene" (the scene proposal, renamed) or "Build a Scene" (the designer). Everywhere else "proposal" now says "scene request".
+- **Agreed items aren't flagged.** Activities both people agreed in a scene request no longer show "Not answered" or "Maybe" tags, even if the bottom has no intake.
+- **Intake reminder.** After someone requests, builds or sends a scene, Ember reminds them to fill out their intake, only if they haven't. For a Top acting as Top, the reminder is for their offerings, since that is what Ember designs from on the Top's side.
+- **Home shows sent requests** waiting for an answer, and who has them: scene requests and designs sent to a Top.
+
 ## Nov 23, 2026
 
 - **Debrief: "Didn't get to it."** Both debriefs have it as an answer per activity. It never suggests a profile change.

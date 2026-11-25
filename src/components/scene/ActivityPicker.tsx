@@ -10,8 +10,9 @@ import { activityOf, choiceOf, confirmationsFor, type Confirmation, type RuleCon
 
 export function ActivityTag({ ctx, activity }: { ctx: RuleContext; activity: Activity }) {
   const choice = choiceOf(ctx, activity.id);
-  // Maybe and unanswered only matter for a partner's answers.
-  const partner = (ctx.intakeOf ?? 'partner') === 'partner';
+  // Maybe and unanswered only matter for a partner's answers, and not for
+  // anything you both agreed in a scene request (Michael, Nov 25).
+  const partner = (ctx.intakeOf ?? 'partner') === 'partner' && !ctx.agreed?.activityIds.includes(activity.id);
   return (
     <>
       {partner && choice === 'maybe' && <span className="tag tag-amber">Maybe</span>}
@@ -75,7 +76,7 @@ export function useAddActivity(ctx: RuleContext, onAdd: (a: Activity, overrides:
           {asking.queue[0].question}
         </h2>
         <p className="note" style={{ margin: 0 }}>
-          Your answer is saved with today's date in this scene's record. The flag stays visible on the beat and in the live guide.
+          Your answer is saved with today's date in this scene's record. The flag stays visible on the moment and in the live guide.
         </p>
         <button type="button" className="btn btn-primary btn-block" onClick={() => answer(true)}>
           Yes, we agreed

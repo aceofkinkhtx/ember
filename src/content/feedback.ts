@@ -90,7 +90,7 @@ export const feedbackSections: FeedbackSection[] = [
     who: 'all',
     tryThis: [
       'Tops: start a new scene with a partner, pick activities and compare the starting designs. Try "Build your own" too.',
-      'In the editor: drag a step, change a section\'s timing, add gear to a section, and read any flags.',
+      'In the editor: drag an activity, change a moment\'s timing, add gear to a moment, and read any flags.',
       'bottoms: design a scene for your Top and send it as a request.'
     ],
     questions: [
@@ -207,7 +207,7 @@ export const feedbackSections: FeedbackSection[] = [
 
 export const problemQuestions: Question[] = [
   { id: 'where', kind: 'one', prompt: 'Where was it?', options: [...feedbackSections.filter((s) => s.id !== 'overall').map((s) => s.title), 'Somewhere else'] },
-  { id: 'doing', kind: 'text', prompt: 'What were you doing?', hint: 'For example: "Dragging a step in the editor."' },
+  { id: 'doing', kind: 'text', prompt: 'What were you doing?', hint: 'For example: "Dragging an activity in the editor."' },
   { id: 'happened', kind: 'text', prompt: 'What happened?' },
   { id: 'expected', kind: 'text', prompt: 'What did you expect instead?' },
   { id: 'how', kind: 'one', prompt: 'How bad was it?', options: ['It stopped me', 'Annoying', 'Small'] },

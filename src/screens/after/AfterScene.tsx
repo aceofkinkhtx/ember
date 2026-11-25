@@ -721,7 +721,7 @@ const dueTitle: Record<Reminder['kind'], (name: string) => string> = {
   followup: () => 'Your follow-up',
   checkin: (name) => `Check in with ${name}`,
   message: () => 'New message',
-  negotiation: () => 'A scene proposal'
+  negotiation: () => 'A scene request'
 };
 
 /** Due check-ins first, in amber (H1 and BH1). */
