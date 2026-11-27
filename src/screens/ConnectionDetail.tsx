@@ -117,6 +117,8 @@ export function ConnectionDetail() {
         </div>
       </div>
 
+      <MessagesLink connection={connection} name={name} />
+
       <section className="card stack" aria-label="Roles">
         <RolePicker label={`Your role with ${name}`} value={connection.myRole} onChange={changeRole} discreet={settings.discreet} />
         <p className="note">
@@ -153,7 +155,6 @@ export function ConnectionDetail() {
       )}
 
       {connection.status === 'active' && <Proposals connection={connection} name={name} />}
-      <MessagesLink connection={connection} name={name} />
       <ConnectionToys connection={connection} name={name} />
 
       {comingSections.map((s) => (
@@ -207,7 +208,7 @@ export function ConnectionDetail() {
   );
 }
 
-/** C3/BC2: the Messages button, with how many are unread. */
+/** C3/BC2: the Messages button, with how many are unread. First on the page (Michael, Nov 26). */
 function MessagesLink({ connection, name }: { connection: Connection; name: string }) {
   const { keys } = useAccount();
   const [unread, setUnread] = useState(0);
@@ -216,15 +217,14 @@ function MessagesLink({ connection, name }: { connection: Connection; name: stri
   }, [keys, connection.id]);
   if (connection.status === 'ended') return null;
   return (
-    <section className="card stack" style={{ gap: 8 }} aria-label="Messages">
-      <div className="eyebrow">Messages</div>
-      <p className="setting-desc" style={{ margin: 0 }}>
-        Locked on your phones. Ember can't read them.
-      </p>
-      <Link to={`/connections/${connection.id}/messages`} className="btn btn-outline" style={{ alignSelf: 'flex-start' }}>
+    <section className="stack" style={{ gap: 6 }} aria-label="Messages">
+      <Link to={`/connections/${connection.id}/messages`} className="btn btn-primary btn-block">
         Message {name}
         {unread ? ` (${unread} new)` : ''}
       </Link>
+      <p className="note" style={{ margin: 0, textAlign: 'center' }}>
+        Locked on your phones. Ember can't read them.
+      </p>
     </section>
   );
 }

@@ -376,7 +376,7 @@ function JoinWithCode({ primary }: { primary: boolean }) {
       }}
     >
       <label className="field">
-        <span className="field-label">Join with a code</span>
+        <span className="field-label">Add a connection</span>
         <span className="field-hint">An invite code, or someone's personal code.</span>
         <input
           className="input code"

@@ -99,16 +99,13 @@ function TipCard() {
     if (on && !startedOn) update({ tipsStartedOn: today });
   }, [on, startedOn, today, update]);
   if (!on) return null;
-  const { tip, day, total } = tipFor(settings.activeRole, startedOn ?? today, today);
+  const { tip } = tipFor(settings.activeRole, startedOn ?? today, today);
   return (
     <section className="card card-teal" aria-labelledby="tip-title">
       <div className="eyebrow" id="tip-title">
         Today's note · {tip.theme}
       </div>
       <p style={{ margin: 0 }}>{tip.text}</p>
-      <p className="note" style={{ margin: 0 }}>
-        {day} of {total}. A new one each day; turn them off in Me.
-      </p>
     </section>
   );
 }

@@ -5,7 +5,7 @@ import { openSealed } from './crypto';
 import { listVersions } from './intake';
 import { listThread } from './messages';
 import { listScenes } from './scenes';
-import { BUCKET as GEAR_BUCKET, listMyToys, loadToyRing, photoUrl } from './toys';
+import { BUCKET as GEAR_BUCKET, listMyToys, loadToyRing, photosOf, photoUrl } from './toys';
 import { eraseAll } from './storage';
 
 // M9: your data. Export unlocks everything you can read on this phone and
@@ -47,8 +47,12 @@ export async function collectMyData(keys: StoredKeys, settings: Settings, onStep
   const toys = await listMyToys(keys).catch(() => []);
   const gear = [];
   for (const t of toys) {
-    const url = ring ? await photoUrl(t, ring.gens).catch(() => null) : null;
-    gear.push({ ...t, photo: url ? await dataUrl(url) : null });
+    const photos = [];
+    for (const p of photosOf(t)) {
+      const url = ring ? await photoUrl(t, ring.gens, p.id).catch(() => null) : null;
+      if (url) photos.push(await dataUrl(url));
+    }
+    gear.push({ ...t, photos });
   }
 
   onStep('Your scenes');

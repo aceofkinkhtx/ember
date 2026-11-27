@@ -2,6 +2,16 @@
 
 Decisions Michael made outside the spec tabs, newest first. The spec still wins where it is more specific.
 
+## Nov 26, 2026
+
+- **Messages first.** On a connection's page, "Message {name}" is now the first thing under their name, as a full-width button.
+- **Check-in reminder time.** A Top chooses how long after a scene the reminder to check in with the bottom comes: 4, 8, 12, 24 or 48 hours, in Top settings under "Between scenes". The default is 12 hours (this replaces the earlier 18). It needs the database update in `20261126000000_checkin_hours.sql`; until that runs, the reminder still comes at 18 hours.
+- **Daily note:** the small "day N of N" line under it is gone.
+- **Aftercare is the only required section** (Michael). Arrival, Peak Moment, Descent and Close can each be deleted after a warning that says what the section is for and a ticked "I understand". Aftercare can't be deleted, and no warning sets aside its length rule. "Put back" under "Add a moment" restores a deleted Arrival, Descent or Close in its place. The other safety rules stay: if there is a Descent it still needs a spoken landing line, and a moment a rule needs (such as that landing line) can be deleted after a ticked warning, but its red item stays and the scene can't be started or sent until it's fixed. This replaces "Every scene needs Arrival, Peak, Descent, Close and Aftercare".
+- **Gear photos:** up to 6 per item, each locked on the phone like the first. Gear saved before keeps its photo.
+- **More kinds of play for gear:** Rope, Electro, Temperature, Wax, Fire, Vibration, Chastity and Roleplay join Impact, Sensation, Bondage, Insertable and More.
+- **Wording:** "Join with a code" is now "Add a connection", and Live Scene Mode's button is "Next moment".
+
 ## Nov 25, 2026
 
 - **Scene words.** On screen, a beat is now a "moment" and a step is an "activity". The Build section is "Build-up" and the Peak is "Peak Moment". (The data inside Ember keeps its old names, so nothing saved changes.)

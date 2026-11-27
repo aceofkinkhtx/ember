@@ -52,12 +52,17 @@ export const cadenceLabels: Record<CheckInCadence, string> = {
   daily: 'Daily'
 };
 
+export const CHECK_IN_HOURS = { default: 12, options: [4, 8, 12, 24, 48] };
+export const checkInHoursOf = (s: { checkInHours?: number }) => s.checkInHours ?? CHECK_IN_HOURS.default;
+
 export interface TopSettings {
   /** Aftercare as a share of scene length. */
   aftercarePercent: number;
   /** The same for scenes marked intense (never under 30 minutes). */
   intensePercent: number;
   checkIns: CheckInCadence;
+  /** Hours after a scene until the reminder to check in with the bottom (Michael, Nov 26). */
+  checkInHours?: number;
   /** One line describing how this Top speaks, used for SAY suggestions. */
   voice: string;
   /**
@@ -85,6 +90,7 @@ export function defaultTopSettings(): TopSettings {
     aftercarePercent: aftercare.defaultPercent,
     intensePercent: aftercare.intensePercent,
     checkIns: 'none',
+    checkInHours: CHECK_IN_HOURS.default,
     voice: '',
     allowNegotiatedSex: false,
     phaseColors: {},

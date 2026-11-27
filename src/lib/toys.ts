@@ -8,13 +8,35 @@ import { readJson, writeJson } from './storage';
 // connection gives them a copy of the toy keys locked for them alone; turning
 // sharing off makes a new key, so nothing added or changed afterward reaches them.
 
-export type PlayType = 'impact' | 'sensation' | 'insertable' | 'bondage' | 'more';
+export type PlayType =
+  | 'impact'
+  | 'sensation'
+  | 'rope'
+  | 'bondage'
+  | 'electro'
+  | 'temperature'
+  | 'wax'
+  | 'fire'
+  | 'vibration'
+  | 'insertable'
+  | 'chastity'
+  | 'roleplay'
+  | 'more';
 
+/** Kinds of play for gear; more added Nov 26 (Michael). "More" stays last. */
 export const playTypes: { id: PlayType; label: string }[] = [
   { id: 'impact', label: 'Impact' },
   { id: 'sensation', label: 'Sensation' },
-  { id: 'insertable', label: 'Insertable' },
+  { id: 'rope', label: 'Rope' },
   { id: 'bondage', label: 'Bondage' },
+  { id: 'electro', label: 'Electro' },
+  { id: 'temperature', label: 'Temperature' },
+  { id: 'wax', label: 'Wax' },
+  { id: 'fire', label: 'Fire' },
+  { id: 'vibration', label: 'Vibration' },
+  { id: 'insertable', label: 'Insertable' },
+  { id: 'chastity', label: 'Chastity' },
+  { id: 'roleplay', label: 'Roleplay' },
   { id: 'more', label: 'More' }
 ];
 
@@ -30,8 +52,30 @@ export interface ToyDetails {
   feel: Feel[];
   types: PlayType[];
   notes: string;
-  /** Which toy key locked the photo; null when there is no photo. */
+  /** Which toy key locked the first photo; null when there is no photo. Kept for older copies of Ember. */
   photoGen: number | null;
+  /** Every photo, first one first (Michael, Nov 26). Missing on gear saved before then. */
+  photos?: ToyPhotoRef[];
+}
+
+/** One photo of a piece of gear. The first photo ever saved has the id "". */
+export interface ToyPhotoRef {
+  id: string;
+  /** Which toy key locked it. */
+  gen: number;
+}
+
+export const MAX_PHOTOS = 6;
+
+/** A toy's photos, including one saved before gear could have several. */
+export function photosOf(t: ToyDetails): ToyPhotoRef[] {
+  return t.photos ?? (t.photoGen !== null ? [{ id: '', gen: t.photoGen }] : []);
+}
+
+/** Photos to add (new bytes) and to remove (by id) when a toy is saved. */
+export interface PhotoEdits {
+  add: Uint8Array[];
+  remove: string[];
 }
 
 export interface Toy extends ToyDetails {
@@ -117,34 +161,37 @@ export async function listMyToys(keys: StoredKeys): Promise<Toy[]> {
   return ring ? openRows(data ?? [], ring.gens) : [];
 }
 
-const photoPath = (ownerId: string, toyId: string) => `${ownerId}/${toyId}`;
+// The first photo keeps the path single photos always had; others add their id.
+const photoPath = (ownerId: string, toyId: string, photoId = '') => (photoId ? `${ownerId}/${toyId}-${photoId}` : `${ownerId}/${toyId}`);
 
-/**
- * Saves a toy. `photo` is the new photo's bytes, null to remove the photo, or
- * undefined to keep the one it has.
- */
-export async function saveToy(keys: StoredKeys, toy: { id?: string; details: ToyDetails }, photo?: Uint8Array | null): Promise<Toy> {
+/** Saves a toy, adding and removing photos as asked. */
+export async function saveToy(keys: StoredKeys, toy: { id?: string; details: ToyDetails }, edits: PhotoEdits = { add: [], remove: [] }): Promise<Toy> {
   const ring = await ensureToyRing(keys);
   const gen = current(ring);
   const id = toy.id ?? crypto.randomUUID();
   const details: ToyDetails = { ...toy.details, name: toy.details.name.trim() };
-  const path = photoPath(keys.userId, id);
+  let photos = photosOf(toy.details);
 
-  if (photo) {
-    const locked = await lockBytes(photo, gen.key);
-    const { error } = await db.storage.from(BUCKET).upload(path, locked, {
+  if (edits.remove.length) {
+    const gone = photos.filter((p) => edits.remove.includes(p.id));
+    if (gone.length) await db.storage.from(BUCKET).remove(gone.map((p) => photoPath(keys.userId, id, p.id)));
+    photos = photos.filter((p) => !edits.remove.includes(p.id));
+  }
+  for (const bytes of edits.add.slice(0, Math.max(0, MAX_PHOTOS - photos.length))) {
+    // A toy with no photos yet uses the original path, so older copies of Ember still show it.
+    const photoId = photos.length ? crypto.randomUUID().slice(0, 8) : '';
+    const locked = await lockBytes(bytes, gen.key);
+    const { error } = await db.storage.from(BUCKET).upload(photoPath(keys.userId, id, photoId), locked, {
       upsert: true,
       contentType: 'application/octet-stream',
       cacheControl: '0'
     });
     if (error) throw new AccountError("Ember couldn't save the photo. Please try again.");
-    details.photoGen = gen.g;
-    forgetPhoto(id);
-  } else if (photo === null && details.photoGen !== null) {
-    await db.storage.from(BUCKET).remove([path]);
-    details.photoGen = null;
-    forgetPhoto(id);
+    photos = [...photos, { id: photoId, gen: gen.g }];
   }
+  if (edits.add.length || edits.remove.length) forgetPhoto(id);
+  details.photos = photos;
+  details.photoGen = photos[0]?.gen ?? null;
 
   const now = new Date().toISOString();
   const sealed = await sealToy(details, gen);
@@ -158,7 +205,8 @@ export async function saveToy(keys: StoredKeys, toy: { id?: string; details: Toy
 export async function deleteToy(keys: StoredKeys, toy: Toy): Promise<void> {
   const { error } = await db.from('toys').delete().eq('id', toy.id);
   if (error) throw new AccountError("Ember couldn't delete that.");
-  if (toy.photoGen !== null) await db.storage.from(BUCKET).remove([photoPath(keys.userId, toy.id)]);
+  const photos = photosOf(toy);
+  if (photos.length) await db.storage.from(BUCKET).remove(photos.map((p) => photoPath(keys.userId, toy.id, p.id)));
   forgetPhoto(toy.id);
 }
 
@@ -167,9 +215,11 @@ export async function deleteToy(keys: StoredKeys, toy: Toy): Promise<void> {
 const photoUrls = new Map<string, string>();
 
 function forgetPhoto(toyId: string): void {
-  const url = photoUrls.get(toyId);
-  if (url) URL.revokeObjectURL(url);
-  photoUrls.delete(toyId);
+  for (const [key, url] of photoUrls) {
+    if (key.split(':')[0] !== toyId) continue;
+    URL.revokeObjectURL(url);
+    photoUrls.delete(key);
+  }
 }
 
 /**
@@ -177,18 +227,21 @@ function forgetPhoto(toyId: string): void {
  * this tab. The file cache keeps a copy per sign-in, so each download asks with
  * a fresh value: access is then checked every time.
  */
-export async function photoUrl(toy: Toy, gens: ToyKeyGen[]): Promise<string | null> {
-  if (toy.photoGen === null) return null;
-  const cached = photoUrls.get(toy.id);
+export async function photoUrl(toy: Toy, gens: ToyKeyGen[], photoId?: string): Promise<string | null> {
+  const all = photosOf(toy);
+  const photo = photoId === undefined ? all[0] : all.find((p) => p.id === photoId);
+  if (!photo) return null;
+  const cacheKey = `${toy.id}:${photo.id}`;
+  const cached = photoUrls.get(cacheKey);
   if (cached) return cached;
-  const gen = gens.find((x) => x.g === toy.photoGen);
+  const gen = gens.find((x) => x.g === photo.gen);
   if (!gen) return null;
-  const { data } = await db.storage.from(BUCKET).download(photoPath(toy.ownerId, toy.id), { cacheNonce: crypto.randomUUID() });
+  const { data } = await db.storage.from(BUCKET).download(photoPath(toy.ownerId, toy.id, photo.id), { cacheNonce: crypto.randomUUID() });
   if (!data) return null;
   const bytes = await unlockBytes(new Uint8Array(await data.arrayBuffer()), gen.key).catch(() => null);
   if (!bytes) return null;
   const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'image/jpeg' }));
-  photoUrls.set(toy.id, url);
+  photoUrls.set(cacheKey, url);
   return url;
 }
 

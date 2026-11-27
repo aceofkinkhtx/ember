@@ -11,6 +11,8 @@ import {
   listMyToys,
   listOptOuts,
   loadToyRing,
+  MAX_PHOTOS,
+  photosOf,
   playTypes,
   saveToy,
   setOptOut,
@@ -21,8 +23,8 @@ import { useAccount } from '../state/account';
 import { useSettings } from '../state/settings';
 import { displayName } from './Connections';
 
-// T2: add or edit a toy. A photo, then three taps (feel, play type, name),
-// notes, and which connections it stays out of scenes with.
+// T2: add or edit a toy. Photos (up to six, Michael Nov 26), then three taps
+// (feel, play type, name), notes, and which connections it stays out of scenes with.
 
 export function ToyEdit() {
   const { id } = useParams();
@@ -32,9 +34,9 @@ export function ToyEdit() {
   const { keys } = useAccount();
   const [toy, setToy] = useState<Toy | null | undefined>(isNew ? null : undefined);
   const [details, setDetails] = useState<ToyDetails>(emptyToy());
-  // undefined keeps the current photo, null removes it.
-  const [photo, setPhoto] = useState<Uint8Array | null | undefined>(undefined);
-  const [preview, setPreview] = useState<string | null>(null);
+  // New photos (with a preview link) and saved photos to remove, both applied on Save.
+  const [added, setAdded] = useState<{ key: string; bytes: Uint8Array; url: string }[]>([]);
+  const [removed, setRemoved] = useState<string[]>([]);
   const [people, setPeople] = useState<Connection[]>([]);
   const [optedOut, setOptedOut] = useState<string[]>([]);
   const [optedOutBefore, setOptedOutBefore] = useState<string[]>([]);
@@ -68,23 +70,27 @@ export function ToyEdit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keys, id]);
 
-  useEffect(
-    () => () => {
-      if (preview) URL.revokeObjectURL(preview);
-    },
-    [preview]
-  );
+  const previews = useRef<string[]>([]);
+  previews.current = added.map((a) => a.url);
+  useEffect(() => () => previews.current.forEach((u) => URL.revokeObjectURL(u)), []);
 
-  async function pickPhoto(f: File | undefined) {
-    if (!f) return;
+  const kept = toy ? photosOf(toy).filter((p) => !removed.includes(p.id)) : [];
+  const room = MAX_PHOTOS - kept.length - added.length;
+
+  async function pickPhotos(files: File[]) {
+    if (!files.length) return;
     setError('');
-    try {
-      const bytes = await shrinkPhoto(f);
-      setPhoto(bytes);
-      setPreview(URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'image/jpeg' })));
-    } catch (e) {
-      setError(e instanceof PhotoError ? e.message : "Ember couldn't read that photo. Try another.");
+    const fresh: typeof added = [];
+    for (const f of files.slice(0, Math.max(0, room))) {
+      try {
+        const bytes = await shrinkPhoto(f);
+        fresh.push({ key: crypto.randomUUID(), bytes, url: URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'image/jpeg' })) });
+      } catch (e) {
+        setError(e instanceof PhotoError ? e.message : "Ember couldn't read that photo. Try another.");
+      }
     }
+    if (files.length > room) setError(`Up to ${MAX_PHOTOS} photos for each item.`);
+    setAdded((a) => [...a, ...fresh]);
   }
 
   async function save() {
@@ -96,7 +102,7 @@ export function ToyEdit() {
     setBusy(true);
     setError('');
     try {
-      const saved = await saveToy(keys, { id: toy?.id, details }, photo);
+      const saved = await saveToy(keys, { id: toy?.id, details: { ...details, photos: toy ? photosOf(toy) : [], photoGen: toy?.photoGen ?? null } }, { add: added.map((a) => a.bytes), remove: removed });
       for (const c of people) {
         const now = optedOut.includes(c.id);
         if (now !== optedOutBefore.includes(c.id)) await setOptOut(c.id, saved.id, now);
@@ -139,8 +145,6 @@ export function ToyEdit() {
     );
   }
 
-  const hasPhoto = photo ? true : photo === null ? false : Boolean(toy && toy.photoGen !== null);
-
   return (
     <main className="screen">
       <Link to="/toys" className="btn btn-quiet" style={{ alignSelf: 'flex-start' }}>
@@ -148,59 +152,75 @@ export function ToyEdit() {
       </Link>
       <h1>{isNew ? 'Add gear' : details.name || 'Edit gear'}</h1>
 
-      <section className="card stack" style={{ gap: 12 }} aria-label="Photo">
-        <div style={{ width: 160, alignSelf: 'center' }}>
-          {preview ? (
-            <img src={preview} alt="New photo" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 12 }} />
-          ) : toy && hasPhoto ? (
-            <ToyPhoto toy={toy} gens={gens} />
-          ) : (
-            <div
-              className="note"
-              style={{ width: '100%', aspectRatio: '1', borderRadius: 12, background: 'var(--line)', display: 'grid', placeItems: 'center' }}
-            >
-              No photo
-            </div>
-          )}
-        </div>
+      <section className="card stack" style={{ gap: 12 }} aria-label="Photos">
+        {kept.length + added.length === 0 ? (
+          <div
+            className="note"
+            style={{ width: 160, alignSelf: 'center', aspectRatio: '1', borderRadius: 12, background: 'var(--line)', display: 'grid', placeItems: 'center' }}
+          >
+            No photo
+          </div>
+        ) : (
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+            {kept.map((p, i) => (
+              <li key={p.id || 'first'} className="stack" style={{ gap: 4 }}>
+                <ToyPhoto toy={toy!} gens={gens} photoId={p.id} />
+                <button type="button" className="btn btn-quiet btn-sm" aria-label={`Remove photo ${i + 1}`} onClick={() => setRemoved((r) => [...r, p.id])}>
+                  Remove
+                </button>
+              </li>
+            ))}
+            {added.map((a, i) => (
+              <li key={a.key} className="stack" style={{ gap: 4 }}>
+                <img src={a.url} alt={`New photo ${i + 1}`} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 12 }} />
+                <button
+                  type="button"
+                  className="btn btn-quiet btn-sm"
+                  aria-label={`Remove photo ${kept.length + i + 1}`}
+                  onClick={() => {
+                    URL.revokeObjectURL(a.url);
+                    setAdded((list) => list.filter((x) => x.key !== a.key));
+                  }}
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         {[camera, gallery].map((ref, i) => (
           <input
             key={i}
             ref={ref}
             type="file"
             accept="image/*"
+            multiple={i === 1}
             capture={i === 0 ? 'environment' : undefined}
             className="sr-only"
             aria-label={i === 0 ? 'Take a photo' : 'Choose from your photos'}
             tabIndex={-1}
             onChange={(e) => {
-              void pickPhoto(e.target.files?.[0]);
+              void pickPhotos(Array.from(e.target.files ?? []));
               e.target.value = '';
             }}
           />
         ))}
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-secondary" onClick={() => camera.current?.click()}>
-            Take a photo
-          </button>
-          <button type="button" className="btn btn-outline" onClick={() => gallery.current?.click()}>
-            Choose from your photos
-          </button>
-          {hasPhoto && (
-            <button
-              type="button"
-              className="btn btn-quiet"
-              onClick={() => {
-                setPhoto(null);
-                setPreview(null);
-              }}
-            >
-              Remove photo
+        {room > 0 ? (
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => camera.current?.click()}>
+              Take a photo
             </button>
-          )}
-        </div>
+            <button type="button" className="btn btn-outline" onClick={() => gallery.current?.click()}>
+              Choose from your photos
+            </button>
+          </div>
+        ) : (
+          <p className="note" style={{ margin: 0, textAlign: 'center' }}>
+            That's {MAX_PHOTOS} photos, the most for one item.
+          </p>
+        )}
         <p className="note" style={{ margin: 0, textAlign: 'center' }}>
-          Photos are made smaller, cleared of location and camera details, and locked before they leave your phone.
+          Up to {MAX_PHOTOS} photos. They're made smaller, cleared of location and camera details, and locked before they leave your phone.
         </p>
       </section>
 

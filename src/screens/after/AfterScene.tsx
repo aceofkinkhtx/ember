@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Segments, TextArea } from '../../components/intake/Bits';
 import { bottomDebrief, bottomReplies, checkInMessage, topDebrief, topReactions, type BottomReply, type DebriefScale, type TopReaction } from '../../content/afterScene';
 import { careSuggestion, careText, checkInQuestions, type Question } from '../../content/checkins';
-import { allTopActivities } from '../../content/topSetup';
+import { allTopActivities, checkInHoursOf } from '../../content/topSetup';
 import { activities as catalog } from '../../data/activities';
 import { AccountError, cardFor, listConnections, type Connection } from '../../lib/account';
 import {
@@ -33,7 +33,7 @@ import { useSettings } from '../../state/settings';
 import { displayName } from '../Connections';
 
 // M7, after the scene: the check-in right after (both), the debriefs (A2 and
-// BA1), profile updates (A3), the Top's check-in about 18 hours later (A4), and
+// BA1), profile updates (A3), the Top's check-in (A4, 12 hours later unless the Top chose otherwise), and
 // the follow-ups once a day for 3 days (BA2, for both). Every answer is sealed
 // on the phone; each screen says what is shared with the other person.
 
@@ -165,9 +165,10 @@ function TopAfter({ vibeId, partnerId, connection, notes, scene, onSaved }: Afte
   const navigate = useNavigate();
   const name = connection ? displayName(connection) : 'them';
   const acts = useMemo(() => (scene ? sceneActivities(scene, settings.top.offerings) : []), [scene, settings.top.offerings]);
+  const hours = checkInHoursOf(settings.top.settings);
   useEffect(() => {
-    void scheduleAfterScene(vibeId).catch(() => {});
-  }, [vibeId]);
+    void scheduleAfterScene(vibeId, hours).catch(() => {});
+  }, [vibeId, hours]);
   if (!keys) return null;
   const me = keys.userId;
   const post = find<PostNote>(notes, me, 'post');
@@ -211,7 +212,7 @@ function TopAfter({ vibeId, partnerId, connection, notes, scene, onSaved }: Afte
       <p className="lede">Your check-in and debrief are saved. Stay close: aftercare doesn't end with the app.</p>
       {scene && <SendDesign scene={scene} name={name} />}
       <TheirSide name={name} post={theirPost} debrief={theirDebrief} acts={acts} />
-      <p className="note">You'll get a reminder to check in with {name} about 18 hours after the scene, and a short follow-up for yourself once a day for 3 days.</p>
+      <p className="note">You'll get a reminder to check in with {name} about {hours} hours after the scene, and a short follow-up for yourself once a day for 3 days.</p>
       <button type="button" className="btn btn-primary btn-block" onClick={() => navigate('/')}>
         Done
       </button>
@@ -647,7 +648,7 @@ export function FollowUpPage() {
   );
 }
 
-// A4: the Top's check-in, about 18 hours later ----------------------------------------------
+// A4: the Top's check-in, the Top's hours later ------------------------------------------------
 
 export function TopCheckInPage() {
   const { vibeId = '' } = useParams();

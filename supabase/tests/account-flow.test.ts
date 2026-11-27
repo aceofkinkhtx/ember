@@ -242,7 +242,7 @@ describe('account flow', () => {
     const flogger = await toysLib.saveToy(
       jadeKeys,
       { details: { ...toysLib.emptyToy(), name: 'Suede flogger', feel: ['thuddy'], types: ['impact'], notes: 'Soft falls' } },
-      photo
+      { add: [photo], remove: [] }
     );
     expect(flogger.photoGen).toBe(1);
     const { data: raw } = await admin.from('toys').select('sealed_toy').eq('id', flogger.id).single();
@@ -615,7 +615,7 @@ describe('account flow', () => {
     const jadeKeys = account.loadKeys()!;
     const conn = (await account.listConnections(jadeKeys, jade)).find((c) => c.otherId === riverUser.id)!;
     await avatar.setAvatar(jadeKeys, new Uint8Array([1, 2, 3]));
-    await toys.saveToy(jadeKeys, { details: { ...toys.emptyToy(), name: "Soft rope" } }, new Uint8Array([4, 5, 6]));
+    await toys.saveToy(jadeKeys, { details: { ...toys.emptyToy(), name: "Soft rope" } }, { add: [new Uint8Array([4, 5, 6])], remove: [] });
     await messages.sendMessage(jadeKeys, conn.id, riverUser.id, { text: "See you Saturday" });
 
     const data = await myData.collectMyData(jadeKeys, { ...defaultSettings, identity: { ...defaultSettings.identity, name: "Jade" } });

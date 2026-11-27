@@ -10,18 +10,18 @@ export function toyTags(toy: Toy): string {
     .join(', ');
 }
 
-export function ToyPhoto({ toy, gens, size = '100%' }: { toy: Toy; gens: ToyKeyGen[]; size?: string | number }) {
+export function ToyPhoto({ toy, gens, size = '100%', photoId }: { toy: Toy; gens: ToyKeyGen[]; size?: string | number; photoId?: string }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
     setUrl(null);
-    photoUrl(toy, gens)
+    photoUrl(toy, gens, photoId)
       .then((u) => live && setUrl(u))
       .catch(() => undefined);
     return () => {
       live = false;
     };
-  }, [toy.id, toy.photoGen, toy.updatedAt, gens]);
+  }, [toy.id, toy.photoGen, toy.updatedAt, gens, photoId]);
 
   return (
     <div

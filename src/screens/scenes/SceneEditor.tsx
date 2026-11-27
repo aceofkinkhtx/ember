@@ -14,7 +14,7 @@ import { momentName, phaseLabels, type PhaseType } from '../../content/phases';
 import { fixed, shapes } from '../../content/sceneText';
 import { AccountError } from '../../lib/account';
 import { newBeat, newId, newStep, phaseMinutes, type Beat, type Override, type Phase, type Scene, type Step } from '../../lib/scene/model';
-import { activityOf, automaticFlags, openContext, withAgreed, blocks, needsNextMorningCheckIn, tryChange, validate, warnings, type Issue, type RuleContext } from '../../lib/scene/rules';
+import { AFTERCARE_RULES, activityOf, automaticFlags, openContext, withAgreed, blocks, needsNextMorningCheckIn, tryChange, validate, warnings, type Issue, type RuleContext } from '../../lib/scene/rules';
 import { copyScene, deleteScene, listScenes, saveScene } from '../../lib/scenes';
 import { shareVibe } from '../../lib/vibes';
 import { useSettings } from '../../state/settings';
@@ -112,11 +112,22 @@ export function SceneEditor() {
     }, 600);
   }
 
-  /** Applies an edit if the rules allow it; returns the reason if not. */
-  function apply(edit: Scene): string | null {
+  /**
+   * Applies an edit if the rules allow it; returns the reason if not. `force`
+   * is only for deleting a moment after its warning is ticked: the rule's red
+   * item then stays, and the scene can't be started or sent until it's fixed.
+   * Nothing sets aside the aftercare rules.
+   */
+  function apply(edit: Scene, force = false): string | null {
     const { scene: next, grewBy } = withAftercareFit(current, edit, ctx.top.settings);
     const result = tryChange(current, next, ctx);
-    if (!result.ok) {
+    const had = new Set(blocks(validate(current, ctx)).map((i) => i.key));
+    const aftercareHit = blocks(validate(next, ctx)).find((i) => AFTERCARE_RULES.includes(i.rule) && !had.has(i.key));
+    if (force && aftercareHit) {
+      setToast({ text: aftercareHit.message });
+      return aftercareHit.message;
+    }
+    if (!result.ok && !force) {
       setToast({ text: result.reason });
       return result.reason;
     }
@@ -155,6 +166,7 @@ export function SceneEditor() {
   }
 
   function addPhase(type: PhaseType) {
+    if (type === 'aftercare' || type === 'arrival' || type === 'descent' || type === 'close') return putBack(type);
     const beat =
       type === 'recovery'
         ? newBeat({ kind: 'recovery', title: fixed.recovery.title, minutes: 5, intensity: 2, steps: [newStep({ do: fixed.recovery.do, say: fixed.recovery.say })] })
@@ -169,9 +181,42 @@ export function SceneEditor() {
     apply({ ...current, phases });
   }
 
+  /** Puts a required section back where it belongs, after it was deleted. */
+  function putBack(type: 'arrival' | 'descent' | 'close' | 'aftercare') {
+    const phases = [...current.phases];
+    const idx = (t: PhaseType) => phases.findIndex((p) => p.type === t);
+    const end = () => (idx('aftercare') >= 0 ? idx('aftercare') : phases.length);
+    if (type === 'arrival') {
+      phases.unshift({ id: newId('p'), type, beats: [newBeat({ title: fixed.arrival.title, minutes: 5, intensity: 2, steps: [newStep({ do: fixed.arrival.do, say: fixed.arrival.say })] })] });
+    } else if (type === 'descent') {
+      const at = idx('close') >= 0 ? idx('close') : end();
+      phases.splice(at, 0, { id: newId('p'), type, beats: [newBeat({ kind: 'landing', title: fixed.descent.title, minutes: 5, intensity: 3, steps: [newStep({ do: fixed.descent.do, say: fixed.descent.say })] })] });
+    } else if (type === 'close') {
+      phases.splice(end(), 0, {
+        id: newId('p'),
+        type,
+        beats: [newBeat({ kind: 'named', title: fixed.close.title, minutes: 3, intensity: 1, steps: [newStep({ do: fixed.close.do, say: fixed.close.say, notes: fixed.close.notes })] })]
+      });
+    } else {
+      // Aftercare grows to the Top's setting once it's back.
+      phases.push({
+        id: newId('p'),
+        type,
+        beats: [
+          newBeat({ kind: 'immediate', title: fixed.immediate.title, minutes: 5, intensity: 1, steps: [newStep({ do: fixed.immediate.do })] }),
+          newBeat({ kind: 'settled', title: fixed.settled.title, minutes: 5, intensity: 1, steps: [newStep({ do: fixed.settled.do })] }),
+          newBeat({ kind: 'closing', title: fixed.closing.title, minutes: 2, intensity: 1, steps: [newStep({ do: fixed.closing.do, say: fixed.closing.say })] })
+        ]
+      });
+    }
+    apply({ ...current, phases });
+  }
+
   // While a beat is dragged, the map shows where it would land.
   const shown = beatDrag.dragging ? preview(placeBeat(scene, beatDrag.dragging.id, beatDrag.dragging.to.container, beatDrag.dragging.to.index)) : scene;
   const issues = validate(scene, ctx);
+  const red = blocks(issues);
+  const missingRequired = (['arrival', 'descent', 'close', 'aftercare'] as const).filter((t) => !scene.phases.some((p) => p.type === t));
   const auto = automaticFlags(scene, ctx);
   const editingBeat = editing?.kind === 'beat' ? beatById(editing.beatId) : undefined;
   const setupPhase = editing?.kind === 'phase-setup' ? scene.phases.find((p) => p.id === editing.phaseId) : undefined;
@@ -256,6 +301,18 @@ export function SceneEditor() {
             </button>
           ))}
         </div>
+        {missingRequired.length > 0 && (
+          <>
+            <span className="field-label">Put back</span>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {missingRequired.map((t) => (
+                <button key={t} type="button" className="btn btn-outline" onClick={() => addPhase(t)}>
+                  {phaseLabels[t]}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         <p className="note" style={{ margin: 0 }}>
           Aftercare always stays last.
         </p>
@@ -285,10 +342,20 @@ export function SceneEditor() {
       )}
 
       <div className="stack" style={{ gap: 8 }}>
-        {scene.role === 'top' && !scene.noRoles && (
+        {scene.role === 'top' && !scene.noRoles && (scene.live || red.length === 0) && (
           <Link to={`/scenes/${scene.id}/live`} className="btn btn-primary btn-block">
             {scene.live && !scene.live.endedAt ? 'Back to the live scene' : scene.live ? 'Scene record' : 'Start the scene'}
           </Link>
+        )}
+        {scene.role === 'top' && !scene.noRoles && !scene.live && red.length > 0 && (
+          <>
+            <button type="button" className="btn btn-primary btn-block" disabled>
+              Start the scene
+            </button>
+            <p className="note" style={{ margin: 0, textAlign: 'center' }}>
+              Fix the red items above before starting.
+            </p>
+          </>
         )}
         {scene.role === 'top' && !scene.noRoles && (
           <Link to={`/scenes/${scene.id}/vibe`} className="btn btn-outline btn-block">
@@ -417,12 +484,12 @@ export function SceneEditor() {
         <DeleteMoment
           scene={scene}
           target={deleting}
-          onDelete={() => {
+          onDelete={(force) => {
             const { phaseId, beatId } = deleting;
             const next = beatId
               ? mapPhases((p) => (p.id === phaseId ? { ...p, beats: p.beats.filter((b) => b.id !== beatId) } : p))
               : { ...current, phases: current.phases.filter((p) => p.id !== phaseId) };
-            const reason = apply(next);
+            const reason = apply(next, force);
             if (!reason) setDeleting(null);
             return reason;
           }}
@@ -788,12 +855,39 @@ function TrashIcon() {
   );
 }
 
-/** Confirm before a moment, and everything inside it, is deleted (Michael, Nov 25). */
-function DeleteMoment({ scene, target, onDelete, onClose }: { scene: Scene; target: { phaseId: string; beatId?: string }; onDelete: () => string | null; onClose: () => void }) {
+const usualWhy: Record<'arrival' | 'peak' | 'descent' | 'close', string> = {
+  arrival: 'Arrival is where you settle in together and say the signals aloud.',
+  peak: 'The Peak Moment is the high point most scenes build toward.',
+  descent: 'The Descent brings intensity down slowly, with a spoken landing line, before aftercare.',
+  close: 'The Close names one true thing they did before aftercare begins.'
+};
+
+/**
+ * Confirm before a moment, and everything inside it, is deleted (Michael,
+ * Nov 25). Every section but aftercare can go once its warning is ticked
+ * (Michael, Nov 26). A moment a safety rule needs can too, and its red item
+ * stays until it's fixed; nothing sets aside the aftercare rules.
+ */
+function DeleteMoment({
+  scene,
+  target,
+  onDelete,
+  onClose
+}: {
+  scene: Scene;
+  target: { phaseId: string; beatId?: string };
+  onDelete: (force: boolean) => string | null;
+  onClose: () => void;
+}) {
   const [refused, setRefused] = useState('');
+  const [understood, setUnderstood] = useState(false);
   const phase = scene.phases.find((p) => p.id === target.phaseId);
   const beat = target.beatId ? phase?.beats.find((b) => b.id === target.beatId) : undefined;
   if (!phase || (target.beatId && !beat)) return null;
+  // Arrival, Peak Moment, Descent and Close can go after a warning; aftercare can't (Michael, Nov 26).
+  const usual = !beat && (['arrival', 'peak', 'descent', 'close'] as PhaseType[]).includes(phase.type);
+  const inAftercare = phase.type === 'aftercare';
+  const needsTick = usual || (Boolean(refused) && !inAftercare);
   const name = beat ? beat.title || 'this moment' : `the ${momentName(phase.type)}`;
   const inner = beat ? 0 : phase.beats.length;
   const acts = beat ? beat.steps.length : phase.beats.reduce((n, b) => n + b.steps.length, 0);
@@ -803,21 +897,47 @@ function DeleteMoment({ scene, target, onDelete, onClose }: { scene: Scene; targ
       <div className="sheet">
         <h2 id="moment-delete-title">Delete {name}?</h2>
         <p>{parts.length ? `This also deletes ${parts.join(' and ')}.` : 'It has nothing in it yet.'}</p>
+        {usual && (
+          <p className="box box-warn">
+            {usualWhy[phase.type as 'arrival' | 'peak' | 'descent' | 'close']} You can put it back later from "Add a moment".
+          </p>
+        )}
         {refused && (
           <p className="box box-block" role="alert">
             {refused}
+            {inAftercare ? ' Aftercare is the one part every scene keeps.' : " The scene can't be started or sent until this is fixed."}
           </p>
         )}
-        <button
-          type="button"
-          className="btn btn-danger btn-block"
-          onClick={() => {
-            const reason = onDelete();
-            if (reason) setRefused(reason);
-          }}
-        >
-          Delete
-        </button>
+        {needsTick && (
+          <label className="choice" style={{ alignItems: 'flex-start', gap: 10 }}>
+            <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} style={{ marginTop: 4 }} />
+            <span>I understand, and I want to delete it.</span>
+          </label>
+        )}
+        {needsTick ? (
+          <button
+            type="button"
+            className="btn btn-danger btn-block"
+            disabled={!understood}
+            onClick={() => {
+              const reason = onDelete(true);
+              if (reason) setRefused(reason);
+            }}
+          >
+            {refused ? 'Delete anyway' : 'Delete'}
+          </button>
+        ) : inAftercare && refused ? null : (
+          <button
+            type="button"
+            className="btn btn-danger btn-block"
+            onClick={() => {
+              const reason = onDelete(false);
+              if (reason) setRefused(reason);
+            }}
+          >
+            Delete
+          </button>
+        )}
         <button type="button" className="btn btn-secondary btn-block" onClick={onClose}>
           Cancel
         </button>

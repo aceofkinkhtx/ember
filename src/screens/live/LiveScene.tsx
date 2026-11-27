@@ -44,6 +44,7 @@ import { AccountError } from '../../lib/account';
 import { useAccount } from '../../state/account';
 import { useSceneData } from '../../state/sceneContext';
 import { useSettings } from '../../state/settings';
+import { checkInHoursOf } from '../../content/topSetup';
 
 // Live Scene Mode, the Top's side (M6). L1: the pre-scene check, which locks
 // the consent snapshot. L2: the guide, one beat at a time, with timers. L3:
@@ -586,7 +587,7 @@ function Guide({ scene, ctx, onChange, gearLabel }: { scene: Scene; ctx: RuleCon
             </button>
           ) : (
             <button type="button" className="btn btn-primary" style={{ flex: 2, minHeight: 56 }} onClick={() => go(live.beat + 1)}>
-              Next beat ›
+              Next moment ›
             </button>
           )}
         </div>
@@ -838,11 +839,13 @@ function LogList({ live }: { live: LiveState }) {
 
 function Finished({ scene }: { scene: Scene }) {
   const navigate = useNavigate();
+  const { settings } = useSettings();
   const live = scene.live!;
   useEffect(() => {
     clearLocal();
-    // Schedules both people's check-ins: right after, 18 hours, and 3 days of follow-ups.
-    if (scene.share) void scheduleAfterScene(scene.share.id).catch(() => {});
+    // Schedules both people's check-ins: right after, the Top's check-in hours, and 3 days of follow-ups.
+    if (scene.share) void scheduleAfterScene(scene.share.id, checkInHoursOf(settings.top.settings)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene.share]);
   return (
     <Dark>

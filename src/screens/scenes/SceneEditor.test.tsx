@@ -116,5 +116,22 @@ describe('scene editor', () => {
     const keep = screen.getByRole('dialog', { name: /Delete the Aftercare moment/ });
     await userEvent.click(within(keep).getByRole('button', { name: 'Delete' }));
     expect(within(keep).getByRole('alert')).toHaveTextContent('Every scene needs Aftercare.');
+
+    // Aftercare is the one section no warning removes (Michael, Nov 26).
+    expect(within(keep).queryByRole('checkbox')).toBeNull();
+    expect(within(keep).queryByRole('button', { name: /Delete/ })).toBeNull();
+    await userEvent.click(within(keep).getByRole('button', { name: 'Cancel' }));
+
+    // Every other section goes after its warning is ticked, and can be put back.
+    await userEvent.click(screen.getByRole('button', { name: 'Delete the Arrival moment' }));
+    const arrival = screen.getByRole('dialog', { name: /Delete the Arrival moment/ });
+    const del = within(arrival).getByRole('button', { name: 'Delete' });
+    expect(del).toBeDisabled();
+    await userEvent.click(within(arrival).getByRole('checkbox'));
+    await userEvent.click(del);
+    expect(screen.queryByRole('button', { name: 'Delete the Arrival moment' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Start the scene' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Arrival' }));
+    expect(screen.getByRole('button', { name: 'Delete the Arrival moment' })).toBeInTheDocument();
   });
 });

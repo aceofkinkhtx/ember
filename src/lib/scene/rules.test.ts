@@ -94,8 +94,9 @@ describe('a well-built scene', () => {
 });
 
 describe('block: the arc', () => {
-  it.each(['arrival', 'peak', 'descent', 'close', 'aftercare'] as const)('needs a %s phase', (type) => {
-    expect(blockRules(without(goodScene(), type))).toContain('arc');
+  it('needs aftercare, and only aftercare', () => {
+    expect(blockRules(without(goodScene(), 'aftercare'))).toContain('arc');
+    for (const type of ['arrival', 'peak', 'descent', 'close'] as const) expect(blockRules(without(goodScene(), type))).not.toContain('arc');
   });
 
   it('keeps aftercare last and arrival first', () => {

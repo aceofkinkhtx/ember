@@ -234,7 +234,8 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
   const ordered = beatsInOrder(scene);
 
   // Arc
-  const missing = (['arrival', 'peak', 'descent', 'close', 'aftercare'] as const).filter((t) => !types.includes(t));
+  // Aftercare is the one section every scene needs (Michael, Nov 26).
+  const missing = (['aftercare'] as const).filter((t) => !types.includes(t));
   if (missing.length) add('arc', 'block', `Every scene needs ${missing.map((t) => phaseLabels[t]).join(', ')}.`);
   if ((types.includes('aftercare') && types[types.length - 1] !== 'aftercare') || (types.includes('arrival') && types[0] !== 'arrival'))
     add('arc-order', 'block', 'Arrival comes first and aftercare comes last.');
@@ -395,6 +396,9 @@ export function validate(scene: Scene, ctx: RuleContext): Issue[] {
 
   return issues;
 }
+
+/** Rules no warning can set aside: aftercare stays, and stays long enough. */
+export const AFTERCARE_RULES: RuleId[] = ['arc', 'arc-order', 'aftercare'];
 
 export type ChangeResult = { ok: true; issues: Issue[] } | { ok: false; reason: string };
 

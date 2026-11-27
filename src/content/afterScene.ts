@@ -52,7 +52,7 @@ export const bottomReplies = [
 ] as const;
 export type BottomReply = (typeof bottomReplies)[number]['id'];
 
-/** A suggested check-in message in the Top's voice, about 18 hours later. */
+/** A suggested check-in message in the Top's voice, some hours later (12 unless the Top chose otherwise). */
 export function checkInMessage(name: string): string {
   const hello = name ? `Hey ${name}.` : 'Hey.';
   return `${hello} Checking in after our time together. How are you feeling in your body and in your head today? Anything you need from me?`;

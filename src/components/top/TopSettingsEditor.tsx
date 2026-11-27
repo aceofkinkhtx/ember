@@ -7,6 +7,8 @@ import {
   clampSettings,
   startingSettings,
   type CheckInCadence,
+  CHECK_IN_HOURS,
+  checkInHoursOf,
   type TopSettings
 } from '../../content/topSetup';
 import { Segments, TextInput } from '../intake/Bits';
@@ -59,6 +61,12 @@ export function TopSettingsEditor({ value, onChange }: { value: TopSettings; onC
 
       <section className="card stack" style={{ gap: 12 }} aria-label="Check-ins">
         <div className="eyebrow">Between scenes</div>
+        <Segments
+          label="Remind me to check in after a scene"
+          options={CHECK_IN_HOURS.options.map((h) => ({ id: String(h), label: `${h} hours` }))}
+          value={String(checkInHoursOf(value))}
+          onChange={(h) => set({ checkInHours: Number(h) })}
+        />
         <Segments label="Check-ins with each partner" options={cadences} value={value.checkIns} onChange={(checkIns) => set({ checkIns })} />
         <p className="note" style={{ margin: 0 }}>
           These are your own extra check-ins. The after-scene check-ins for you both always happen.

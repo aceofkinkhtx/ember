@@ -56,9 +56,14 @@ export interface Note<T = unknown> {
   shared: Record<string, unknown> | null;
 }
 
-/** Schedules the check-ins for both people, once the scene ends. Safe to repeat. */
-export async function scheduleAfterScene(vibeId: string): Promise<void> {
-  const { error } = await db.rpc('schedule_after_scene', { vibe: vibeId });
+/**
+ * Schedules the check-ins for both people, once the scene ends. Safe to repeat.
+ * The Top passes their check-in hours; the bottom passes none.
+ */
+export async function scheduleAfterScene(vibeId: string, checkinHours?: number): Promise<void> {
+  let { error } = await db.rpc('schedule_after_scene', checkinHours ? { vibe: vibeId, checkin_hours: checkinHours } : { vibe: vibeId });
+  // Until the database takes the Top's hours, it schedules the check-in its old way.
+  if (error && checkinHours && error.code === 'PGRST202') ({ error } = await db.rpc('schedule_after_scene', { vibe: vibeId }));
   if (error) throw new AccountError("Ember couldn't schedule the check-ins. Please try again.");
 }
 
