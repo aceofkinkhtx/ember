@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Chips, TextArea, TextInput } from '../components/intake/Bits';
-import { ToyPhoto } from '../components/toys/ToyCard';
+import { PhotoCropper } from '../components/PhotoCropper';
+import { CroppedImg, ToyPhoto, useToyPhotoUrls } from '../components/toys/ToyCard';
+import { PhotoGallery } from '../components/toys/PhotoGallery';
 import { AccountError, cardFor, listConnections, type Connection } from '../lib/account';
 import { PhotoError, shrinkPhoto } from '../lib/photo';
 import {
@@ -13,7 +15,10 @@ import {
   loadToyRing,
   MAX_PHOTOS,
   photosOf,
+  photoUrl,
   playTypes,
+  thumbOf,
+  type Thumb,
   saveToy,
   setOptOut,
   type Toy,
@@ -37,6 +42,10 @@ export function ToyEdit() {
   // New photos (with a preview link) and saved photos to remove, both applied on Save.
   const [added, setAdded] = useState<{ key: string; bytes: Uint8Array; url: string }[]>([]);
   const [removed, setRemoved] = useState<string[]>([]);
+  // A new thumbnail placement, for the photo that was first when it was set.
+  const [thumb, setThumb] = useState<{ for: string; value: Thumb } | null>(null);
+  const [cropping, setCropping] = useState<Blob | null>(null);
+  const [viewing, setViewing] = useState<number | null>(null);
   const [people, setPeople] = useState<Connection[]>([]);
   const [optedOut, setOptedOut] = useState<string[]>([]);
   const [optedOutBefore, setOptedOutBefore] = useState<string[]>([]);
@@ -76,6 +85,27 @@ export function ToyEdit() {
 
   const kept = toy ? photosOf(toy).filter((p) => !removed.includes(p.id)) : [];
   const room = MAX_PHOTOS - kept.length - added.length;
+  const firstKey = kept[0] ? `kept:${kept[0].id}` : added[0] ? `new:${added[0].key}` : null;
+  const savedThumb = toy && kept[0] && kept[0].id === photosOf(toy)[0]?.id ? thumbOf(toy) : null;
+  const firstThumb = thumb && thumb.for === firstKey ? thumb.value : kept[0] ? savedThumb : null;
+  const keptUrls = useToyPhotoUrls(toy ?? null, gens, viewing !== null);
+  const galleryUrls = [
+    ...kept.map((p) => keptUrls[toy ? photosOf(toy).findIndex((x) => x.id === p.id) : -1] ?? null),
+    ...added.map((a) => a.url)
+  ];
+
+  async function adjustThumb() {
+    setError('');
+    try {
+      if (kept[0] && toy) {
+        const url = await photoUrl(toy, gens, kept[0].id);
+        if (!url) throw new Error();
+        setCropping(await (await fetch(url)).blob());
+      } else if (added[0]) setCropping(new Blob([added[0].bytes as BlobPart], { type: 'image/jpeg' }));
+    } catch {
+      setError("Ember couldn't open that photo. Please try again.");
+    }
+  }
 
   async function pickPhotos(files: File[]) {
     if (!files.length) return;
@@ -83,7 +113,8 @@ export function ToyEdit() {
     const fresh: typeof added = [];
     for (const f of files.slice(0, Math.max(0, room))) {
       try {
-        const bytes = await shrinkPhoto(f);
+        let bytes = await shrinkPhoto(f, 1600);
+        if (bytes.length > 900_000) bytes = await shrinkPhoto(f);
         fresh.push({ key: crypto.randomUUID(), bytes, url: URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'image/jpeg' })) });
       } catch (e) {
         setError(e instanceof PhotoError ? e.message : "Ember couldn't read that photo. Try another.");
@@ -102,7 +133,11 @@ export function ToyEdit() {
     setBusy(true);
     setError('');
     try {
-      const saved = await saveToy(keys, { id: toy?.id, details: { ...details, photos: toy ? photosOf(toy) : [], photoGen: toy?.photoGen ?? null } }, { add: added.map((a) => a.bytes), remove: removed });
+      const saved = await saveToy(
+        keys,
+        { id: toy?.id, details: { ...details, photos: toy ? photosOf(toy) : [], photoGen: toy?.photoGen ?? null, thumb: toy?.thumb } },
+        { add: added.map((a) => a.bytes), remove: removed, thumb: thumb && thumb.for === firstKey ? thumb.value : undefined }
+      );
       for (const c of people) {
         const now = optedOut.includes(c.id);
         if (now !== optedOutBefore.includes(c.id)) await setOptOut(c.id, saved.id, now);
@@ -164,7 +199,10 @@ export function ToyEdit() {
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
             {kept.map((p, i) => (
               <li key={p.id || 'first'} className="stack" style={{ gap: 4 }}>
-                <ToyPhoto toy={toy!} gens={gens} photoId={p.id} />
+                <button type="button" style={{ all: 'unset', cursor: 'pointer', display: 'block' }} aria-label={`See photo ${i + 1} full size`} onClick={() => setViewing(i)}>
+                  <ToyPhoto toy={toy!} gens={gens} photoId={p.id} thumb={i === 0 ? firstThumb : null} />
+                </button>
+                {i === 0 && <span className="note" style={{ textAlign: 'center' }}>Main</span>}
                 <button type="button" className="btn btn-quiet btn-sm" aria-label={`Remove photo ${i + 1}`} onClick={() => setRemoved((r) => [...r, p.id])}>
                   Remove
                 </button>
@@ -172,7 +210,15 @@ export function ToyEdit() {
             ))}
             {added.map((a, i) => (
               <li key={a.key} className="stack" style={{ gap: 4 }}>
-                <img src={a.url} alt={`New photo ${i + 1}`} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 12 }} />
+                <button
+                  type="button"
+                  style={{ all: 'unset', cursor: 'pointer', display: 'block', position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden' }}
+                  aria-label={`See new photo ${i + 1} full size`}
+                  onClick={() => setViewing(kept.length + i)}
+                >
+                  <CroppedImg url={a.url} thumb={kept.length === 0 && i === 0 ? firstThumb : null} />
+                </button>
+                {kept.length === 0 && i === 0 && <span className="note" style={{ textAlign: 'center' }}>Main</span>}
                 <button
                   type="button"
                   className="btn btn-quiet btn-sm"
@@ -205,6 +251,11 @@ export function ToyEdit() {
             }}
           />
         ))}
+        {firstKey && (
+          <button type="button" className="btn btn-outline btn-sm" style={{ alignSelf: 'center' }} onClick={() => void adjustThumb()}>
+            Adjust the thumbnail
+          </button>
+        )}
         {room > 0 ? (
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button type="button" className="btn btn-secondary" onClick={() => camera.current?.click()}>
@@ -307,6 +358,19 @@ export function ToyEdit() {
           Delete
         </button>
       )}
+
+      {cropping && (
+        <PhotoCropper
+          file={cropping}
+          initial={firstThumb}
+          onCancel={() => setCropping(null)}
+          onPlace={(value) => {
+            if (firstKey) setThumb({ for: firstKey, value });
+            setCropping(null);
+          }}
+        />
+      )}
+      {viewing !== null && <PhotoGallery title={details.name || 'this item'} urls={galleryUrls} start={viewing} onClose={() => setViewing(null)} />}
 
       {confirmDelete && (
         <div className="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="toy-delete-title">

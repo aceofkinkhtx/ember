@@ -9,6 +9,7 @@ import type { Toy } from '../../lib/toys';
 import { useAccount } from '../../state/account';
 import { TextArea, TextInput } from '../intake/Bits';
 import { ActivityList, ActivityTag, useAddActivity } from './ActivityPicker';
+import { NumberField } from '../NumberField';
 
 // The edit sheet (S5): one sheet for a moment (a beat), one for an activity
 // (a step). In the app, the top-level sections are "moments" too (Michael,
@@ -77,6 +78,7 @@ export function BeatSheet({
   const [b, setB] = useState<Beat>(beat);
   const [toPhase, setToPhase] = useState(phaseId);
   const [refused, setRefused] = useState('');
+  const [minutesOk, setMinutesOk] = useState(true);
   const [newFlag, setNewFlag] = useState<{ kind: FlagKind; text: string }>({ kind: 'info', text: '' });
   const set = (patch: Partial<Beat>) => setB((x) => ({ ...x, ...patch }));
   const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
@@ -86,10 +88,7 @@ export function BeatSheet({
       {preview && <LiveMap scene={preview(b, toPhase)} />}
       <TextInput label="Goal, in one line" value={b.title} max={80} onChange={(title) => set({ title })} />
       <div style={{ display: 'flex', gap: 10 }}>
-        <label className="field" style={{ flex: 1 }}>
-          <span className="field-label">Minutes</span>
-          <input className="input" type="number" inputMode="numeric" min={1} max={480} value={b.minutes} onChange={(e) => set({ minutes: Math.max(1, Math.min(480, Number(e.target.value) || 1)) })} />
-        </label>
+        <NumberField label="Minutes" style={{ flex: 1 }} min={1} max={480} value={b.minutes} onChange={(minutes) => set({ minutes })} onValid={setMinutesOk} />
         <label className="field" style={{ flex: 1 }}>
           <span className="field-label">Inside</span>
           <select className="input" value={toPhase} onChange={(e) => setToPhase(e.target.value)}>
@@ -192,6 +191,7 @@ export function BeatSheet({
       <button
         type="button"
         className="btn btn-primary btn-block"
+        disabled={!minutesOk}
         onClick={() => {
           const reason = onSave(b, toPhase);
           if (reason) setRefused(reason);
@@ -465,6 +465,7 @@ export function MinutesSheet({
   onClose: () => void;
 }) {
   const [minutes, setMinutes] = useState(value);
+  const [minutesOk, setMinutesOk] = useState(true);
   const [refused, setRefused] = useState('');
   const label = `${Math.floor(minutes / 60) ? `${Math.floor(minutes / 60)} h ` : ''}${minutes % 60 ? `${minutes % 60} min` : ''}`.trim() || '0 min';
   return (
@@ -477,20 +478,20 @@ export function MinutesSheet({
         <span className="field-label">
           Length: <strong>{label}</strong>
         </span>
-        <input type="range" min={min} max={max} step={1} value={minutes} aria-valuetext={label} onChange={(e) => setMinutes(Number(e.target.value))} />
-      </label>
-      <label className="field">
-        <span className="field-label">Or type minutes</span>
         <input
-          className="input"
-          type="number"
-          inputMode="numeric"
+          type="range"
           min={min}
           max={max}
+          step={1}
           value={minutes}
-          onChange={(e) => setMinutes(Math.max(min, Math.min(max, Number(e.target.value) || min)))}
+          aria-valuetext={label}
+          onChange={(e) => {
+            setMinutes(Number(e.target.value));
+            setMinutesOk(true);
+          }}
         />
       </label>
+      <NumberField label="Or type minutes" min={min} max={max} value={minutes} onChange={setMinutes} onValid={setMinutesOk} />
       {refused && (
         <p className="box box-block" role="alert">
           {refused}
@@ -499,6 +500,7 @@ export function MinutesSheet({
       <button
         type="button"
         className="btn btn-primary btn-block"
+        disabled={!minutesOk}
         onClick={() => {
           const reason = onSave(minutes);
           if (reason) setRefused(reason);

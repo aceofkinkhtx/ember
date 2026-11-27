@@ -2,6 +2,13 @@
 
 Decisions Michael made outside the spec tabs, newest first. The spec still wins where it is more specific.
 
+## Nov 27, 2026
+
+- **Notifications are checkboxes** in Me, one per kind, all on to start: Daily tips (with its time), Check-in reminders, Messages, and Scene requests. Scene requests used to share a switch with messages; they now have their own (database: `wants_requests` on push_subscriptions, copied from each phone's messages setting so nobody's alerts change).
+- **Number boxes can be cleared.** Minutes for a moment or a section can be deleted and retyped. While a box is empty or below 1 it says "Enter at least 1 minute." (or above the most, "At most 480 minutes."), and Save waits until it's fixed.
+- **Gear photo gallery.** Tapping a gear photo opens all its photos full screen, whole and uncropped, to swipe through (with Previous and Next buttons too). In your own gear this is in the item's page; in a connection's shared gear, tapping an item with photos opens them. Gear photos are now kept at up to 1600 px on the long side (1000 before), dropping to 1000 px if a photo would be over the 1 MB storage limit.
+- **Gear thumbnail.** "Adjust the thumbnail" places the main (first) photo in its square the same way as a profile picture: drag, pinch or slider. Only the placement is saved, inside the locked gear record, so the photo stays whole. A new main photo starts centred.
+
 ## Nov 26, 2026
 
 - **Messages first.** On a connection's page, "Message {name}" is now the first thing under their name, as a full-width button.

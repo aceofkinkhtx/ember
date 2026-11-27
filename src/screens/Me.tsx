@@ -148,7 +148,10 @@ export function Me() {
 
       <section className="card" aria-label="Notifications">
         <div className="eyebrow">Notifications</div>
-        <SettingSwitch
+        <p className="setting-desc" style={{ margin: '0 0 4px' }}>
+          Tick what you'd like to hear about. All of them start on.
+        </p>
+        <NoteBox
           label="Daily tips"
           description={`One short note a day on Home, for the role you're in.${settings.roles === 'both' ? ' Tops and bottoms each have their own.' : ''}`}
           checked={settings.notifications.dailyTips}
@@ -167,17 +170,23 @@ export function Me() {
             />
           </label>
         )}
-        <SettingSwitch
+        <NoteBox
           label="Check-in reminders"
           description="Right after a scene, a few hours later, and once a day for 3 days. The check-in itself always stays in the app."
           checked={settings.notifications.checkIns}
           onChange={(checkIns) => setNotes({ checkIns })}
         />
-        <SettingSwitch
-          label="Messages and scene requests"
-          description="When someone you're connected to sends a message or a scene request, or answers yours."
+        <NoteBox
+          label="Messages"
+          description="When someone you're connected to sends you a message."
           checked={settings.notifications.messages}
           onChange={(messages) => setNotes({ messages })}
+        />
+        <NoteBox
+          label="Scene requests"
+          description="When someone sends you a scene request or a design, or answers yours."
+          checked={settings.notifications.requests}
+          onChange={(requests) => setNotes({ requests })}
         />
         <PhoneAlerts wants={pushWantsFrom(settings.notifications)} />
       </section>
@@ -272,7 +281,26 @@ function AccountSection() {
  * alert text is always generic, and it passes through the phone maker's push
  * service; the check-ins and messages stay in Ember.
  */
-const pushWantsFrom = (n: Settings['notifications']): PushWants => ({ checkins: n.checkIns, messages: n.messages, tips: n.dailyTips, tipTime: n.tipTime });
+const pushWantsFrom = (n: Settings['notifications']): PushWants => ({
+  checkins: n.checkIns,
+  messages: n.messages,
+  requests: n.requests,
+  tips: n.dailyTips,
+  tipTime: n.tipTime
+});
+
+/** One kind of notification as a checkbox (Michael, Nov 27). */
+function NoteBox({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <label className="note-box">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span>
+        <span className="setting-label">{label}</span>
+        <span className="setting-desc">{description}</span>
+      </span>
+    </label>
+  );
+}
 
 function PhoneAlerts({ wants }: { wants: PushWants }) {
   const { status } = useAccount();

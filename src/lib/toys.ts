@@ -56,6 +56,24 @@ export interface ToyDetails {
   photoGen: number | null;
   /** Every photo, first one first (Michael, Nov 26). Missing on gear saved before then. */
   photos?: ToyPhotoRef[];
+  /** Where the thumbnail sits on the first photo (Michael, Nov 27); centred when missing. */
+  thumb?: Thumb & { photoId: string };
+}
+
+/**
+ * A square thumbnail's place on a photo, in the square's own widths: its
+ * top-left corner (x, y) and the photo's width (z). The photo stays whole.
+ */
+export interface Thumb {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** The thumbnail placement for the first photo, if one was chosen for it. */
+export function thumbOf(t: ToyDetails): Thumb | null {
+  const first = photosOf(t)[0];
+  return first && t.thumb && t.thumb.photoId === first.id ? t.thumb : null;
 }
 
 /** One photo of a piece of gear. The first photo ever saved has the id "". */
@@ -76,6 +94,8 @@ export function photosOf(t: ToyDetails): ToyPhotoRef[] {
 export interface PhotoEdits {
   add: Uint8Array[];
   remove: string[];
+  /** A new thumbnail placement for whichever photo ends up first. */
+  thumb?: Thumb;
 }
 
 export interface Toy extends ToyDetails {
@@ -192,6 +212,8 @@ export async function saveToy(keys: StoredKeys, toy: { id?: string; details: Toy
   if (edits.add.length || edits.remove.length) forgetPhoto(id);
   details.photos = photos;
   details.photoGen = photos[0]?.gen ?? null;
+  if (edits.thumb && photos[0]) details.thumb = { ...edits.thumb, photoId: photos[0].id };
+  else if (!thumbOf(details)) delete details.thumb;
 
   const now = new Date().toISOString();
   const sealed = await sealToy(details, gen);

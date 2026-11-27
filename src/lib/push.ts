@@ -32,12 +32,14 @@ function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
 export interface PushWants {
   checkins: boolean;
   messages: boolean;
+  /** Scene requests and designs sent to you, and answers to yours (Nov 27). */
+  requests: boolean;
   tips: boolean;
   /** "HH:MM" on this phone's clock. */
   tipTime: string;
 }
 
-export const anyAlerts = (w: PushWants) => w.checkins || w.messages || w.tips;
+export const anyAlerts = (w: PushWants) => w.checkins || w.messages || w.requests || w.tips;
 
 function phoneTimeZone(): string {
   try {
@@ -57,6 +59,7 @@ export function tipMinute(time: string): number {
 const wantsRow = (w: PushWants) => ({
   wants_checkins: w.checkins,
   wants_messages: w.messages,
+  wants_requests: w.requests,
   wants_tips: w.tips,
   tip_minute: tipMinute(w.tipTime),
   time_zone: phoneTimeZone()

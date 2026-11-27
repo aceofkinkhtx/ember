@@ -23,7 +23,7 @@ export interface Settings {
   biometric: BiometricRecord | null;
   safetyFloorAcknowledgedAt: string | null;
   /** tipTime is "HH:MM" on this phone's clock, when the daily note alert comes (M8). */
-  notifications: { dailyTips: boolean; tipTime: string; checkIns: boolean; messages: boolean };
+  notifications: { dailyTips: boolean; tipTime: string; checkIns: boolean; messages: boolean; requests: boolean };
   /** When the monthly donation note last appeared. */
   donationPromptedAt: string | null;
   /** The day (YYYY-MM-DD, local) daily tips were first shown on this phone (M8). */
@@ -47,7 +47,7 @@ export const defaultSettings: Settings = {
   pin: null,
   biometric: null,
   safetyFloorAcknowledgedAt: null,
-  notifications: { dailyTips: true, tipTime: '09:00', checkIns: true, messages: true },
+  notifications: { dailyTips: true, tipTime: '09:00', checkIns: true, messages: true, requests: true },
   donationPromptedAt: null,
   tipsStartedOn: null,
   tourSeenAt: null,

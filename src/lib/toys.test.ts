@@ -26,3 +26,21 @@ describe('check-in reminder hours', () => {
     expect(checkInHoursOf({ checkInHours: 24 })).toBe(24);
   });
 });
+
+describe('gear thumbnail', () => {
+  it('belongs to the first photo, and is dropped when that photo changes', async () => {
+    const { thumbOf } = await import('./toys');
+    const photos = [{ id: '', gen: 1 }, { id: 'b', gen: 1 }];
+    const t = { ...emptyToy(), photoGen: 1, photos, thumb: { photoId: '', x: 0.1, y: 0.2, z: 1.5 } };
+    expect(thumbOf(t)).toEqual({ photoId: '', x: 0.1, y: 0.2, z: 1.5 });
+    expect(thumbOf({ ...t, photos: [photos[1]] })).toBeNull();
+  });
+});
+
+describe('notifications', () => {
+  it('are all on by default, scene requests included', async () => {
+    const { defaultSettings } = await import('../state/settings');
+    const n = defaultSettings.notifications;
+    expect([n.dailyTips, n.checkIns, n.messages, n.requests]).toEqual([true, true, true, true]);
+  });
+});

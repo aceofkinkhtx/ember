@@ -1,13 +1,25 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { clampPlacement, coverScale, cropSquare, loadImage, PhotoError, startPlacement, zoomAround, type LoadedImage, type Placement } from '../lib/photo';
+import { clampPlacement, coverScale, cropRect, cropSquare, loadImage, PhotoError, startPlacement, zoomAround, type LoadedImage, type Placement } from '../lib/photo';
+import type { Thumb } from '../lib/toys';
 
 // Placing a profile picture in its circle: drag to move, pinch or use the
-// slider to zoom. Only the part inside the circle is kept.
+// slider to zoom. Only the part inside the circle is kept. Gear uses the same
+// frame as a square to choose its thumbnail (Michael, Nov 27): the photo
+// itself stays whole, and only where the thumbnail sits is saved.
 
 const FRAME = 280;
 const MAX_ZOOM = 4;
 
-export function PhotoCropper({ file, onCancel, onDone }: { file: File; onCancel: () => void; onDone: (bytes: Uint8Array) => Promise<void> }) {
+type CropperProps = {
+  file: Blob;
+  onCancel: () => void;
+} & (
+  | { onDone: (bytes: Uint8Array) => Promise<void>; onPlace?: never; initial?: never }
+  | { onPlace: (thumb: Thumb) => void; initial?: Thumb | null; onDone?: never }
+);
+
+export function PhotoCropper({ file, onCancel, onDone, onPlace, initial }: CropperProps) {
+  const square = Boolean(onPlace);
   const [image, setImage] = useState<LoadedImage | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [place, setPlace] = useState<Placement | null>(null);
@@ -27,7 +39,11 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File; onCancel:
         if (!live) return img.close();
         setImage(img);
         setUrl(objectUrl);
-        setPlace(startPlacement(img.width, img.height, FRAME));
+        setPlace(
+          initial
+            ? clampPlacement({ scale: (FRAME * initial.z) / img.width, x: -initial.x * FRAME, y: -initial.y * FRAME }, img.width, img.height, FRAME)
+            : startPlacement(img.width, img.height, FRAME)
+        );
       },
       (e) => live && setError(e instanceof PhotoError ? e.message : "Ember couldn't open that photo. Try another.")
     );
@@ -101,10 +117,15 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File; onCancel:
 
   async function save() {
     if (!image || !place) return;
+    if (onPlace) {
+      const { sx, sy, size } = cropRect(place, FRAME);
+      onPlace({ x: sx / size, y: sy / size, z: image.width / size });
+      return;
+    }
     setBusy(true);
     setError('');
     try {
-      await onDone(await cropSquare(image, place, FRAME));
+      await onDone!(await cropSquare(image, place, FRAME));
     } catch (e) {
       setError(e instanceof Error && e.message ? e.message : "Ember couldn't use that picture. Try another.");
       setBusy(false);
@@ -115,7 +136,7 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File; onCancel:
     <div className="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="crop-title">
       <div className="sheet stack" style={{ gap: 14, alignItems: 'center', maxHeight: '92vh', overflowY: 'auto' }}>
         <h2 id="crop-title" style={{ margin: 0, alignSelf: 'flex-start' }}>
-          Place your picture
+          {square ? 'Choose the thumbnail' : 'Place your picture'}
         </h2>
         {error && !image ? (
           <p className="note error" role="alert" style={{ margin: 0 }}>
@@ -124,14 +145,16 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File; onCancel:
         ) : (
           <>
             <p className="note" style={{ margin: 0, alignSelf: 'flex-start' }}>
-              Drag to move it. Pinch or use the slider to zoom. Only what's inside the circle is kept.
+              {square
+                ? "Drag to move it. Pinch or use the slider to zoom. The square is what shows in your gear; the whole photo is kept."
+                : "Drag to move it. Pinch or use the slider to zoom. Only what's inside the circle is kept."}
             </p>
             <div
               ref={stage}
               className="cropper"
               tabIndex={0}
               role="img"
-              aria-label="Your picture in its circle. Use the arrow keys to move it, and plus or minus to zoom."
+              aria-label={`Your picture in its ${square ? 'square' : 'circle'}. Use the arrow keys to move it, and plus or minus to zoom.`}
               style={{ width: FRAME, height: FRAME }}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
@@ -149,7 +172,7 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File; onCancel:
               ) : (
                 <span className="note">Opening...</span>
               )}
-              <span className="cropper-ring" aria-hidden="true" />
+              <span className={square ? 'cropper-ring square' : 'cropper-ring'} aria-hidden="true" />
             </div>
             <label className="field" style={{ width: FRAME }}>
               <span className="field-label">Zoom</span>
@@ -171,7 +194,7 @@ export function PhotoCropper({ file, onCancel, onDone }: { file: File; onCancel:
           </>
         )}
         <button type="button" className="btn btn-primary btn-block" disabled={!place || busy} onClick={() => void save()}>
-          {busy ? 'Saving...' : 'Use this picture'}
+          {busy ? 'Saving...' : square ? 'Use this thumbnail' : 'Use this picture'}
         </button>
         <button type="button" className="btn btn-secondary btn-block" disabled={busy} onClick={onCancel}>
           Cancel

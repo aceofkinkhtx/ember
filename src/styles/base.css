@@ -1250,3 +1250,84 @@ select {
   padding: 6px 14px;
   font-size: 15px;
 }
+
+/* Gear crop frame: a rounded square, like the gear thumbnails (Nov 27). */
+.cropper-ring.square {
+  border-radius: 12px;
+}
+
+/* Gear photo gallery (Nov 27): full screen, swipe between full, uncropped photos. */
+.gallery {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #0d0a0b;
+  color: #fffaf4;
+  display: flex;
+  flex-direction: column;
+}
+.gallery-bar,
+.gallery-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  padding-top: max(12px, env(safe-area-inset-top));
+}
+.gallery-nav {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+.gallery .gallery-close {
+  color: #fffaf4;
+  border-color: rgba(255, 250, 244, 0.6);
+  background: transparent;
+}
+.gallery-track {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.gallery-track::-webkit-scrollbar {
+  display: none;
+}
+.gallery-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  display: grid;
+  place-items: center;
+  padding: 0 8px;
+}
+.gallery-slide img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.gallery-slide .note {
+  color: rgba(255, 250, 244, 0.75);
+}
+
+/* Notifications in Me as checkboxes (Nov 27). */
+.note-box {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+.note-box input {
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+  flex: none;
+  accent-color: var(--accent);
+}
+.note-box .setting-label,
+.note-box .setting-desc {
+  display: block;
+}

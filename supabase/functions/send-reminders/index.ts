@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     const users = [...new Set(due.map((r) => r.user_id))];
     const { data: subs } = await admin
       .from('push_subscriptions')
-      .select('id, user_id, endpoint, p256dh, auth, wants_checkins, wants_messages')
+      .select('id, user_id, endpoint, p256dh, auth, wants_checkins, wants_messages, wants_requests')
       .in('user_id', users);
     for (const user of users) {
       const mine = due.filter((r) => r.user_id === user);
@@ -69,8 +69,8 @@ Deno.serve(async (req) => {
       const messages = mine.some((r) => r.kind === 'message');
       for (const s of (subs ?? []).filter((x) => x.user_id === user)) {
         // One alert per phone per run: a check-in, then a scene request, then a message.
-        // Scene requests follow the "Messages and scene requests" switch.
-        const kind = checkins && s.wants_checkins ? 'checkin' : negotiations && s.wants_messages ? 'negotiation' : messages && s.wants_messages ? 'message' : null;
+        // Scene requests have their own checkbox (Nov 27).
+        const kind = checkins && s.wants_checkins ? 'checkin' : negotiations && s.wants_requests ? 'negotiation' : messages && s.wants_messages ? 'message' : null;
         if (kind) await push(s, kind);
       }
     }
