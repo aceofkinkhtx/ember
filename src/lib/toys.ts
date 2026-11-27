@@ -51,6 +51,10 @@ export interface ToyDetails {
   name: string;
   feel: Feel[];
   types: PlayType[];
+  /** What it is, in a line or two (Michael, Nov 27). Missing on gear saved before then. */
+  description?: string;
+  /** What it's made of (Michael, Nov 27). Missing on gear saved before then. */
+  material?: string;
   notes: string;
   /** Which toy key locked the first photo; null when there is no photo. Kept for older copies of Ember. */
   photoGen: number | null;
@@ -105,7 +109,7 @@ export interface Toy extends ToyDetails {
 }
 
 export function emptyToy(): ToyDetails {
-  return { name: '', feel: [], types: [], notes: '', photoGen: null };
+  return { name: '', feel: [], types: [], description: '', material: '', notes: '', photoGen: null };
 }
 
 export const BUCKET = 'toy-photos';

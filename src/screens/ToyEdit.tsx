@@ -28,8 +28,9 @@ import { useAccount } from '../state/account';
 import { useSettings } from '../state/settings';
 import { displayName } from './Connections';
 
-// T2: add or edit a toy. Photos (up to six, Michael Nov 26), then three taps
-// (feel, play type, name), notes, and which connections it stays out of scenes with.
+// T2: add or edit a toy. Photos (up to six, Michael Nov 26), then how it feels,
+// kind of play, name, description, material and notes (Michael, Nov 27), and
+// which connections it stays out of scenes with.
 
 export function ToyEdit() {
   const { id } = useParams();
@@ -290,8 +291,23 @@ export function ToyEdit() {
         />
         <TextInput label="3. Name" value={details.name} max={60} onChange={(name) => setDetails((d) => ({ ...d, name }))} />
         <TextArea
-          label="Notes"
-          hint="Anything worth remembering: size, material, cleaning, how it lands."
+          label="4. Description"
+          hint="What it is, in a line or two."
+          value={details.description ?? ''}
+          rows={2}
+          max={500}
+          onChange={(description) => setDetails((d) => ({ ...d, description }))}
+        />
+        <TextInput
+          label="5. Material"
+          hint="Leather, silicone, hemp, steel..."
+          value={details.material ?? ''}
+          max={80}
+          onChange={(material) => setDetails((d) => ({ ...d, material }))}
+        />
+        <TextArea
+          label="6. Notes"
+          hint="Anything worth remembering: size, cleaning, how it lands."
           value={details.notes}
           rows={3}
           max={1000}
